@@ -292,7 +292,7 @@ From the best model per task, four scores are exported (each gene scored by a mo
 - `score_translational` — $\text{score\_rank} \times \text{score\_direction}$.
 
 #### VIII.B.7 Model serialisation and application
-The best workflows are reduced with `butcher()` and stored with `compress = "xz"` (`rf_model_*.rds`, `nn_model_*.rds` in `Modelling/Models/`) so they can be reloaded and applied to new mouse experiments with `predict()`. The interactive app (`Run your analysis here/MouseToHuman_app.Rmd`) and the worked example (`RunYourAnalysis_MouseToHuman_v2.Rmd`) consume these artefacts directly.
+The best workflows are reduced with `butcher()` and stored with `compress = "xz"` (`rf_model_*.rds`, `nn_model_*.rds` in `Modelling/Models/`) so they can be reloaded and applied to new mouse experiments with `predict()`. Two resources consume these artefacts directly: the **recommended step-by-step R Markdown notebook** (`Run your analysis here/RunYourAnalysis_MouseToHuman.Rmd`), which walks through DGE input, GSEA, prediction and score visualisation, and an **optional interactive flexdashboard / Shiny app** (`Run your analysis here/MouseToHuman_app.Rmd`) that provides the same workflow through a browser interface.
 
 ---
 
@@ -307,6 +307,7 @@ renv::restore()
 ### IX.B Code Availability & Reproducibility Scripts
 - **Primary GitHub Repository:** `https://github.com/wapsyed/animals_vax_atlas`
 - **Minimal Worked Example:** `example/example_btm_correlation.R` demonstrates end-to-end BTM correlation computation from cached tables in $< 2$ minutes.
+- **Applying the models:** `Run your analysis here/RunYourAnalysis_MouseToHuman.Rmd` is a step-by-step R Markdown notebook that applies the trained models to a new mouse experiment (DGE input → GSEA → prediction → scores); an optional Shiny front-end (`Run your analysis here/MouseToHuman_app.Rmd`) is also provided.
 
 ---
 

@@ -199,9 +199,9 @@ Outputs are saved directly to `Figures/example_btm_correlation_day7.png`.
 
 ------------------------------------------------------------------------
 
-## Statistical modelling (v2) {#statistical-modelling-v2}
+## Statistical modelling {#statistical-modelling-v2}
 
-The consolidated pipeline [`Modelling/6_Statistical_Modelling_v2.Rmd`](Modelling/6_Statistical_Modelling_v2.Rmd) predicts the **human** response gene by gene from a mouse experiment, using biological feature layers and **leave-one-pathogen-out (LOCO)** cross-validation.
+The consolidated pipeline `Modelling/6_Statistical_Modelling.Rmd` predicts the **human** response gene by gene from a mouse experiment, using biological feature layers and **leave-one-pathogen-out (LOCO)** cross-validation.
 
 ### Design
 
@@ -214,7 +214,7 @@ The consolidated pipeline [`Modelling/6_Statistical_Modelling_v2.Rmd`](Modelling
 ### Best model per task (out-of-fold, LOCO)
 
 | Task | Metric | Random Forest | Neural Network | Lasso | Linear |
-|:-----------|:-----------|:----------:|:------------:|:----------:|:----------:|
+|:-----------|:-----------|:----------:|:----------:|:----------:|:----------:|
 | Shared LEGs (predictive, Full + BTM) | ROC-AUC | **0.557** | 0.536 | 0.489 | 0.487 |
 | Shared LEGs (explanatory, Full + BTM) | ROC-AUC | **0.592** | 0.580 | 0.507 | 0.521 |
 | Human rank transfer (Mouse + layers) | R² | **0.234** | 0.068 | 0.072 | 0.072 |
@@ -248,8 +248,7 @@ Every gene is scored by a model trained without its pathogen:
 
 Resources to help you apply the models:
 
-- **Interactive app (flexdashboard / Shiny):** [`Run your analysis here/MouseToHuman_app.Rmd`](Run%20your%20analysis%20here/MouseToHuman_app.Rmd) — upload your DGE table, choose the gene set (BTM or your own TERM2GENE file), set score cutoffs, and get the selected genes, a heatmap and interactive score plots.
-- **Worked example:** [`Run your analysis here/RunYourAnalysis_MouseToHuman_v2.Rmd`](Run%20your%20analysis%20here/RunYourAnalysis_MouseToHuman_v2.Rmd) — full flow from DGE input to GSEA and model prediction.
+- **Notebook (recommended):** <https://github.com/wapsyed/mousetohuman_predict> — a step-by-step R Markdown notebook covering the full flow from DGE input to GSEA, model prediction and score visualisation.
 - **Guide:** the companion file `example_apply_model.md` (in the `academics_ai_personal` repository) documents the input requirements, the score definitions and the cutoffs.
 
 ------------------------------------------------------------------------

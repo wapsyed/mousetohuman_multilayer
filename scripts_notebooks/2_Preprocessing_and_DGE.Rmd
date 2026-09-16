@@ -8,11 +8,9 @@ output: html_document
 Load the `here` package and source the project-wide library and utility script.
 
 ```{r}
-# Install R package from CRAN (one-time setup; eval = FALSE in the chunk header)
+# Install R package from CRAN
 install.packages("here")
-# Load required R package: makes its functions available in the current session
 library(here)
-# Source project-level scripts: loads shared libraries, colour palettes, and utility functions
 source(here("scripts_notebooks", "required.R"))
 ```
 
@@ -31,15 +29,13 @@ Download the Fluad/MF59 mouse dataset (GSE120661) from GEO. Extract metadata fro
 ```{r eval=FALSE, message=FALSE, warning=FALSE, echo=TRUE, cache = TRUE}
 # Download the GEO ExpressionSet
 filename = "GSE120661"
-# Download GEO ExpressionSet using GEOquery package: retrieves both expression data and phenotype metadata
 GSE120661 <- getGEO("GSE120661", GSEMatrix = TRUE) 
-# Unlist the GEO download result: extract the ExpressionSet object from the list wrapper
 eset <- GSE120661[[1]]
 
 # Clean and save metadata
 GSE120661_metadata = eset %>% 
   pData() %>% 
-# Reorder columns: place comparison/condition column first for readability
+# Reorder columns
   dplyr::select( 
     geo_sample = "geo_accession", 
     subject_id = "title",
@@ -58,13 +54,11 @@ GSE120661_metadata = eset %>%
 write_csv(GSE120661_metadata, file = here("tables", "influenza_hepatitisb_GSE120661_metadata.csv"))
 
 # Extract and save expression matrix
-# Extract raw expression matrix from the ExpressionSet: probes in rows, samples in columns
 eset <- exprs(eset)
 
 #Save
 eset %>% 
   as.data.frame() %>% 
-# Save R object to disk in native RDS format: preserves data types and structure for fast loading
   saveRDS(here("tables", "influenza_hepatitisb_GSE120661_exprs.rds"))
 
 ```
@@ -80,7 +74,6 @@ GSE120661_counts_not_normalized_log2 = readRDS(here("tables","influenza_hepatiti
 # Pivot to long format
 GSE120661_exprs_distribution = GSE120661_exprs %>% 
   rownames_to_column("probes") %>% 
-# Reshape expression data from wide (columns = samples) to long (rows = probe × sample) format for tidyverse workflows
   pivot_longer(cols = -probes,
                names_to = "sample_id",
                values_to = "value") 
@@ -88,10 +81,8 @@ GSE120661_exprs_distribution = GSE120661_exprs %>%
 # Plot expression histogram for the first sample
 GSE120661_exprs_distribution %>% 
   filter(sample_id == "GSM3407136") %>% 
-# Create ggplot object: maps data to aesthetic (x = expression value)
   ggplot() +
   aes(x = value) +
-# Plot histogram: visualises the distribution of expression values for quality control
   geom_histogram()
 ```
 
@@ -107,7 +98,6 @@ GSE120661_metadata = read_csv(here("tables", "influenza_hepatitisb_GSE120661_met
 
 # Clean factor levels
 GSE120661_metadata = GSE120661_metadata %>% 
-# Convert timepoint to integer: represents hours/days consistently for downstream operations
   mutate(timepoint = as.integer(timepoint) %>% 
            as.character() %>% 
            as.factor() %>% 
@@ -220,10 +210,7 @@ inner_join(annot %>%
   slice_max(median, n = 1) %>%
   ungroup() %>% 
   select(-ensembl_gene_id) %>% 
-# Remove duplicate rows: eliminates redundant probe-to-gene mappings (one probe may match multiple transcript clusters)
   distinct() %>% 
-  
-  # Collapse multiple Ensembl IDs per Entrez ID
   group_by(entrezgene_id) %>% 
   # Keep probe with highest median expression per gene
   slice_max(median, n = 1) %>%  #21.863 probes/entrez_ids
@@ -232,7 +219,6 @@ inner_join(annot %>%
   
   # Join human orthologs, collapse to one row per HGNC symbol
   inner_join(HS_MM_Symbol_Entrez, by = c("mouse_entrez", "mgi_symbol")) %>% 
-# Group by human gene symbol: after orthology mapping, collapse mouse genes that map to the same human gene
   group_by(hgnc_symbol) %>% 
   # Keep probe with highest median expression per gene
   slice_max(median, n = 1)  %>% #14.396
@@ -397,7 +383,8 @@ corfit$consensus #0.024
 # Array weights
 # Calculate sample quality weights
 aw <- arrayWeights(eset_filtered, design)
-# Barplot of array weights: visual diagnostic to identify low-quality arrays (bars near zero indicate problematic samples)
+
+# Barplot of array weights
 barplot(aw, 
         names.arg = eset_filtered$condition,
         main = "Sample Weights Diagnostic", 
@@ -10778,13 +10765,11 @@ degs_ttest_limma_summary
 # Plot number of DEGs per test and significance level
 degs_ttest_limma_summary_plot_gg_1row = degs_ttest_limma_summary %>%
   filter(pathogen %in% c("Influenza", "HepB")) %>% 
-# Initialise ggplot with aesthetic mappings: defines variables for x-axis, y-axis, colour, and fill
   ggplot(aes(
     x = timepoint,
     y = n_degs,
     fill = test
   )) +
-# Create faceted plot: split data into sub-panels by condition or organism for side-by-side comparison
   facet_wrap(~pathogen~organism, 
                     scales = "free",
                     space = "free_x",
@@ -10793,19 +10778,15 @@ degs_ttest_limma_summary_plot_gg_1row = degs_ttest_limma_summary %>%
              ) +
   geom_col(position = position_dodge2(width = 0.8),
            width = 0.5) +
-  # Manual colors per test
   scale_fill_manual(values = c(
     "t-Test" = "gray25",
     "Limma" = "#4DBBD5FF"
   )) +
   
-# Configure x-axis: set position, expansion, breaks, and labels
   scale_x_discrete(
     expand = c(0.01, 0.01)
   ) +
   scale_y_continuous(expand = c(0, 0), n.breaks = 5) +
-  
-# Apply project-specific ggplot theme: consistent fonts, gridlines, and legend styling across all figures
   theme_vaxgo() +
   labs(
     title = "Total DEGs by test and timepoint",
@@ -10815,8 +10796,6 @@ degs_ttest_limma_summary_plot_gg_1row = degs_ttest_limma_summary %>%
     fill = "Test",
     alpha = "Pairing"
   ) +
-
-# Customise theme elements: remove/minimise gridlines, adjust axis text, and fine-tune legend placement
   theme(
     legend.position = "top",
     axis.line.y = element_blank(),
@@ -10826,13 +10805,11 @@ degs_ttest_limma_summary_plot_gg_1row = degs_ttest_limma_summary %>%
 
 degs_ttest_limma_summary_plot_gg_2row = degs_ttest_limma_summary %>%
   filter((pathogen %in% c("S. aureus", "E. coli"))) %>% 
-# Initialise ggplot with aesthetic mappings: defines variables for x-axis, y-axis, colour, and fill
   ggplot(aes(
     x = timepoint,
     y = n_degs,
     fill = test
   )) +
-# Create faceted plot: split data into sub-panels by condition or organism for side-by-side comparison
   facet_wrap(~pathogen~organism, 
                     scales = "free",
                     space = "free_x",
@@ -10841,19 +10818,15 @@ degs_ttest_limma_summary_plot_gg_2row = degs_ttest_limma_summary %>%
              ) +
   geom_col(position = position_dodge2(width = 0.8),
            width = 0.5) +
-  # Manual colors per test
   scale_fill_manual(values = c(
     "t-Test" = "gray25",
     "Limma" = "#4DBBD5FF"
   )) +
   
-# Configure x-axis: set position, expansion, breaks, and labels
   scale_x_discrete(
     expand = c(0.01, 0.01)
   ) +
   scale_y_continuous(expand = c(0, 0), n.breaks = 5) +
-  
-# Apply project-specific ggplot theme: consistent fonts, gridlines, and legend styling across all figures
   theme_vaxgo() +
   labs(
     x = "Time",
@@ -10861,8 +10834,6 @@ degs_ttest_limma_summary_plot_gg_2row = degs_ttest_limma_summary %>%
     fill = "Test",
     alpha = "Pairing"
   ) +
-
-# Customise theme elements: remove/minimise gridlines, adjust axis text, and fine-tune legend placement
   theme(
     legend.position = "top",
     axis.line.y = element_blank(),
@@ -10872,34 +10843,29 @@ degs_ttest_limma_summary_plot_gg_2row = degs_ttest_limma_summary %>%
 
 degs_ttest_limma_summary_plot_gg_3row = degs_ttest_limma_summary %>%
   filter((pathogen %in% c("Burn", "Trauma"))) %>% 
-# Initialise ggplot with aesthetic mappings: defines variables for x-axis, y-axis, colour, and fill
-  ggplot(aes(
+
+    ggplot(aes(
     x = timepoint,
     y = n_degs,
     fill = test
   )) +
-# Create faceted plot: split data into sub-panels by condition or organism for side-by-side comparison
   facet_wrap(~pathogen~organism, 
                     scales = "free",
                     space = "free_x",
-                    # strip = strip_nested(size = "variable"),
                     nrow = 1
              ) +
   geom_col(position = position_dodge2(width = 0.8),
            width = 0.5) +
-  # Manual colors per test
   scale_fill_manual(values = c(
     "t-Test" = "gray25",
     "Limma" = "#4DBBD5FF"
   )) +
   
-# Configure x-axis: set position, expansion, breaks, and labels
   scale_x_discrete(
     expand = c(0.01, 0.01)
   ) +
   scale_y_continuous(expand = c(0, 0), n.breaks = 5) +
   
-# Apply project-specific ggplot theme: consistent fonts, gridlines, and legend styling across all figures
   theme_vaxgo() +
   labs(
     x = "Time",
@@ -10907,8 +10873,6 @@ degs_ttest_limma_summary_plot_gg_3row = degs_ttest_limma_summary %>%
     fill = "Test",
     alpha = "Pairing"
   ) +
-
-# Customise theme elements: remove/minimise gridlines, adjust axis text, and fine-tune legend placement
   theme(
     legend.position = "top",
     axis.line.y = element_blank(),
@@ -11002,14 +10966,12 @@ all_human_mouse_fit$timepoint %>% unique()
 #Visualize distribution
 all_fit_results_histogram = all_human_mouse_fit %>% 
   mutate(pathogen = fct_relevel(pathogen, "Influenza", "Hepatitis B", "Staphylococcus aureus", "Escherichia coli")) %>% 
-# Create ggplot object: maps data to aesthetic (x = expression value)
   ggplot() +
   aes(x = mean_l2fc,
       fill = timepoint) +
   facet_nested_wrap(~pathogen+organism, axes = "x",
                nest_line = element_line(linetype = 1, color = "black", size = 0.5), 
                scales = "free_y", nrow = 2) +
-  # geom_histogram(color = "white") +
   geom_density(aes(y = after_stat(count),
                    color = timepoint,
                    fill = timepoint),
@@ -11017,11 +10979,9 @@ all_fit_results_histogram = all_human_mouse_fit %>%
                alpha = 0,
                size = 1.5,
               show.legend = T) +
-# Configure x-axis: set position, expansion, breaks, and labels
   scale_x_continuous(limits = c(-2, 2)) +
   scale_y_continuous(expand = c(0,0)) +
   geom_vline(xintercept = 0, linetype = 2) +
-# Apply manual colour scale: uses predefined colour palette (typically from project's colour scheme)
   scale_fill_manual(values =  c("0.08" = "#D0D8FB", 
                                    "0.17" = "#A1B0F7",
                                    "0.5" = "#4361ee",
@@ -11034,7 +10994,6 @@ all_fit_results_histogram = all_human_mouse_fit %>%
                                    "1" = "#90e0ef",
                                    "3" = "#0096c7",
                                    "7" = "#184e77")) +
-# Apply project-specific ggplot theme: consistent fonts, gridlines, and legend styling across all figures
   theme_vaxgo() +
   theme(strip.text.y = element_text(angle = 0, hjust = 0), 
         axis.ticks.y = element_blank(),
@@ -11047,7 +11006,6 @@ all_fit_results_histogram = all_human_mouse_fit %>%
         panel.grid.major.x = element_line(alpha = 0.5, linetype = 2)
         ) +
   guides(fill = "none") +
-# Set informative axis labels, legend titles, and overall plot title
   labs(x = "Log2FC",
        y = "Count",
        fill = "Timepoint (Day)",
