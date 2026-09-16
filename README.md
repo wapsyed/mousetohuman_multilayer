@@ -20,7 +20,7 @@ A central finding of this project is that while individual orthologous gene corr
 ## Conditions Covered
 
 | Challenge | Vaccine / Agent | Organisms | Human GEO | Mouse GEO | Platforms |
-|:-----------|:-----------|:-----------|:-----------|:-----------|:-----------|
+|:---|:---|:---|:---|:---|:---|
 | Influenza | Fluad (TIV + MF59) | Human, Mouse | GSE124689 | GSE120661 | Illumina HumanHT-12, Agilent 8×60K |
 | Hepatitis B | Engerix B | Human, Mouse | GSE124533 | GSE120661 | Illumina HumanHT-12, Agilent 8×60K |
 | *Staphylococcus aureus* bacteremia | — | Human, Mouse | GSE19668 | GSE120661 | Affymetrix HuGene 1.0 ST, Agilent 8×60K |
@@ -91,7 +91,7 @@ animals_vax_atlas/
 ## Gene Sets Used
 
 | Gene Set | Description | Source | Reference |
-|:-----------------|:-----------------|:-----------------|:-----------------|
+|:---|:---|:---|:---|
 | **BTMs** | Blood Transcription Modules (346 consensus modules) | Li et al. | *Nat Immunol* 2014, 2021 |
 | **MSigDB Hallmarks** | 50 well-defined hallmark biological processes | Broad Institute | Liberzon et al., *Cell Syst* 2015 |
 | **ImmuneGO** | Mouse-adapted immune Gene Ontology annotations | VaxGO | Custom curated |
@@ -104,7 +104,7 @@ animals_vax_atlas/
 All package dependencies are managed via `renv`. Pinned core specifications:
 
 | Component | Version | Description |
-|:-----------------------|:-----------------------|:-----------------------|
+|:---|:---|:---|
 | **R** | ≥ 4.5.2 | Base language environment |
 | **Bioconductor** | 3.22 | Genomic and microarray annotation suites |
 | **Operating System** | Linux (Ubuntu/Zorin); macOS and Windows (WSL2) compatible | Tested on 64-bit Linux |
@@ -113,7 +113,7 @@ All package dependencies are managed via `renv`. Pinned core specifications:
 ### Key Packages Pinning
 
 | Package | Version | Source | Key Usage |
-|:-----------------|:-----------------|:-----------------|:-----------------|
+|:---|:---|:---|:---|
 | **tidyverse** | 2.0.0 | CRAN | Data wrangling, piping, and visualization |
 | **limma** | 3.66.0 | Bioconductor | Linear modeling, empirical Bayes moderation, quantile normalization |
 | **GEOquery** | 2.78.0 | Bioconductor | Programmatic retrieval of GEO datasets |
@@ -137,7 +137,7 @@ All package dependencies are managed via `renv`. Pinned core specifications:
 All pre-processed intermediate files are archived in `tables/`, allowing downstream analyses (steps 3–6) to run without re-downloading raw files. Users wishing to replicate preprocessing from scratch can query the original accessions:
 
 | Condition | Organism | Accession | Platform | Platform ID |
-|:--------------|:--------------|:--------------|:--------------|:--------------|
+|:---|:---|:---|:---|:---|
 | Influenza (Fluad) + Hepatitis B | Mouse | GSE120661 | Agilent SurePrint G3 Mouse GE 8x60K Microarray | GPL10787 |
 | Influenza (Fluad) | Human | GSE124689 | Agilent-048908 8x60K whole genome | GPL21272 |
 | Hepatitis B (Engerix B) | Human | GSE124533 | Agilent-048908 8x60K whole genome | GPL21272 |
@@ -172,7 +172,7 @@ renv::restore()   # Restores exact package environment
 Each notebook sources `scripts_notebooks/required.R`, initializing the shared workspace, custom ggplot2 themes (`theme_vaxgo`), palettes, and utility functions.
 
 | Step | Notebook | Key Inputs | Key Outputs |
-|:-----------------|:-----------------|:-----------------|:-----------------|
+|:---|:---|:---|:---|
 | **0** | `0_Data_Curation.Rmd` | `tables/DataCuration/animals_vaccines_bioproject_result.csv` | `tables/DataCuration/datacuration_step2.csv` |
 | **1** | `1_QualityControl.Rmd` | `tables/*_eset.rds`, `tables/*_metadata.rds` | `ArrayQM/` reports, RLE plots |
 | **2** | `2_Preprocessing_and_DGE.Rmd` | Raw GEO ExpressionSets or `tables/*_exprs.rds` | `tables/*_dge_limma_degs.rds`, `tables/*_log2fc_sample_clean_long.rds` |
@@ -214,7 +214,7 @@ The consolidated pipeline `Modelling/6_Statistical_Modelling.Rmd` predicts the *
 ### Best model per task (out-of-fold, LOCO)
 
 | Task | Metric | Random Forest | Neural Network | Lasso | Linear |
-|:-----------|:-----------|:----------:|:----------:|:----------:|:----------:|
+|:---|:---|:--:|:--:|:--:|:--:|
 | Shared LEGs (predictive, Full + BTM) | ROC-AUC | **0.557** | 0.536 | 0.489 | 0.487 |
 | Shared LEGs (explanatory, Full + BTM) | ROC-AUC | **0.592** | 0.580 | 0.507 | 0.521 |
 | Human rank transfer (Mouse + layers) | R² | **0.234** | 0.068 | 0.072 | 0.072 |
@@ -225,7 +225,7 @@ The **random forest is the best algorithm for every task**; the lasso never impr
 ### Exported artefacts (`Modelling/Models/`)
 
 | File | Task |
-|:-----------------------------------|:-----------------------------------|
+|:---|:---|
 | `rf_model_shared.rds` / `nn_model_shared.rds` | Shared vs Mouse-only classification |
 | `rf_model_rank.rds` / `nn_model_rank.rds` | Human absolute rank regression |
 | `rf_model_direction.rds` / `nn_model_direction.rds` | Directional concordance classification |

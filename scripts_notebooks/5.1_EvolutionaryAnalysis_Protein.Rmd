@@ -151,6 +151,7 @@ alignments_human2mouse_legs_identity_log2fc_plot = gene_info_human_clean_dge %>%
       x = identity_human2mouse,         
       y = 3,
     ),
+    data = . %>% filter(status == "All genes"),
     outliers = FALSE,
     outlier.shape = NA,
     alpha = 0.5,
@@ -159,6 +160,7 @@ alignments_human2mouse_legs_identity_log2fc_plot = gene_info_human_clean_dge %>%
     show.legend = FALSE
   ) +
   geom_boxplot(
+        data = . %>% filter(status == "All genes"),
     mapping = aes(
       x = identity_human2mouse,         
       y = 3,
@@ -211,11 +213,8 @@ alignments_human2mouse_legs_identity_log2fc_plot %>%
 
 #Plot
 alignments_human2mouse_legs_identity_log2fc_pooled_plot = gene_info_human_clean_dge %>% 
-
-  
-    filter(status != "Not LEG",
+    filter(status == "All genes",
          treatment %in% c("Infection", "Injury")) %>% 
-
     ggplot() +
   aes(
     x = identity_human2mouse,
@@ -229,7 +228,6 @@ alignments_human2mouse_legs_identity_log2fc_pooled_plot = gene_info_human_clean_
     method = "lm",
     mapping = aes(color = status, fill = status),
     se = TRUE,
-    data = . %>% filter(status == "All genes"),
   ) +
     #Marginal Boxplot
   # TOP  
@@ -241,7 +239,7 @@ alignments_human2mouse_legs_identity_log2fc_pooled_plot = gene_info_human_clean_
     outliers = FALSE,
     outlier.shape = NA,
     alpha = 0.5,
-    width = 0.2,
+    width = 0.1,
     color = NA,
     show.legend = T
   ) +
@@ -252,12 +250,29 @@ alignments_human2mouse_legs_identity_log2fc_pooled_plot = gene_info_human_clean_
     ),
     outliers = FALSE,
     outlier.shape = NA,
-    alpha = 0, linewidth = 0.2,
+    alpha = 0, 
+    linewidth = 0.2,
     color = "black",
-    width = 0.2,
+    width = 0.1,
     show.legend = FALSE
   ) +
-
+    #Add correlation stats
+  stat_cor( 
+    method = "spearman",
+    cor.coef.name = "rho", 
+    parse = TRUE,      
+    label.y = 0.10,
+    label.x = 52,
+    size = 3.5, 
+    show.legend = F
+  ) +
+  # Line equation
+  stat_regline_equation(
+    aes(label = ..eq.label..),
+    label.y = 0.20,
+    label.x = 52,       
+    size = 3.5
+  ) +
   scale_fill_manual(values = colors$comparison) +
   scale_color_manual(values = colors$comparison) +
   scale_x_continuous(expand = c(0,0)) +
@@ -279,16 +294,7 @@ alignments_human2mouse_legs_identity_log2fc_pooled_plot = gene_info_human_clean_
       nrow = 1,
       override.aes = list(shape = 22, alpha = 1, size = 3, linetype = 0)
     )
-  ) +
-    #Add correlation stats
-  stat_cor( 
-    data = . %>% filter(status == "All genes"),
-    method = "spearman",
-    cor.coef.name = "rho", 
-    label.x.npc = "left",   
-    label.y.npc = "bottom",
-    size = 4
-  )
+  ) 
 
 alignments_human2mouse_legs_identity_log2fc_pooled_plot 
 
@@ -3325,6 +3331,7 @@ distance_legs_plot %>%
 Is the absolute difference in Log2FC explained by sequence distance?
 ```{r fig.height=3, fig.width=3}
 difflog2fc_distance_scatter_plot <- human_mouse_cds_distance_dge %>%
+  filter(status == "All genes") %>% 
   ggplot2::ggplot() +
   ggplot2::aes(
     x     = dist_k80,
@@ -3333,48 +3340,54 @@ difflog2fc_distance_scatter_plot <- human_mouse_cds_distance_dge %>%
     fill  = status
   ) +
   geom_smooth(method = "lm", se = TRUE,
-              data = . %>% filter(status == "All genes"), 
               show.legend = F) +
     #Marginal Boxplot
   # TOP  
   geom_violin(
     mapping = aes(
       x = dist_k80,         
-      y = 1.8,
+      y = 1,
     ),
     outliers = FALSE,
     outlier.shape = NA,
     alpha = 0.5,
-    width = 0.2,
+    width = 0.1,
     color = NA,
     show.legend = T
   ) +
   geom_boxplot(
     mapping = aes(
       x = dist_k80,         
-      y = 1.8,
+      y = 1,
     ),
     outliers = FALSE,
     outlier.shape = NA,
     alpha = 0, linewidth = 0.2,
     color = "black",
-    width = 0.2,
+    width = 0.1,
     show.legend = FALSE
   ) +
   #Add correlation stats
   stat_cor( 
-    data = . %>% filter(status == "All genes"),
     method = "spearman",
     cor.coef.name = "rho", 
-    label.x.npc = "left",   
-    label.y.npc = "bottom",
-    size = 4, 
+    parse = TRUE,      
+    label.y = 0.10,
+    label.x = 0.05,
+    size = 3.5, 
     show.legend = F
-  )+
+  ) +
+  # Line equation
+  stat_regline_equation(
+    aes(label = ..eq.label..),
+    label.y = 0.20,
+    label.x = 0.05,       
+    size = 3.5
+  ) +
   scale_fill_manual(values = colors$comparison) +
   scale_color_manual(values = colors$comparison) +
   scale_x_continuous(expand = c(0.01, 0.01)) +
-  scale_y_continuous(expand = c(0.01, 0.01)) +
+  scale_y_continuous(expand = c(0.01, 0.01), limits = c(0, NA)) +
   labs(
     x     = "Kimura Distance",
     y     = "|ΔLog2FC|",

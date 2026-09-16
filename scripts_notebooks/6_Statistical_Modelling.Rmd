@@ -54,34 +54,50 @@ dge_btm_process_genes_diff_bygene_clean_filtered <- readRDS(here("tables", "dge_
 ## Feature dictionary
 
 ```{r}
-# Maps raw column names -> readable labels used in the plots
+# Single source of truth for feature labels: raw column name -> readable label.
+# Use `feature_name_original` for selecting columns from the data; use
+# `feature_name` (via clean_feat()) only for plot labels.
 feature_dictionary <- tibble(
   feature_name_original = c(
-    "inverse_se_mouse", "mean_log2fc_mouse", "abs_rank_log2fc_mouse", "rank_mouse", "rank_mouse_btm", "dual_rank",
-    "dist_k80", "identity_human2mouse", "n_tf_total", "pct_tf_shared",
-    "n_total_cres_gene", "n_type_PLS", "pct_match_type_PLS", "pct_match_ctcf_PLS_CTCF-bound",
-    "n_type_pELS", "pct_match_type_pELS", "pct_match_ctcf_pELS_CTCF-bound",
-    "n_type_dELS", "pct_match_type_dELS", "pct_match_ctcf_dELS_CTCF-bound",
+    # --- DGE baseline (mouse) ---
+    "inverse_se_mouse", "mean_log2fc_mouse", "abs_rank_log2fc_mouse",
+    "rank_mouse", "rank_mouse_btm", "dual_rank", "sign_mouse",
+    # --- Sequence evolution ---
+    "dist_k80", "identity_human2mouse",
+    # --- Transcription factors ---
+    "n_tf_total", "pct_tf_shared",
+    # --- cCRE counts ---
+    "n_total_cres_gene", "n_type_PLS", "n_type_pELS", "n_type_dELS",
+    # --- cCRE type match ---
+    "pct_match_type_PLS", "pct_match_type_pELS", "pct_match_type_dELS",
+    # --- cCRE CTCF match ---
+    "pct_match_ctcf_PLS_CTCF-bound", "pct_match_ctcf_pELS_CTCF-bound",
+    "pct_match_ctcf_dELS_CTCF-bound",
+    # --- BTMs ---
     "Not-BTM", "INNATE RESPONSE", "B CELLS", "T CELLS", "PLATELETS",
     "ECM AND MIGRATION", "ENERGY METABOLISM", "MONOCYTES", "CELL CYCLE",
     "IFN", "SIGNAL TRANSDUCTION", "NK CELLS", "NEUTROPHILS"
   ),
-  
   feature_name = c(
-    "1/SE", "Log2FC (Mouse)", "|Absolute rank (mouse)|", "|Absolute rank (mouse)|", "|Absolute rank (mouse) BTM|", "Dual absolute rank",
-    #Gene
-    "Kimura distance", "%Protein AA identity", 
-    #TFs
+    "1/SE", "Log2FC (Mouse)", "|Absolute rank (mouse)|",
+    "|Absolute rank (mouse)|", "|Absolute rank (mouse) BTM|", "Dual absolute rank", "Sign (Mouse)",
+    "Kimura", "%Protein identity",
     "nTotal TFs", "%Shared TFs",
-    #CREs
-    "nTotal cCREs", "PLS nCREs", "PLS %Match Type", "PLS CTCF %Match CTCF",
-    "pELS nCREs", "pELS %Match Type", "pELS CTCF %Match CTCF",
-    "dELS nCREs", "dELS %Match Type", "dELS CTCF %Match CTCF",
-    
-    #BTMs
+    "nTotal cCREs", "PLS nCREs", "pELS nCREs", "dELS nCREs",
+    "PLS %Match", "pELS %Match", "dELS %Match",
+    "PLS CTCF", "pELS CTCF", "dELS CTCF",
     "Not-BTM", "INNATE RESPONSE", "B CELLS", "T CELLS", "PLATELETS",
     "ECM AND MIGRATION", "ENERGY METABOLISM", "MONOCYTES", "CELL CYCLE",
     "IFN", "SIGNAL TRANSDUCTION", "NK CELLS", "NEUTROPHILS"
+  ),
+  feature_group = c(
+    rep("DGE baseline", 7),
+    rep("Sequence evolution", 2),
+    rep("Transcription factors", 2),
+    rep("cCRE counts", 4),
+    rep("cCRE type match", 3),
+    rep("cCRE CTCF match", 3),
+    rep("BTM", 13)
   )
 )
 ```
@@ -91,21 +107,29 @@ feature_dictionary <- tibble(
 ```{r}
 # --- Building blocks (same categories as the original) ---
 feat_base_experiment <- c("treatment", "pathogen", "timepoint_comparison", "hgnc_symbol")
-feat_noise  <- c("inverse_se_mouse")                 # measurement precision (noise covariate)
-feat_seq    <- c("dist_k80", "identity_human2mouse") # sequence evolution
-feat_tfs    <- c("n_tf_total", "pct_tf_shared")      # transcription factor features
-feat_cre    <- c(                                    # cis-regulatory element architecture
+# measurement precision (noise covariate)
+feat_noise  <- c("inverse_se_mouse")             
+# sequence evolution
+feat_seq    <- c("dist_k80", "identity_human2mouse") 
+# transcription factor features
+feat_tfs    <- c("n_tf_total", "pct_tf_shared")
+# cis-regulatory element architecture
+# NOTE: use the ORIGINAL column names here (these are selected from the data),
+# not the readable labels produced by clean_feat() (used only for plots).
+feat_cre    <- c(
   "n_total_cres_gene",
   "n_type_PLS",  "pct_match_type_PLS",  "pct_match_ctcf_PLS_CTCF-bound",
   "n_type_pELS", "pct_match_type_pELS", "pct_match_ctcf_pELS_CTCF-bound",
   "n_type_dELS", "pct_match_type_dELS", "pct_match_ctcf_dELS_CTCF-bound"
 )
-feat_btms <- c(                                      # blood transcriptional modules
+# blood transcriptional modules
+feat_btms <- c(                                      
   "Not-BTM", "INNATE RESPONSE", "B CELLS", "T CELLS", "PLATELETS",
   "ECM AND MIGRATION", "ENERGY METABOLISM", "MONOCYTES", "CELL CYCLE",
   "IFN", "SIGNAL TRANSDUCTION", "NK CELLS", "NEUTROPHILS"
 )
-layers <- c(feat_seq, feat_tfs, feat_cre, feat_btms)  # Full + BTM adds all of these
+# Full + BTM adds all of these
+layers <- c(feat_seq, feat_tfs, feat_cre, feat_btms)  
 
 # Mouse-rank scope for the Shared classification (BTM-only rank)
 feat_mouse_class <- c("mean_log2fc_mouse", "rank_mouse_btm")
@@ -291,7 +315,7 @@ loco_regression <- function(df, selection, target, set_name, framing) {
 
   wf_rf <- workflow() %>%
     add_recipe(rec) %>%
-    add_model(rand_forest(trees = 500, mtry = 8, min_n = 5) %>%
+    add_model(rand_forest(trees = 500, mtry = min(8, n_pred), min_n = 5) %>%
                 set_engine("ranger", importance = "impurity", num.threads = 8) %>%
                 set_mode("regression"))
 
@@ -401,7 +425,7 @@ loco_classification <- function(df, selection, target, set_name, framing) {
                 set_mode("classification"))
   wf_rf <- workflow() %>%
     add_recipe(rec) %>%
-    add_model(rand_forest(trees = 500, mtry = 8, min_n = 5) %>%
+    add_model(rand_forest(trees = 500, mtry = min(8, n_pred), min_n = 5) %>%
                 set_engine("ranger", importance = "impurity", num.threads = 8) %>%
                 set_mode("classification"))
   wf_nn <- workflow() %>%
@@ -566,6 +590,148 @@ write_csv(direction_metrics, here("Modelling", "Tables", "direction_loco.csv"))
 # Save fitted models ("Direction + layers") for reuse (butchered + compressed)
 saveRDS(butcher(direction_res[["Direction + layers"]]$fit_rf),  here("Modelling", "Models", "rf_model_direction.rds"),  compress = "xz")
 saveRDS(butcher(direction_res[["Direction + layers"]]$fit_nn), here("Modelling", "Models", "nn_model_direction.rds"), compress = "xz")
+```
+
+
+# Hyperparameter tuning (nested cross-validation)
+
+```{r}
+# ==============================================================================
+# Hyperparameter tuning (nested cross-validation)
+# ------------------------------------------------------------------------------
+# Outer loop = leave-one-pathogen-out (4 folds)       -> reported out-of-fold metrics
+# Inner loop = 5-fold CV on the 3 training pathogens  -> hyperparameter selection
+# Only Random Forest and Neural Network are tuned; the linear/logistic baseline
+# and the lasso keep their fixed hyperparameters (as in the pipeline above).
+# Results are stored separately so the fixed-hyperparameter metrics are preserved.
+# ==============================================================================
+if (requireNamespace("future", quietly = TRUE)) {
+  future::plan(future::multisession, workers = max(1L, parallel::detectCores() - 1L))
+}
+
+# Small grids (2 levels per hyperparameter)
+grid_rf <- grid_regular(mtry(range = c(2, 8)), min_n(range = c(2, 10)), levels = 2)
+grid_nn <- grid_regular(hidden_units(range = c(5, 10)),
+                        penalty(range = c(0.01, 0.1)),
+                        epochs(range = c(200, 500)),
+                        levels = 2)
+
+# Metrics of the tuned out-of-fold predictions (RF and NN)
+tuned_metrics <- function(pred_oof, target, task, set_name, framing) {
+  out <- map_dfr(c("Random Forest", "Neural Network"), function(m) {
+    col <- if (m == "Random Forest") "pred_rf" else "pred_nn"
+    if (task == "classification") {
+      tibble(model = m,
+             roc_auc = roc_auc(pred_oof, truth = !!sym(target), !!sym(col), event_level = "second")$.estimate,
+             pr_auc  = pr_auc(pred_oof,  truth = !!sym(target), !!sym(col), event_level = "second")$.estimate)
+    } else {
+      tibble(model = m,
+             rmse = rmse(pred_oof, truth = !!sym(target), !!sym(col))$.estimate,
+             rsq  = rsq(pred_oof,  truth = !!sym(target), !!sym(col))$.estimate)
+    }
+  })
+  out %>% mutate(feature_set = set_name, framing = framing, target = target, task = task)
+}
+
+# Nested-CV wrapper: tune RF + NN inside each LOCO outer fold
+loco_tuned <- function(df, selection, target, set_name, framing, task) {
+  is_class <- task == "classification"
+
+  d <- df %>%
+    select(all_of(selection), all_of(target)) %>%
+    drop_na(all_of(target)) %>%
+    mutate(.row = row_number())
+  if (is_class) {
+    d <- d %>% mutate(!!target := factor(.data[[target]], levels = c(FALSE, TRUE)))
+  }
+
+  rec <- recipe(as.formula(paste(target, "~ .")), data = d) %>%
+    update_role(any_of(c("hgnc_symbol", "treatment", "pathogen", "timepoint_comparison", ".row")),
+                new_role = "id") %>%
+    step_dummy(all_nominal_predictors())
+  rec <- if (is_class) {
+    rec %>% step_nzv(all_predictors()) %>% step_corr(all_numeric_predictors(), threshold = 0.9)
+  } else {
+    rec %>% step_zv(all_predictors())
+  }
+  rec <- rec %>% step_normalize(all_numeric_predictors())
+
+  n_pred <- prep(rec, training = d) %>%
+    bake(new_data = NULL) %>%
+    select(-all_of(target), -any_of(c("hgnc_symbol", "treatment", "pathogen", "timepoint_comparison", ".row"))) %>%
+    ncol()
+  rf_grid <- grid_rf %>% filter(mtry <= max(2L, n_pred))
+
+  mode <- if (is_class) "classification" else "regression"
+  wf_rf <- workflow() %>%
+    add_recipe(rec) %>%
+    add_model(rand_forest(trees = 500, mtry = tune(), min_n = tune()) %>%
+                set_engine("ranger", importance = "impurity", num.threads = 8) %>%
+                set_mode(mode))
+  wf_nn <- workflow() %>%
+    add_recipe(rec) %>%
+    add_model(mlp(hidden_units = tune(), epochs = tune(), penalty = tune()) %>%
+                set_engine("nnet") %>%
+                set_mode(mode))
+
+  ms <- if (is_class) metric_set(roc_auc) else metric_set(rmse, rsq)
+  metric_name <- if (is_class) "roc_auc" else "rsq"
+
+  set.seed(seed)
+  folds <- group_vfold_cv(d, group = pathogen, v = 4)
+
+  pred_oof <- map_dfr(seq_len(nrow(folds)), function(i) {
+    tr <- analysis(folds$splits[[i]])
+    te <- assessment(folds$splits[[i]])
+
+    set.seed(seed)
+    inner <- vfold_cv(tr, v = 5, strata = if (is_class) target else NULL)
+
+    best_rf <- tune_grid(wf_rf, resamples = inner, grid = rf_grid, metrics = ms,
+                         control = control_grid(parallel_over = "resamples")) %>%
+      select_best(metric = metric_name)
+    best_nn <- tune_grid(wf_nn, resamples = inner, grid = grid_nn, metrics = ms,
+                         control = control_grid(parallel_over = "resamples")) %>%
+      select_best(metric = metric_name)
+
+    fit_rf <- finalize_workflow(wf_rf, best_rf) %>% fit(data = tr)
+    fit_nn <- finalize_workflow(wf_nn, best_nn) %>% fit(data = tr)
+
+    if (is_class) {
+      tibble(.row = te$.row,
+             pred_rf = predict(fit_rf, new_data = te, type = "prob")$.pred_TRUE,
+             pred_nn = predict(fit_nn, new_data = te, type = "prob")$.pred_TRUE)
+    } else {
+      tibble(.row = te$.row,
+             pred_rf = predict(fit_rf, new_data = te)$.pred,
+             pred_nn = predict(fit_nn, new_data = te)$.pred)
+    }
+  }) %>%
+    mutate(feature_set = set_name, framing = framing, target = target, task = task)
+
+  list(metrics = tuned_metrics(pred_oof, target, task, set_name, framing),
+       pred_oof = pred_oof)
+}
+```
+
+```{r}
+# --- Run the tuning for the three tasks (both layers) -------------------------
+shared_tuned_A  <- imap(shared_sets_A, ~ loco_tuned(df_shared, .x, "shared", .y, "A_predictive", "classification"))
+shared_tuned_B  <- imap(shared_sets_B, ~ loco_tuned(df_shared, .x, "shared", .y, "B_explanatory", "classification"))
+rank_tuned      <- imap(rank_sets,      ~ loco_tuned(df_all, .x, "rank_human", .y, "transfer", "regression"))
+direction_tuned <- imap(direction_sets, ~ loco_tuned(df_all, .x, "sign_concordant", .y, "transfer", "classification"))
+
+tuned_metrics_all <- bind_rows(
+  map_dfr(shared_tuned_A, "metrics"),
+  map_dfr(shared_tuned_B, "metrics"),
+  map_dfr(rank_tuned, "metrics"),
+  map_dfr(direction_tuned, "metrics")
+)
+tuned_metrics_all
+
+# Save (kept separate from the fixed-hyperparameter metrics)
+saveRDS(tuned_metrics_all, here("Modelling", "Models", "metrics_tuned.rds"))
+write_csv(tuned_metrics_all, here("Modelling", "Tables", "tuned_loco.csv"))
 ```
 
 
@@ -734,30 +900,13 @@ library(patchwork)
 # Colors for LEG status (Not LEG shown in white)
 comp_colors <- c(colors$comparison, "Not LEG" = "white")
 
-# Readable feature labels for plots
+# Readable feature labels for plots.
+# Derived from feature_dictionary (single source of truth) so labels never drift.
 clean_feat <- function(x) {
-  recode(x,
-         "inverse_se_mouse" = "1/SE",
-         "mean_log2fc_mouse" = "Log2FC (Mouse)",
-         "rank_mouse" = "|Absolute rank (mouse)|",
-         "rank_mouse_btm" = "|Absolute rank (mouse) BTM|",
-         "dual_rank" = "Dual absolute rank",
-         "dist_k80" = "Kimura",
-         "identity_human2mouse" = "%Protein identity",
-         "n_tf_total" = "nTotal TFs",
-         "pct_tf_shared" = "%Shared TFs",
-         "n_total_cres_gene" = "nTotal cCREs",
-         "n_type_PLS" = "PLS nCREs",
-         "pct_match_type_PLS" = "PLS %Match",
-         "pct_match_ctcf_PLS_CTCF-bound" = "PLS CTCF",
-         "n_type_pELS" = "pELS nCREs",
-         "pct_match_type_pELS" = "pELS %Match",
-         "pct_match_ctcf_pELS_CTCF-bound" = "pELS CTCF",
-         "n_type_dELS" = "dELS nCREs",
-         "pct_match_type_dELS" = "dELS %Match",
-         "pct_match_ctcf_dELS_CTCF-bound" = "dELS CTCF",
-         "sign_mouse" = "Sign (Mouse)",
-         .default = x)
+  map <- setNames(feature_dictionary$feature_name,
+                  feature_dictionary$feature_name_original)
+  out <- unname(map[as.character(x)])
+  ifelse(is.na(out), as.character(x), out)
 }
 
 # Forest plot: log-odds or standardized effect with 95% CI
