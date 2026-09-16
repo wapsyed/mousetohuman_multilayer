@@ -316,7 +316,7 @@ loco_regression <- function(df, selection, target, set_name, framing) {
   wf_rf <- workflow() %>%
     add_recipe(rec) %>%
     add_model(rand_forest(trees = 500, mtry = min(8, n_pred), min_n = 5) %>%
-                set_engine("ranger", importance = "impurity", num.threads = 8) %>%
+                set_engine("ranger", importance = "impurity", num.threads = 1) %>%
                 set_mode("regression"))
 
   wf_nn <- workflow() %>%
@@ -397,6 +397,7 @@ loco_classification <- function(df, selection, target, set_name, framing) {
   d <- df %>%
     select(all_of(selection), all_of(target)) %>%
     drop_na(all_of(target)) %>%
+    distinct() %>%
     mutate(!!target := factor(.data[[target]], levels = c(FALSE, TRUE)))
 
   # 2. RECIPE (drop near-zero variance and highly correlated predictors)
@@ -426,7 +427,7 @@ loco_classification <- function(df, selection, target, set_name, framing) {
   wf_rf <- workflow() %>%
     add_recipe(rec) %>%
     add_model(rand_forest(trees = 500, mtry = min(8, n_pred), min_n = 5) %>%
-                set_engine("ranger", importance = "impurity", num.threads = 8) %>%
+                set_engine("ranger", importance = "impurity", num.threads = 1) %>%
                 set_mode("classification"))
   wf_nn <- workflow() %>%
     add_recipe(rec) %>%
@@ -593,148 +594,6 @@ saveRDS(butcher(direction_res[["Direction + layers"]]$fit_nn), here("Modelling",
 ```
 
 
-# Hyperparameter tuning (nested cross-validation)
-
-```{r}
-# ==============================================================================
-# Hyperparameter tuning (nested cross-validation)
-# ------------------------------------------------------------------------------
-# Outer loop = leave-one-pathogen-out (4 folds)       -> reported out-of-fold metrics
-# Inner loop = 5-fold CV on the 3 training pathogens  -> hyperparameter selection
-# Only Random Forest and Neural Network are tuned; the linear/logistic baseline
-# and the lasso keep their fixed hyperparameters (as in the pipeline above).
-# Results are stored separately so the fixed-hyperparameter metrics are preserved.
-# ==============================================================================
-if (requireNamespace("future", quietly = TRUE)) {
-  future::plan(future::multisession, workers = max(1L, parallel::detectCores() - 1L))
-}
-
-# Small grids (2 levels per hyperparameter)
-grid_rf <- grid_regular(mtry(range = c(2, 8)), min_n(range = c(2, 10)), levels = 2)
-grid_nn <- grid_regular(hidden_units(range = c(5, 10)),
-                        penalty(range = c(0.01, 0.1)),
-                        epochs(range = c(200, 500)),
-                        levels = 2)
-
-# Metrics of the tuned out-of-fold predictions (RF and NN)
-tuned_metrics <- function(pred_oof, target, task, set_name, framing) {
-  out <- map_dfr(c("Random Forest", "Neural Network"), function(m) {
-    col <- if (m == "Random Forest") "pred_rf" else "pred_nn"
-    if (task == "classification") {
-      tibble(model = m,
-             roc_auc = roc_auc(pred_oof, truth = !!sym(target), !!sym(col), event_level = "second")$.estimate,
-             pr_auc  = pr_auc(pred_oof,  truth = !!sym(target), !!sym(col), event_level = "second")$.estimate)
-    } else {
-      tibble(model = m,
-             rmse = rmse(pred_oof, truth = !!sym(target), !!sym(col))$.estimate,
-             rsq  = rsq(pred_oof,  truth = !!sym(target), !!sym(col))$.estimate)
-    }
-  })
-  out %>% mutate(feature_set = set_name, framing = framing, target = target, task = task)
-}
-
-# Nested-CV wrapper: tune RF + NN inside each LOCO outer fold
-loco_tuned <- function(df, selection, target, set_name, framing, task) {
-  is_class <- task == "classification"
-
-  d <- df %>%
-    select(all_of(selection), all_of(target)) %>%
-    drop_na(all_of(target)) %>%
-    mutate(.row = row_number())
-  if (is_class) {
-    d <- d %>% mutate(!!target := factor(.data[[target]], levels = c(FALSE, TRUE)))
-  }
-
-  rec <- recipe(as.formula(paste(target, "~ .")), data = d) %>%
-    update_role(any_of(c("hgnc_symbol", "treatment", "pathogen", "timepoint_comparison", ".row")),
-                new_role = "id") %>%
-    step_dummy(all_nominal_predictors())
-  rec <- if (is_class) {
-    rec %>% step_nzv(all_predictors()) %>% step_corr(all_numeric_predictors(), threshold = 0.9)
-  } else {
-    rec %>% step_zv(all_predictors())
-  }
-  rec <- rec %>% step_normalize(all_numeric_predictors())
-
-  n_pred <- prep(rec, training = d) %>%
-    bake(new_data = NULL) %>%
-    select(-all_of(target), -any_of(c("hgnc_symbol", "treatment", "pathogen", "timepoint_comparison", ".row"))) %>%
-    ncol()
-  rf_grid <- grid_rf %>% filter(mtry <= max(2L, n_pred))
-
-  mode <- if (is_class) "classification" else "regression"
-  wf_rf <- workflow() %>%
-    add_recipe(rec) %>%
-    add_model(rand_forest(trees = 500, mtry = tune(), min_n = tune()) %>%
-                set_engine("ranger", importance = "impurity", num.threads = 8) %>%
-                set_mode(mode))
-  wf_nn <- workflow() %>%
-    add_recipe(rec) %>%
-    add_model(mlp(hidden_units = tune(), epochs = tune(), penalty = tune()) %>%
-                set_engine("nnet") %>%
-                set_mode(mode))
-
-  ms <- if (is_class) metric_set(roc_auc) else metric_set(rmse, rsq)
-  metric_name <- if (is_class) "roc_auc" else "rsq"
-
-  set.seed(seed)
-  folds <- group_vfold_cv(d, group = pathogen, v = 4)
-
-  pred_oof <- map_dfr(seq_len(nrow(folds)), function(i) {
-    tr <- analysis(folds$splits[[i]])
-    te <- assessment(folds$splits[[i]])
-
-    set.seed(seed)
-    inner <- vfold_cv(tr, v = 5, strata = if (is_class) target else NULL)
-
-    best_rf <- tune_grid(wf_rf, resamples = inner, grid = rf_grid, metrics = ms,
-                         control = control_grid(parallel_over = "resamples")) %>%
-      select_best(metric = metric_name)
-    best_nn <- tune_grid(wf_nn, resamples = inner, grid = grid_nn, metrics = ms,
-                         control = control_grid(parallel_over = "resamples")) %>%
-      select_best(metric = metric_name)
-
-    fit_rf <- finalize_workflow(wf_rf, best_rf) %>% fit(data = tr)
-    fit_nn <- finalize_workflow(wf_nn, best_nn) %>% fit(data = tr)
-
-    if (is_class) {
-      tibble(.row = te$.row,
-             pred_rf = predict(fit_rf, new_data = te, type = "prob")$.pred_TRUE,
-             pred_nn = predict(fit_nn, new_data = te, type = "prob")$.pred_TRUE)
-    } else {
-      tibble(.row = te$.row,
-             pred_rf = predict(fit_rf, new_data = te)$.pred,
-             pred_nn = predict(fit_nn, new_data = te)$.pred)
-    }
-  }) %>%
-    mutate(feature_set = set_name, framing = framing, target = target, task = task)
-
-  list(metrics = tuned_metrics(pred_oof, target, task, set_name, framing),
-       pred_oof = pred_oof)
-}
-```
-
-```{r}
-# --- Run the tuning for the three tasks (both layers) -------------------------
-shared_tuned_A  <- imap(shared_sets_A, ~ loco_tuned(df_shared, .x, "shared", .y, "A_predictive", "classification"))
-shared_tuned_B  <- imap(shared_sets_B, ~ loco_tuned(df_shared, .x, "shared", .y, "B_explanatory", "classification"))
-rank_tuned      <- imap(rank_sets,      ~ loco_tuned(df_all, .x, "rank_human", .y, "transfer", "regression"))
-direction_tuned <- imap(direction_sets, ~ loco_tuned(df_all, .x, "sign_concordant", .y, "transfer", "classification"))
-
-tuned_metrics_all <- bind_rows(
-  map_dfr(shared_tuned_A, "metrics"),
-  map_dfr(shared_tuned_B, "metrics"),
-  map_dfr(rank_tuned, "metrics"),
-  map_dfr(direction_tuned, "metrics")
-)
-tuned_metrics_all
-
-# Save (kept separate from the fixed-hyperparameter metrics)
-saveRDS(tuned_metrics_all, here("Modelling", "Models", "metrics_tuned.rds"))
-write_csv(tuned_metrics_all, here("Modelling", "Tables", "tuned_loco.csv"))
-```
-
-
 # SCORES
 
 ## Scores from out-of-fold predictions
@@ -800,13 +659,16 @@ score_direction_oof <- pick_pred(direction_pred_oof, best_direction_model, "tran
 score_tbl <- df_all %>%
   left_join(score_shared_oof %>%
               rename(score_shared = pred),
-            by = c("treatment", "pathogen", "timepoint_comparison", "hgnc_symbol")) %>%
+            by = c("treatment", "pathogen", "timepoint_comparison", "hgnc_symbol"),
+            relationship = "many-to-one") %>%
   left_join(score_rank_oof %>%
               rename(score_rank = pred),
-            by = c("treatment", "pathogen", "timepoint_comparison", "hgnc_symbol")) %>%
+            by = c("treatment", "pathogen", "timepoint_comparison", "hgnc_symbol"),
+            relationship = "many-to-one") %>%
   left_join(score_direction_oof %>%
               rename(score_direction = pred),
-            by = c("treatment", "pathogen", "timepoint_comparison", "hgnc_symbol")) %>%
+            by = c("treatment", "pathogen", "timepoint_comparison", "hgnc_symbol"),
+            relationship = "many-to-one") %>%
   mutate(score_translational = score_rank * score_direction)
 
 score_plot <- score_tbl %>%
@@ -830,13 +692,16 @@ observed_vs_predicted <- df_all %>%
          mean_log2fc_mouse, mean_log2fc_human) %>%
   left_join(score_shared_oof %>%
               rename(pred_shared = pred),
-            by = c("treatment", "pathogen", "timepoint_comparison", "hgnc_symbol")) %>%
+            by = c("treatment", "pathogen", "timepoint_comparison", "hgnc_symbol"),
+            relationship = "many-to-one") %>%
   left_join(score_rank_oof %>%
               rename(pred_rank = pred),
-            by = c("treatment", "pathogen", "timepoint_comparison", "hgnc_symbol")) %>%
+            by = c("treatment", "pathogen", "timepoint_comparison", "hgnc_symbol"),
+            relationship = "many-to-one") %>%
   left_join(score_direction_oof %>%
               rename(pred_direction = pred),
-            by = c("treatment", "pathogen", "timepoint_comparison", "hgnc_symbol")) %>%
+            by = c("treatment", "pathogen", "timepoint_comparison", "hgnc_symbol"),
+            relationship = "many-to-one") %>%
   distinct()
 
 observed_vs_predicted
@@ -1316,9 +1181,10 @@ rf_imp_plot_direction
 ### Assembly
 
 ```{r fig.height=15, fig.width=13}
-feature_contributions_figure <- (log_coefs_plot_shared | rf_imp_plot_shared) /
+feature_contributions_figure = 
   (linear_coefs_plot_rank | rf_imp_plot_rank) /
-  (log_coefs_plot_direction | rf_imp_plot_direction) +
+  (log_coefs_plot_direction | rf_imp_plot_direction) /
+  (log_coefs_plot_shared | rf_imp_plot_shared) +
   plot_annotation(title = "Feature contributions")
 
 ggsave(here("Modelling", "Figures", "Models_Coeff_Contributions.png"),

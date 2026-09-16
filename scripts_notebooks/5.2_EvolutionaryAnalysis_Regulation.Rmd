@@ -2361,9 +2361,7 @@ gene_attribute_tf_divergence_pooled_plot = gene_attribute_tf_count_log2fc_stats 
   stat_cor( 
     method = "spearman",
     cor.coef.name = "rho", 
-    # mapping = aes(label = paste0("atop(", after_stat(r.label), ",", after_stat(p.label), ")")),
-    parse = TRUE,      
-    label.y = 0.9,
+    label.y = 0.85,
     label.x = 1,
     size = 3.5, 
     show.legend = F
@@ -2371,8 +2369,8 @@ gene_attribute_tf_divergence_pooled_plot = gene_attribute_tf_count_log2fc_stats 
   # Line equation
   stat_regline_equation(
     aes(label = ..eq.label..),
-    label.x.npc = "left",   
-    label.y.npc = 0.95,     
+    label.x= 1,   
+    label.y = 0.95,     
     size = 3.5
   ) +
   scale_fill_manual(values = colors$comparison) +
@@ -2399,7 +2397,7 @@ gene_attribute_tf_divergence_pooled_plot
 # Save
 ggsave(gene_attribute_tf_divergence_pooled_plot,
        filename = here("Figures", "all_human_mouse_regulation_tfs_divergence_plots_pooled.png"),
-       width = 8, height = 4)
+       width = 6, height = 3)
   
 ```
 

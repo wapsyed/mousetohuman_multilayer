@@ -555,62 +555,58 @@ Condition vs. Condition
 ```{r fig.height=5, fig.width=7}
 # Correlation for all modules
 cor_labels_nes <- dge_btm_gsea_mean_wide %>%
-  calculate_weighted_correlation_pearson(
+  group_by(pathogen, timepoint_comparison) %>% 
+  calculate_correlation_pearson(
     x_col = nes_Mouse,
     y_col = nes_Human,
-    weight_col = weight_joint_gsea_fdr,
     group_cols = c("pathogen", "timepoint_comparison")
-  ) 
+  )
+
 
 # Correlation for Mouse-significant modules
 cor_labels_nes_Mouse <- dge_btm_gsea_mean_wide %>%
   filter(p_adjust_Mouse <= 0.25) %>% 
-  calculate_weighted_correlation_pearson(
+  calculate_correlation_pearson(
     x_col = nes_Mouse,
     y_col = nes_Human,
-    weight_col = weight_joint_gsea_fdr,
     group_cols = c("pathogen", "timepoint_comparison")
   )
 
 # Correlation for both Mouse and Human significant modules 
 cor_labels_nes_Mouse_Human <- dge_btm_gsea_mean_wide %>%
   filter(p_adjust_Mouse <= 0.25, p_adjust_Human <= 0.25) %>% 
-  calculate_weighted_correlation_pearson(
+  calculate_correlation_pearson(
     x_col = nes_Mouse,
     y_col = nes_Human,
-    weight_col = weight_joint_gsea_fdr,
     group_cols = c("pathogen", "timepoint_comparison")
-  ) 
+  )
 
 ######## Control
 # Correlation for all modules
 cor_labels_nes_control <- dge_btm_gsea_mean_wide %>%
-  calculate_weighted_correlation_pearson(
+  calculate_correlation_pearson(
     x_col = nes_Control,
     y_col = nes_Human,
-    weight_col = weight_joint_gsea_fdr_ctrl,
     group_cols = c("pathogen", "timepoint_comparison")
-  ) 
+  )
 
 # Correlation for Mouse-significant modules
 cor_labels_nes_control_Control <- dge_btm_gsea_mean_wide %>%
   filter(p_adjust_Control <= 0.25) %>% 
-  calculate_weighted_correlation_pearson(
+  calculate_correlation_pearson(
     x_col = nes_Control,
     y_col = nes_Human,
-    weight_col = weight_joint_gsea_fdr_ctrl,
     group_cols = c("pathogen", "timepoint_comparison")
   )
 
 # Correlation for both Mouse and Human significant modules 
 cor_labels_nes_control_Control_Human <- dge_btm_gsea_mean_wide %>%
   filter(p_adjust_Control <= 0.25, p_adjust_Human <= 0.25) %>% 
-  calculate_weighted_correlation_pearson(
+  calculate_correlation_pearson(
     x_col = nes_Control,
     y_col = nes_Human,
-    weight_col = weight_joint_gsea_fdr_ctrl,
     group_cols = c("pathogen", "timepoint_comparison")
-  ) 
+  )
 
 #Bind to one df
 cor_labels_nes_long = bind_rows(
@@ -728,7 +724,7 @@ correlation_long_all_btm_mouse_human_timepoints_summary_heatmap = cor_labels_nes
   # Geoms
   geom_point(aes(size = n_obs),
              pch = 21) +
-  geom_text(aes(label = paste0("r=",round(cor_value,2), ", R²=", round(r_squared,2))),
+  geom_text(aes(label = paste0("r=",round(cor_value,2), ", R²=", round(r_squared,2), p_adj_label)),
             color = "black",
             vjust = -2.5, fontface = "plain",
             size = 3) +
@@ -1024,10 +1020,10 @@ dge_btm_nes_group_correlation_plot
 
 
 # Save plot
-# dge_btm_nes_group_correlation_plot %>%
-#   ggsave(filename = here("Figures", "all_human_mouse_dge_btm_nes_group_correlation_plot_filtered.png"),
-#          width = 10,
-#          height = 4)
+dge_btm_nes_group_correlation_plot %>%
+  ggsave(filename = here("Figures", "all_human_mouse_dge_btm_nes_group_correlation_plot_filtered.png"),
+         width = 10,
+         height = 4)
 ```
 
 
@@ -1453,14 +1449,20 @@ correlation_processes_bypathogen_time %>%
 # Prepare heatmap data
 btm_correlation_process_heatmap_df =
   correlation_processes_bypathogen_time_df %>%
-  # Retain only significant correlations
-  # filter(p_value <= 0.05) %>%
+
   mutate(
     # Reorder processes by mean correlation
     process = fct_reorder(process, cor_value, .fun = mean),
     timepoint = as.factor(timepoint_comparison),
     group = fct_relevel(group, immune_order)
-  )
+  ) %>% 
+  #Refactor
+  mutate(pathogen = fct_relevel(pathogen, "Influenza", "HepB", "S. aureus", "E. coli", "Burn", "Trauma"),
+         treatment = case_when(pathogen %in% c("HepB", "Influenza") ~ "Vaccination",
+                               pathogen %in% c("S. aureus", "E. coli") ~ "Infection",
+                               pathogen %in% c("Burn", "Trauma") ~ "Injury",
+                               TRUE ~ pathogen),
+         treatment = fct_relevel(treatment, "Vaccination", "Infection", "Injury"))
 
 # Build heatmap
 btm_correlation_process_heatmap = btm_correlation_process_heatmap_df %>%
@@ -1475,6 +1477,9 @@ btm_correlation_process_heatmap = btm_correlation_process_heatmap_df %>%
   ) +
   # Geoms
   geom_tile(color = "white", linewidth = 0.2) +
+    geom_text(aes(label = p_label),
+            data = . %>% filter(p_label != "ns"),
+            size = 4, vjust = 0.75) +
   # Scales
   scale_fill_gradient2(
     low = "#06d6a0",
@@ -1500,7 +1505,7 @@ btm_correlation_process_heatmap = btm_correlation_process_heatmap_df %>%
         ggh4x.facet.nestline = element_line(colour = "black", linetype = 1))
 
 # Render heatmap
-btm_correlation_process_heatmap
+btm_correlation_process_heatmap 
 ```
 
 #### Leading-edge genes analysis
@@ -1640,7 +1645,7 @@ Visualise the distribution of shared leading-edge gene percentages
 across processes, pathogens, and timepoints with violin-boxplots,
 annotating extreme processes.
 
-```{r fig.height = 3, fig.width=10}
+```{r fig.height = 4, fig.width=10}
 #Import
 legs_perc = readRDS(file = here("tables", "all_human_mouse_gsea_btm_results_core_summary.rds"))
 
@@ -1684,6 +1689,11 @@ top_bottom_shared_modules <- dplyr::bind_rows(
 
 # Violin-boxplot of shared percentage
 shared_processes_bypathogen_time = shared_perc_plot_df %>%
+  bind_rows(shared_perc_plot_df %>% 
+              mutate(treatment = "Pooled",
+                     pathogen = "",
+                     timepoint_comparison = "") %>% 
+              distinct()) %>% 
   # Aesthetics
   ggplot() +
   aes(x = timepoint_comparison,
@@ -1728,21 +1738,16 @@ shared_processes_bypathogen_time = shared_perc_plot_df %>%
   guides(
     fill = guide_legend(
       byrow = TRUE,
-      ncol = 1, 
+      nrow = 3, 
       override.aes = list(shape = 22, size = 3)
     )
-  ) +
-  theme(
-    legend.position = "right",
-    legend.key.spacing.y = unit(1, "pt"), 
-    legend.margin = margin(t = 0, b = 10)
   ) +
   # Theme
   theme_vaxgo() +
   theme(panel.spacing = unit(0.2, "lines"),
         plot.margin = margin(0.3, 0.3, 0.3, 0.3, unit = "cm"),
         plot.title = element_text(hjust = 0.5, face = "bold"), plot.title.position = "panel",
-        legend.position = "right",
+        legend.position = "top",
         legend.key.spacing.y = unit(1, "pt"), 
         legend.margin = margin(t = 0, b = 10),
         legend.key.size = unit(2, "pt"),
@@ -1750,7 +1755,7 @@ shared_processes_bypathogen_time = shared_perc_plot_df %>%
         ggh4x.facet.nestline = element_line(colour = "black", linetype = 1)) +
   # Labels
   labs(x = "Time",
-       y = "%Shared LEGs",
+       y = "%Shared LEGs = Shared/Mouse (total)",
        color = "",
        fill = "BTM Group",
        title = "Distribution of %Shared LEGs, modules with p_adj <= 0.25") 
@@ -1762,7 +1767,7 @@ shared_processes_bypathogen_time
 shared_processes_bypathogen_time %>%
   ggsave(filename = here("Figures", "all_human_mouse_gsea_btm_intramodule_shared_violinplot_percentage_labeled_horizontal.png"),
          width = 10,
-         height = 3)
+         height = 4)
 
 ```
 

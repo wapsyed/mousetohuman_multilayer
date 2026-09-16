@@ -13,7 +13,7 @@
 
 Mice are the dominant preclinical model in vaccine research, yet their translational value for human immune responses remains contested. This project systematically evaluates murine translatability across vaccination (Influenza, Hepatitis B), acute bacterial infection (*S. aureus*, *E. coli*), and sterile injury (burns and trauma) using publicly available blood transcriptome data from GEO and BioProject.
 
-Mice are the key preclinical animal models in vaccine and immunological research, yet their predictive value for human immunity remains contested. Here, we evaluated the translatability of murine models across inactivated and subunit vaccination (influenza, hepatitis B), acute infection (S. aureus, E. coli), and injury (burns and trauma), integrating transcriptomic profiles with sequence evolution and cis-regulatory architecture. We show that while the expression patterns of individual orthologous genes correlated moderately, blood transcriptional modules were highly conserved between species. Translational accuracy depended on stimulus intensity, where infections and injuries engaged conserved signatures, whereas single-dose vaccination diverged. To identify the basis of gene expression convergence, we built multilayer models and benchmarked several algorithms under leave-one-condition-out cross-validation. A random forest integrating modular and gene-level features was the best model in every task, predicting the human expression rank (R² = 0.23) and the direction of change (ROC-AUC = 0.87) far better than linear or neural-network alternatives, and consistently outperforming them when classifying leading-edge-gene sharing. Mouse ranks and directions did not transfer on their own, whereas evolutionary and regulatory layers provided a conserved signal that improved prediction of human rank, direction, and shared leading-edge genes. Finally, we provide a step-by-step R Markdown notebook that applies the best model to predict user input data. 
+Mice are the key preclinical animal models in vaccine and immunological research, yet their predictive value for human immunity remains contested. Here, we evaluated the translatability of murine models across inactivated and subunit vaccination (influenza, hepatitis B), acute infection (S. aureus, E. coli), and injury (burns and trauma), integrating transcriptomic profiles with sequence evolution and cis-regulatory architecture. We show that while the expression patterns of individual orthologous genes correlated moderately, blood transcriptional modules were highly conserved between species. Translational accuracy depended on stimulus intensity, where infections and injuries engaged conserved signatures, whereas single-dose vaccination diverged. To identify the basis of gene expression convergence, we built multilayer models and benchmarked several algorithms under leave-one-condition-out cross-validation. A random forest integrating modular and gene-level features was the best model for human expression-rank transfer (R² = 0.23) and directional concordance (ROC-AUC = 0.85), while a neural network was marginally better at classifying leading-edge-gene sharing; both clearly outperformed the linear alternatives. Mouse ranks and directions did not transfer on their own, whereas evolutionary and regulatory layers provided a conserved signal that improved prediction of human rank, direction, and shared leading-edge genes. Finally, we provide a step-by-step R Markdown notebook that applies the best model to predict user input data. 
 
 ------------------------------------------------------------------------
 
@@ -215,12 +215,12 @@ The consolidated pipeline `Modelling/6_Statistical_Modelling.Rmd` predicts the *
 
 | Task | Metric | Random Forest | Neural Network | Lasso | Linear |
 |:---|:---|:--:|:--:|:--:|:--:|
-| Shared LEGs (predictive, Full + BTM) | ROC-AUC | **0.557** | 0.536 | 0.489 | 0.487 |
-| Shared LEGs (explanatory, Full + BTM) | ROC-AUC | **0.592** | 0.580 | 0.507 | 0.521 |
+| Shared LEGs (predictive, Full + BTM) | ROC-AUC | 0.552 | **0.569** | 0.493 | 0.503 |
+| Shared LEGs (explanatory, Full + BTM) | ROC-AUC | 0.574 | **0.575** | 0.537 | 0.535 |
 | Human rank transfer (Mouse + layers) | R² | **0.234** | 0.068 | 0.072 | 0.072 |
-| Directional concordance (Direction + layers) | ROC-AUC | **0.868** | 0.722 | 0.502 | 0.499 |
+| Directional concordance (Direction + layers) | ROC-AUC | **0.849** | 0.619 | 0.517 | 0.529 |
 
-The **random forest is the best algorithm for every task**; the lasso never improved on the unregularised linear model, indicating the transferable signal is predominantly non-linear and multivariate.
+The **random forest is the best algorithm for rank transfer and directional concordance**; for shared-LEG classification the **neural network is marginally better by ROC-AUC** (0.569 vs 0.552 predictive; 0.575 vs 0.574 explanatory), although the random forest retains the highest PR-AUC. The lasso never improved on the unregularised linear model, indicating the transferable signal is predominantly non-linear and multivariate.
 
 ### Exported artefacts (`Modelling/Models/`)
 

@@ -464,67 +464,6 @@ gseGO_all <- function(df, OrgDb = "org.Hs.eg.db", keyType = "SYMBOL", ontology =
 }
 
 
-#Function for ORA/ENRICHER custom
-enricher_condition <- function(df, term2gene_df) {
-  df %>%
-    distinct(condition) %>%
-    pull(condition) %>%
-    set_names() %>%
-    map_dfr(function(cond) {
-      genes <- df %>%
-        filter(condition == cond) %>%
-        pull(genes)
-      
-      result <- tryCatch({
-        enricher(
-          gene = genes,
-          pvalueCutoff = 1,
-          pAdjustMethod = "BH",
-          TERM2GENE = term2gene_df, 
-        ) %>%
-          as.data.frame() %>%
-          clean_names() %>%
-          mutate(condition = cond)
-      }, error = function(e) {
-        message("Failed on condition: ", cond)
-        return(NULL)
-      })
-      
-      return(result)
-    })
-}
-
-# Function for ORA Gene Ontology
-oraGO_condition <- function(df, orgdb = org.Hs.eg.db) {
-  df %>%
-    distinct(condition) %>%
-    pull(condition) %>%
-    set_names() %>%
-    map_dfr(function(cond) {
-      genes <- df %>%
-        filter(condition == cond) %>%
-        pull(genes)
-      
-      result <- tryCatch({
-        enrichGO(
-          gene = genes,
-          OrgDb = orgdb,
-          keyType = 'SYMBOL',
-          readable = T,
-          ont = "BP",
-          pAdjustMethod = "BH",
-          qvalueCutoff = 1) %>%
-          as.data.frame() %>%
-          clean_names() %>%
-          mutate(condition = cond)
-      }, error = function(e) {
-        message("Failed on condition: ", cond)
-        return(NULL)
-      })
-      
-      return(result)
-    })
-}
 
 
 # Function for clustering by day
@@ -774,6 +713,100 @@ calculate_weighted_correlation_pearson <- function(data,
     )
 }
 
+#Simple pearson correlation
+calculate_correlation_pearson <- function(data,
+                                          x_col = mean_log2fc_Human,
+                                          y_col = mean_log2fc_Mouse,
+                                          group_cols = c("pathogen", "timepoint_comparison")) {
+  
+  data %>%
+    # Select target variables and rename them for internal calculation
+    dplyr::select(
+      dplyr::all_of(group_cols),
+      x_val = {{ x_col }},
+      y_val = {{ y_col }}
+    ) %>%
+    
+    # Compute Pearson correlation per specified group with safety checks
+    dplyr::group_by(dplyr::across(dplyr::all_of(group_cols))) %>%
+    dplyr::summarise(
+      {
+        # Clean vectors by filtering out NAs
+        valid_idx <- !is.na(x_val) & !is.na(y_val)
+        x_clean <- x_val[valid_idx]
+        y_clean <- y_val[valid_idx]
+        
+        # Guard clause: require >= 3 complete cases and non-zero variance
+        if (length(x_clean) < 3 || stats::var(x_clean) == 0 || stats::var(y_clean) == 0) {
+          data.frame(
+            cor_value = NA_real_,
+            se        = NA_real_,
+            t         = NA_real_,
+            p_value   = NA_real_,
+            n_obs     = length(x_clean)
+          )
+        } else {
+          res_try <- tryCatch(
+            stats::cor.test(x_clean, y_clean, method = "pearson"),
+            error = function(e) NULL
+          )
+          
+          if (is.null(res_try)) {
+            data.frame(
+              cor_value = NA_real_,
+              se        = NA_real_,
+              t         = NA_real_,
+              p_value   = NA_real_,
+              n_obs     = length(x_clean)
+            )
+          } else {
+            r <- as.numeric(res_try$estimate)
+            data.frame(
+              cor_value = r,
+              se        = sqrt((1 - r^2) / (length(x_clean) - 2)),
+              t         = as.numeric(res_try$statistic),
+              p_value   = as.numeric(res_try$p.value),
+              n_obs     = length(x_clean)
+            )
+          }
+        }
+      },
+      .groups = "drop"
+    ) %>%
+    
+    # R-squared, FDR-adjusted p-values and formatted label strings
+    dplyr::mutate(
+      r_squared = dplyr::if_else(!is.na(cor_value), cor_value^2, NA_real_),
+      
+      p_label = dplyr::case_when(
+        is.na(p_value)  ~ "ns",
+        p_value <= 0.01 ~ "***",
+        p_value <= 0.05 ~ "**",
+        p_value <= 0.10 ~ "*",
+        TRUE            ~ "ns"
+      ),
+      
+      p_adj = stats::p.adjust(p_value, method = "BH"),
+      p_adj_label = dplyr::case_when(
+        is.na(p_adj)    ~ "ns",
+        p_adj <= 0.01   ~ "***",
+        p_adj <= 0.05   ~ "**",
+        p_adj <= 0.10   ~ "*",
+        TRUE            ~ "ns"
+      )
+    ) %>%
+    dplyr::mutate(
+      cor_label = dplyr::if_else(
+        !is.na(cor_value),
+        stringr::str_c(
+          "r=", round(cor_value, 2),
+          ", R²=", round(r_squared, 2),
+          p_label, ", n=", n_obs
+        ),
+        "NA"
+      )
+    )
+}
 
 #Safe correlation 
 safe_cor_test <- function(x, y, method) {
