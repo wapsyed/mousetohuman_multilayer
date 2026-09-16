@@ -1,9 +1,9 @@
-# Animals Vax Atlas
+# From mice to humans: A multi-omic predictive framework for translational immunology
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![R version](https://img.shields.io/badge/R-%3E%3D4.5.2-276DC3?logo=r&logoColor=white)](https://cran.r-project.org/) [![renv](https://img.shields.io/badge/reproducibility-renv-blue)](https://rstudio.github.io/renv/) [![Journal](https://img.shields.io/badge/Genes%20%26%20Immunity-Under%20Review-orange)](https://www.nature.com/gi/)
 
 > **Associated manuscript:**\
-> *From Mice to Humans: Functional Modules Improve the Translatability of Transcriptomic Responses*\
+> *From mice to humans: A multi-omic predictive framework for translational immunology*\
 > Wasim Aluísio Prates-Syed, Aline A. Lira, Nelson Cortes, Jaqueline D.Q. Silva, Bárbara Hamaguchi, Evelyn Carvalho, Adriana Castillo-Chávez, Ricardo Durães-Carvalho, Otavio Cabral-Marques, Ester Cerdeira Sabino, José Eduardo Krieger, Thomas Hagan, Gustavo Cabral-Miranda.\
 > *Submitted to Genes and Immunity — currently under review.*
 
@@ -13,7 +13,7 @@
 
 Mice are the dominant preclinical model in vaccine research, yet their translational value for human immune responses remains contested. This project systematically evaluates murine translatability across vaccination (Influenza, Hepatitis B), acute bacterial infection (*S. aureus*, *E. coli*), and sterile injury (burns and trauma) using publicly available blood transcriptome data from GEO and BioProject.
 
-A central finding of this project is that while individual orthologous gene correlations are often weak, **higher-order pathway and module responses are highly conserved** between species. By shifting from a gene-centric to a pathway-level analytical framework—using Blood Transcription Modules (BTMs), MSigDB Hallmarks, and rank-based statistics—murine models accurately predict human immune dynamics. Translational concordance scales with stimulus intensity: acute infections and systemic injuries show the highest cross-species conservation, whereas milder vaccination stimuli exhibit greater species-specific divergence. Furthermore, divergent gene expression is primarily governed by divergence in *cis*-regulatory promoter architecture rather than protein-coding sequence identity.
+Mice are the key preclinical animal models in vaccine and immunological research, yet their predictive value for human immunity remains contested. Here, we evaluated the translatability of murine models across inactivated and subunit vaccination (influenza, hepatitis B), acute infection (S. aureus, E. coli), and injury (burns and trauma), integrating transcriptomic profiles with sequence evolution and cis-regulatory architecture. We show that while the expression patterns of individual orthologous genes correlated moderately, blood transcriptional modules were highly conserved between species. Translational accuracy depended on stimulus intensity, where infections and injuries engaged conserved signatures, whereas single-dose vaccination diverged. To identify the basis of gene expression convergence, we built multilayer models and benchmarked several algorithms under leave-one-condition-out cross-validation. A random forest integrating modular and gene-level features was the best model in every task, predicting the human expression rank (R² = 0.23) and the direction of change (ROC-AUC = 0.87) far better than linear or neural-network alternatives, and consistently outperforming them when classifying leading-edge-gene sharing. Mouse ranks and directions did not transfer on their own, whereas evolutionary and regulatory layers provided a conserved signal that improved prediction of human rank, direction, and shared leading-edge genes. Finally, we provide a step-by-step R Markdown notebook that applies the best model to predict user input data. 
 
 ------------------------------------------------------------------------
 
