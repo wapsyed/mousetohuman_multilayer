@@ -215,12 +215,12 @@ The consolidated pipeline `Modelling/6_Statistical_Modelling.Rmd` predicts the *
 
 | Task | Metric | Random Forest | Neural Network | Lasso | Linear |
 |:---|:---|:--:|:--:|:--:|:--:|
-| Shared LEGs (predictive, Full + BTM) | ROC-AUC | 0.552 | **0.569** | 0.493 | 0.503 |
-| Shared LEGs (explanatory, Full + BTM) | ROC-AUC | 0.574 | **0.575** | 0.537 | 0.535 |
+| Shared LEGs (predictive, Full + BTM) | ROC-AUC | 0.572 | 0.615 | **0.617** | 0.601 |
+| Shared LEGs (explanatory, Full + BTM) | ROC-AUC | 0.622 | 0.603 | **0.627** | 0.611 |
 | Human rank transfer (Mouse + layers) | R² | **0.234** | 0.068 | 0.072 | 0.072 |
 | Directional concordance (Direction + layers) | ROC-AUC | **0.849** | 0.619 | 0.517 | 0.529 |
 
-The **random forest is the best algorithm for rank transfer and directional concordance**; for shared-LEG classification the **neural network is marginally better by ROC-AUC** (0.569 vs 0.552 predictive; 0.575 vs 0.574 explanatory), although the random forest retains the highest PR-AUC. The lasso never improved on the unregularised linear model, indicating the transferable signal is predominantly non-linear and multivariate.
+The **random forest is the best algorithm for rank transfer and directional concordance**; for shared-LEG classification the **lasso is marginally better by ROC-AUC** (0.617 vs 0.601 predictive; 0.627 vs 0.611 explanatory). The lasso improved only marginally over the unregularised linear model for shared-LEG classification and not at all for rank transfer or direction, indicating that the transferable signal for rank and direction is predominantly non-linear and multivariate.
 
 ### Exported artefacts (`Modelling/Models/`)
 

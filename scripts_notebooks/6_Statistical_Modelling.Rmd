@@ -277,7 +277,7 @@ min_max <- function(x) {
 }
 
 # ------------------------------------------------------------------------------
-# Generic LOCO regression: fit LM + RF + GBM, extract coefficients/importance,
+# Generic LOCO regression: fit LM + Lasso + RF + NN, extract coefficients/importance,
 # evaluate with leave-one-condition-out, and return out-of-fold predictions.
 # ------------------------------------------------------------------------------
 loco_regression <- function(df, selection, target, set_name, framing) {
@@ -386,7 +386,7 @@ loco_regression <- function(df, selection, target, set_name, framing) {
 
 # ------------------------------------------------------------------------------
 # Generic LOCO classification
-# fit logistic + RF + GBM, extract log-odds/importance,
+# fit logistic + Lasso + RF + NN, extract log-odds/importance,
 # evaluate (ROC-AUC, PR-AUC) with leave-one-condition-out, and return
 # out-of-fold predictions.
 # ------------------------------------------------------------------------------
