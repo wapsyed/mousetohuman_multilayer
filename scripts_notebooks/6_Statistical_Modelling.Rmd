@@ -450,6 +450,16 @@ loco_classification <- function(df, selection, target, set_name, framing) {
                 importance = as.numeric(rf_engine$variable.importance)) %>%
     mutate(feature_set = set_name, framing = framing)
 
+  # Lasso (penalized) coefficients at the fitted penalty (0.01); no valid SE/CI
+  coefs_lasso <- if (!is.null(fit_lasso)) {
+    m <- as.matrix(coef(extract_fit_engine(fit_lasso), s = 0.01))
+    tibble(feature_name_original = rownames(m),
+           estimate = as.numeric(m[, 1])) %>%
+      filter(feature_name_original != "(Intercept)") %>%
+      mutate(feature_name_original = str_replace_all(feature_name_original, "`", "")) %>%
+      mutate(feature_set = set_name, framing = framing)
+  } else NULL
+
   # 5. LOCO CROSS-VALIDATION (4 folds by condition; save predictions)
   set.seed(seed)
   folds <- group_vfold_cv(d, group = pathogen, v = 4)
@@ -490,7 +500,7 @@ loco_classification <- function(df, selection, target, set_name, framing) {
     left_join(collect_predictions(cv_nn) %>% select(.row, pred_nn = .pred_TRUE), by = ".row") %>%
     mutate(feature_set = set_name, framing = framing, target = target)
 
-  list(metrics = metrics, coefficients = coefs, importance = imp,
+  list(metrics = metrics, coefficients = coefs, importance = imp, coefs_lasso = coefs_lasso,
        fit_log = fit_log, fit_lasso = fit_lasso, fit_rf = fit_rf, fit_nn = fit_nn, pred_oof = pred_oof)
 }
 ```
@@ -519,19 +529,22 @@ shared_res_B <- imap(shared_sets_B, ~ loco_classification(df_shared, .x, "shared
 shared_metrics   <- bind_rows(map_dfr(shared_res_A, "metrics"), map_dfr(shared_res_B, "metrics"))
 shared_coefs     <- bind_rows(map_dfr(shared_res_A, "coefficients"), map_dfr(shared_res_B, "coefficients"))
 shared_imp       <- bind_rows(map_dfr(shared_res_A, "importance"),   map_dfr(shared_res_B, "importance"))
+shared_coefs_lasso <- bind_rows(map_dfr(shared_res_A, "coefs_lasso"), map_dfr(shared_res_B, "coefs_lasso"))
 shared_pred_oof  <- bind_rows(map_dfr(shared_res_A, "pred_oof"), map_dfr(shared_res_B, "pred_oof"))
 shared_metrics
 
 # Save tables
-saveRDS(shared_metrics,   here("Modelling", "Models", "metrics_shared.rds"))
-saveRDS(shared_coefs,     here("Modelling", "Models", "coefs_shared.rds"))
-saveRDS(shared_imp,       here("Modelling", "Models", "imp_shared.rds"))
-saveRDS(shared_pred_oof,  here("Modelling", "Models", "pred_shared.rds"))
+saveRDS(shared_metrics,     here("Modelling", "Models", "metrics_shared.rds"))
+saveRDS(shared_coefs,       here("Modelling", "Models", "coefs_shared.rds"))
+saveRDS(shared_imp,         here("Modelling", "Models", "imp_shared.rds"))
+saveRDS(shared_coefs_lasso, here("Modelling", "Models", "coefs_lasso_shared.rds"))
+saveRDS(shared_pred_oof,    here("Modelling", "Models", "pred_shared.rds"))
 write_csv(shared_metrics, here("Modelling", "Tables", "shared_loco.csv"))
 
 # Save fitted models (framing A, Full + BTM) for reuse (butchered + compressed)
-saveRDS(butcher(shared_res_A[["Full + BTM"]]$fit_rf),  here("Modelling", "Models", "rf_model_shared.rds"),  compress = "xz")
-saveRDS(butcher(shared_res_A[["Full + BTM"]]$fit_nn), here("Modelling", "Models", "nn_model_shared.rds"), compress = "xz")
+saveRDS(butcher(shared_res_A[["Full + BTM"]]$fit_rf),    here("Modelling", "Models", "rf_model_shared.rds"),    compress = "xz")
+saveRDS(butcher(shared_res_A[["Full + BTM"]]$fit_nn),    here("Modelling", "Models", "nn_model_shared.rds"),    compress = "xz")
+saveRDS(butcher(shared_res_A[["Full + BTM"]]$fit_lasso), here("Modelling", "Models", "lasso_model_shared.rds"), compress = "xz")
 ```
 
 ## Rank
@@ -817,6 +830,26 @@ gini_plot <- function(imp, title) {
              linewidth = 0.3) +
     theme_vaxgo() +
     labs(x = "Gini importance",
+         y = "",
+         title = title)
+}
+
+# Lasso coefficients (points only; penalized estimates have no valid SE/CI)
+lasso_plot <- function(coefs, title, xlab) {
+  coefs %>%
+    mutate(feature = clean_feat(as.character(feature_name_original))) %>%
+    filter(!is.na(feature), !is.na(estimate)) %>%
+    mutate(feature = make.unique(feature)) %>%
+    ggplot() +
+    aes(x = estimate, y = fct_reorder(feature, estimate)) +
+    geom_vline(xintercept = 0,
+               linetype = "dashed",
+               color = "gray50") +
+    geom_point(size = 2,
+               pch = 21,
+               fill = "#4DBBD5FF") +
+    theme_vaxgo() +
+    labs(x = xlab,
          y = "",
          title = title)
 }
@@ -1128,22 +1161,16 @@ priority_genes_heatmap
 
 ## Feature contributions
 
-### Shared classification (log-odds + Gini)
+### Shared classification (Lasso coefficients)
 
 ```{r fig.height=6, fig.width=8}
-# Shared vs Mouse only: log-odds (logistic) and Gini importance (random forest)
-log_coefs_plot_shared <- shared_coefs %>%
+# Shared vs Mouse only: Lasso coefficients (best-performing model for this task)
+lasso_coefs_plot_shared <- shared_coefs_lasso %>%
   filter(framing == "A_predictive", feature_set == "Full + BTM") %>%
-  forest_plot("Shared: Predictive", "Log-odds") +
+  lasso_plot("Shared: Predictive", "Lasso coefficient") +
   scale_x_continuous(expand = c(0.01,0.01))
 
-rf_imp_plot_shared <- shared_imp %>%
-  filter(framing == "A_predictive", feature_set == "Full + BTM") %>%
-  gini_plot("Shared: Predictive") +
-  scale_x_continuous(expand = c(0.01,0.01))
-
-log_coefs_plot_shared
-rf_imp_plot_shared
+lasso_coefs_plot_shared
 ```
 
 ### Rank transfer (standardized effect + Gini)
@@ -1188,7 +1215,7 @@ rf_imp_plot_direction
 feature_contributions_figure = 
   (linear_coefs_plot_rank | rf_imp_plot_rank) /
   (log_coefs_plot_direction | rf_imp_plot_direction) /
-  (log_coefs_plot_shared | rf_imp_plot_shared) +
+  lasso_coefs_plot_shared +
   plot_annotation(title = "Feature contributions")
 
 ggsave(here("Modelling", "Figures", "Models_Coeff_Contributions.png"),

@@ -345,8 +345,10 @@ column in the data is named `pathogen`.
 |------|-------------|
 | `rf_model_{shared,rank,direction}.rds` | Random-forest model per task (butchered, xz-compressed) |
 | `nn_model_{shared,rank,direction}.rds` | Neural-network model per task |
+| `lasso_model_shared.rds` | Lasso model for shared-LEG classification (best-performing model for this task) |
 | `metrics_{shared,rank,direction}.rds` | Out-of-fold performance per model, feature set and framing |
 | `coefs_{shared,direction}.rds` | Logistic log-odds (classification tasks) |
+| `coefs_lasso_shared.rds` | Lasso (penalized) coefficients for shared-LEG classification |
 | `coefs_rank.rds` | Standardized linear effects (regression) |
 | `imp_{shared,rank,direction}.rds` | Random-forest Gini importance |
 | `pred_{shared,rank,direction}.rds` | Out-of-fold predictions |
@@ -382,6 +384,11 @@ column in the data is named `pathogen`.
 | `estimate` | num | Log-odds (classification) or standardized effect (regression) |
 | `std.error`, `statistic`, `p.value`, `conf.low`, `conf.high` | num | Inference on the estimate |
 | `feature_set`, `framing` | chr | Feature layer / framing |
+
+> `coefs_lasso_shared.rds` holds **penalized** Lasso coefficients: they are shrunk
+> toward zero (some exactly zero) and have **no valid standard error, p-value or
+> confidence interval**; only `feature_name_original`, `estimate`, `feature_set`
+> and `framing` are populated.
 
 **Schema — `imp_*.rds`**
 
