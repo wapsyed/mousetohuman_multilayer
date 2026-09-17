@@ -10,20 +10,18 @@ output: html_document
 # ==============================================================================
 # Setup
 # ==============================================================================
-# This v2 script complements the original 6_Statistical_Modelling.Rmd:
-#   - same feature layers, but only two (DGE baseline -> Full + BTM)
-#   - leave-one-pathogen-out (LOCO) cross-validation instead of in-sample metrics
+# Consolidated modelling pipeline for mouse-to-human transfer:
+#   - two nested feature layers (DGE baseline -> Full + BTM)
+#   - leave-one-condition-out (LOCO) cross-validation instead of in-sample metrics
 #   - human-DEG universe with ranks recomputed inside the universe
 #   - two mouse-LEG scopes: all DEGs (Rank, Direction) and mouse LEGs (Shared)
-#   - feature-weighted score_shared for prioritization
-# The original script is left untouched.
 
 library(here)
 source(here("scripts_notebooks", "required.R"))   # loads packages, colors, theme_vaxgo
 library(tidyverse)
 library(tidymodels)
 
-# Output folders for this prototype
+# Output folders for the modelling pipeline
 dir.create(here("Modelling", "Models"),  showWarnings = FALSE, recursive = TRUE)
 dir.create(here("Modelling", "Figures"), showWarnings = FALSE, recursive = TRUE)
 dir.create(here("Modelling", "Tables"),  showWarnings = FALSE, recursive = TRUE)
@@ -32,7 +30,7 @@ dir.create(here("Modelling", "Tables"),  showWarnings = FALSE, recursive = TRUE)
 # Input parameters
 
 ```{r}
-# Scope: Infection + Injury only -> 4 pathogens -> 4 LOCO folds
+# Scope: Infection + Injury only -> 4 conditions -> 4 LOCO folds
 treatments_keep <- c("Infection", "Injury")
 seed <- 123
 ```
@@ -280,7 +278,7 @@ min_max <- function(x) {
 
 # ------------------------------------------------------------------------------
 # Generic LOCO regression: fit LM + RF + GBM, extract coefficients/importance,
-# evaluate with leave-one-pathogen-out, and return out-of-fold predictions.
+# evaluate with leave-one-condition-out, and return out-of-fold predictions.
 # ------------------------------------------------------------------------------
 loco_regression <- function(df, selection, target, set_name, framing) {
   # 1. PREPARE DATASET
@@ -342,7 +340,7 @@ loco_regression <- function(df, selection, target, set_name, framing) {
                 importance = as.numeric(rf_engine$variable.importance)) %>%
     mutate(feature_set = set_name, framing = framing)
 
-  # 5. LOCO CROSS-VALIDATION (4 folds by pathogen; save predictions)
+  # 5. LOCO CROSS-VALIDATION (4 folds by condition; save predictions)
   set.seed(seed)
   folds <- group_vfold_cv(d, group = pathogen, v = 4)
   cv_lm    <- fit_resamples(wf_lm,    resamples = folds, control = control_resamples(save_pred = TRUE))
@@ -389,7 +387,7 @@ loco_regression <- function(df, selection, target, set_name, framing) {
 # ------------------------------------------------------------------------------
 # Generic LOCO classification
 # fit logistic + RF + GBM, extract log-odds/importance,
-# evaluate (ROC-AUC, PR-AUC) with leave-one-pathogen-out, and return
+# evaluate (ROC-AUC, PR-AUC) with leave-one-condition-out, and return
 # out-of-fold predictions.
 # ------------------------------------------------------------------------------
 loco_classification <- function(df, selection, target, set_name, framing) {
@@ -452,7 +450,7 @@ loco_classification <- function(df, selection, target, set_name, framing) {
                 importance = as.numeric(rf_engine$variable.importance)) %>%
     mutate(feature_set = set_name, framing = framing)
 
-  # 5. LOCO CROSS-VALIDATION (4 folds by pathogen; save predictions)
+  # 5. LOCO CROSS-VALIDATION (4 folds by condition; save predictions)
   set.seed(seed)
   folds <- group_vfold_cv(d, group = pathogen, v = 4)
   cv_log   <- fit_resamples(wf_log,   resamples = folds, control = control_resamples(save_pred = TRUE))
@@ -505,9 +503,15 @@ loco_classification <- function(df, selection, target, set_name, framing) {
 # ==============================================================================
 # Shared
 # ==============================================================================
+# status_original is module-specific (a gene can be Shared in one BTM and Mouse
+# only in another), so collapse to one row per gene and condition: a gene is
+# labelled Shared if it is a shared LEG in at least one module.
 df_shared <- df_mouse_legs %>%
   filter(hgnc_symbol %in% btm_gene_set) %>%  # BTM scope only
-  mutate(shared = factor(status_original == "Shared", levels = c(FALSE, TRUE)))
+  group_by(treatment, pathogen, timepoint_comparison, hgnc_symbol) %>%
+  mutate(shared = factor(any(status_original == "Shared"), levels = c(FALSE, TRUE))) %>%
+  ungroup() %>%
+  distinct(treatment, pathogen, timepoint_comparison, hgnc_symbol, .keep_all = TRUE)
 
 shared_res_A <- imap(shared_sets_A, ~ loco_classification(df_shared, .x, "shared", .y, "A_predictive"))
 shared_res_B <- imap(shared_sets_B, ~ loco_classification(df_shared, .x, "shared", .y, "B_explanatory"))
@@ -602,8 +606,8 @@ saveRDS(butcher(direction_res[["Direction + layers"]]$fit_nn), here("Modelling",
 # ==============================================================================
 # SCORES - out-of-fold predictions from the best-performing model per task
 # ==============================================================================
-# Each score is a model prediction, computed out-of-fold (leave-one-pathogen-out):
-# every gene is predicted by a model trained without its pathogen.
+# Each score is a model prediction, computed out-of-fold (leave-one-condition-out):
+# every gene is predicted by a model trained without its condition.
 #   score_shared        -> probability of being Shared (vs Mouse only)
 #   score_rank          -> predicted human absolute rank
 #   score_direction     -> probability of concordant direction
