@@ -1,0 +1,17 @@
+model,roc_auc,pr_auc,feature_set,framing,target,task
+Logistic Regression,0.6138670510132774,0.8803152638663609,DGE Baseline,A_predictive,shared,classification
+Lasso,0.5696147798742138,0.8690309771079819,DGE Baseline,A_predictive,shared,classification
+Random Forest,0.5024092274092274,0.8246271452545387,DGE Baseline,A_predictive,shared,classification
+Neural Network,0.5835386093640811,0.8598404791571549,DGE Baseline,A_predictive,shared,classification
+Logistic Regression,0.6205232354996506,0.8802520426215126,Full + BTM,A_predictive,shared,classification
+Lasso,0.6051755765199162,0.878261399056767,Full + BTM,A_predictive,shared,classification
+Random Forest,0.5803166803166803,0.8587389413073248,Full + BTM,A_predictive,shared,classification
+Neural Network,0.5982092941998602,0.8674407712595842,Full + BTM,A_predictive,shared,classification
+Logistic Regression,0.5570361635220126,0.8702062771710162,DGE Baseline,B_explanatory,shared,classification
+Lasso,0.5408542976939203,0.866465611600586,DGE Baseline,B_explanatory,shared,classification
+Random Forest,0.48833606333606333,0.8050382951812461,DGE Baseline,B_explanatory,shared,classification
+Neural Network,0.5539788609364081,0.8571334500771686,DGE Baseline,B_explanatory,shared,classification
+Logistic Regression,0.6290050663871419,0.8831432669475778,Full + BTM,B_explanatory,shared,classification
+Lasso,0.6041885045422781,0.8760243746043954,Full + BTM,B_explanatory,shared,classification
+Random Forest,0.6129026754026754,0.8710707264446454,Full + BTM,B_explanatory,shared,classification
+Neural Network,0.6327393431167017,0.8734521701335867,Full + BTM,B_explanatory,shared,classification
