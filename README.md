@@ -186,19 +186,7 @@ Each notebook sources `scripts_notebooks/required.R`, initializing the shared wo
 | **6** | `6_Statistical_Modelling.Rmd` | `human_mouse_statsmodelling_parameters_values.rds` | `tidymodels` Random Forest & Elastic Net models, VIP feature importance |
 | **6 (v2)** | `Modelling/6_Statistical_Modelling.Rmd` | `human_mouse_statsmodelling_gene_annotated_layers.rds`, `dge_btm_process_genes_diff_bygene_clean_filtered.rds` | `Modelling/Models/rf_model_*.rds`, LOCO metrics, `score_table_v2.rds`, Fig. 7 |
 
-------------------------------------------------------------------------
 
-## Minimal Worked Example
-
-The standalone script [`example/example_btm_correlation.R`](example/example_btm_correlation.R) reproduces the cross-species BTM correlation scatter plot using pre-computed tables in `< 2 minutes`:
-
-``` r
-source(here::here("example", "example_btm_correlation.R"))
-```
-
-Outputs are saved directly to `Figures/example_btm_correlation_day7.png`.
-
-------------------------------------------------------------------------
 
 ## Statistical modelling {#statistical-modelling-v2}
 
@@ -248,10 +236,9 @@ Every gene is scored by a model trained without its pathogen:
 - `score_direction` — probability of concordant direction.
 - `score_translational` — `score_rank x score_direction`.
 
-Resources to help you apply the models:
+### Resources to help you apply the models:
 
 - **Notebook (recommended):** <https://github.com/wapsyed/mousetohuman_predict> — a step-by-step R Markdown notebook covering the full flow from DGE input to GSEA, model prediction and score visualisation.
-- **Guide:** the companion file `example_apply_model.md` (in the `academics_ai_personal` repository) documents the input requirements, the score definitions and the cutoffs.
 
 ------------------------------------------------------------------------
 
