@@ -276,6 +276,7 @@ alignments_human2mouse_legs_identity_log2fc_pooled_plot = gene_info_human_clean_
   scale_fill_manual(values = colors$comparison) +
   scale_color_manual(values = colors$comparison) +
   scale_x_continuous(expand = c(0,0)) +
+  scale_y_continuous(limits = c(0, NA)) +
   labs(
     x = "%Protein identity",
     y = "|ΔLog2FC|",
@@ -3387,7 +3388,7 @@ difflog2fc_distance_scatter_plot <- human_mouse_cds_distance_dge %>%
   scale_fill_manual(values = colors$comparison) +
   scale_color_manual(values = colors$comparison) +
   scale_x_continuous(expand = c(0.01, 0.01)) +
-  scale_y_continuous(expand = c(0.01, 0.01), limits = c(0, NA)) +
+  scale_y_continuous(limits = c(0, 1.2)) +
   labs(
     x     = "Kimura Distance",
     y     = "|ΔLog2FC|",
@@ -3399,7 +3400,8 @@ difflog2fc_distance_scatter_plot <- human_mouse_cds_distance_dge %>%
         legend.location = "plot") +
   guides(fill = guide_legend(override.aes = list(alpha = 1)))
 
-difflog2fc_distance_scatter_plot  
+difflog2fc_distance_scatter_plot  +
+  scale_y_continuous(limits = c(0, 1.1)) 
   
 
 
