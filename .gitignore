@@ -47,37 +47,32 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
-HumanFluData/cleandata_nonorm_flu.rds
-tables/GSE120661_counts_normalized.rds
+cleandata_nonorm_flu.rds
+GSE120661_counts_normalized.rds
+GSM3542845_US22502595_254890810441_S01_GE1_1105_Oct12_1_1.txt
+GSE124689_exprs.rds
+GSE120661_exprs.rds
+human_mouse_fluad_raw_qn.rds
+human_mouse_fluad_raw_qn_avg.rds
+human_mouse_fluad_raw_qn_log2fc.rds
+human_mouse_fluad_raw_qn_log2fc_avg.rds
+GSE124533_series_matrix.txt
+GSE124533_exprs.rds
+influenza_fluad_human_mouse_qc_raw_qn.rds
+influenza_hepatitisb_GSE120661_exprs.rds
+GSE124533_series_matrix.txt.gz
+all_human_mouse_samples_log2fc.rds
+GSE36809_human_trauma_exprs.rds
+mouse_trauma_exprs.rds
+GSE36809_series_matrix.txt.gz
+trauma_human_exprs.rds
+trauma_human_log2fc_sample_clean_long.rds
+burn_human_log2fc_sample_clean_long.rds
+human_gene_info_mart_export.txt
+GRCh38-Closest-Genes-PC.tsv
+genomic_human_cCREs_GRCh38_Closest-Genes-PC.tsv
+human_mouse_log2fc_avg_wide_degs_all_immune_nonimmune.rds
 *.RData
-tables/GSM3542845_US22502595_254890810441_S01_GE1_1105_Oct12_1_1.txt
-tables/GSE124689_exprs.rds
-tables/GSE120661_exprs.rds
-tables/human_mouse_fluad_raw_qn.rds
-tables/human_mouse_fluad_raw_qn_avg.rds
-tables/human_mouse_fluad_raw_qn_log2fc.rds
-tables/human_mouse_fluad_raw_qn_log2fc_avg.rds
-data_studies/GSE124533_series_matrix.txt
-tables/GSE124533_exprs.rds
-tables/influenza_fluad_human_mouse_qc_raw_qn.rds
-tables/influenza_hepatitisb_GSE120661_exprs.rds
-tables/GSE124533_series_matrix.txt.gz
-tables/all_human_mouse_samples_log2fc.rds
-tables/GSE36809_human_trauma_exprs.rds
-tables/mouse_trauma_exprs.rds
-tables/GSE36809_series_matrix.txt.gz
-tables/trauma_human_exprs.rds
-tables/trauma_human_log2fc_sample_clean_long.rds
-tables/burn_human_log2fc_sample_clean_long.rds
-tables/human_gene_info_mart_export.txt
-Genomic/GRCh38-Closest-Genes-PC.tsv
-Genomic/genomic_human_cCREs_GRCh38_Closest-Genes-PC.tsv
-tables/human_mouse_log2fc_avg_wide_degs_all_immune_nonimmune.rds
-tables/Genomic/genomic_human_cCREs_GRCh38_Closest-Genes-PC.tsv
-tables/Gene and Protein sequences/human_gene_info_mart_export.txt
-tables/raw_data/GSE36809_series_matrix.txt.gz
-tables/raw_data/trauma_human_exprs.rds
-tables/raw_data/trauma_human_log2fc_sample_clean_long.rds
 
 
 # Staging folder for the standalone prediction repository (uploaded separately)
