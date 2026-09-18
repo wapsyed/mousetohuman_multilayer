@@ -11,9 +11,9 @@
 
 ## Overview
 
-Mice are the dominant preclinical model in vaccine research, yet their translational value for human immune responses remains contested. This project systematically evaluates murine translatability across vaccination (Influenza, Hepatitis B), acute bacterial infection (*S. aureus*, *E. coli*), and sterile injury (burns and trauma) using publicly available blood transcriptome data from GEO and BioProject.
+Mice are the dominant preclinical model in vaccine research, yet their translational value for human immune responses remains contested. This project systematically evaluates murine translatability across vaccination (Influenza, Hepatitis B), acute bacterial infection (*S. aureus*, *E. coli*) and sterile injury (burns and trauma), using publicly available blood transcriptome data from GEO and BioProject, and integrating transcriptomic profiles with sequence evolution and cis-regulatory architecture.
 
-Mice are the key preclinical animal models in vaccine and immunological research, yet their predictive value for human immunity remains contested. Here, we evaluated the translatability of murine models across inactivated and subunit vaccination (influenza, hepatitis B), acute infection (S. aureus, E. coli), and injury (burns and trauma), integrating transcriptomic profiles with sequence evolution and cis-regulatory architecture. We show that while the expression patterns of individual orthologous genes correlated moderately, blood transcriptional modules were highly conserved between species. Translational accuracy depended on stimulus intensity, where infections and injuries engaged conserved signatures, whereas single-dose vaccination diverged. To identify the basis of gene expression convergence, we built multilayer models and benchmarked several algorithms under leave-one-condition-out cross-validation. A random forest integrating modular and gene-level features was the best model for human expression-rank transfer (R² = 0.23) and directional concordance (ROC-AUC = 0.85), while a neural network was marginally better at classifying leading-edge-gene sharing; both clearly outperformed the linear alternatives. Mouse ranks and directions did not transfer on their own, whereas evolutionary and regulatory layers provided a conserved signal that improved prediction of human rank, direction, and shared leading-edge genes. Finally, we provide a step-by-step R Markdown notebook that applies the best model to predict user input data. 
+We show that while the expression patterns of individual orthologous genes correlated only moderately, blood transcriptional modules were highly conserved between species, and that translational accuracy depended on stimulus intensity. To identify the basis of gene expression convergence, we built multilayer models and benchmarked several algorithms under leave-one-condition-out cross-validation. A random forest integrating modular and gene-level features was the best model for human expression-rank transfer (R² = 0.23) and directional concordance (ROC-AUC = 0.85), while a lasso was marginally best at classifying leading-edge-gene sharing (ROC-AUC = 0.62). Mouse ranks and directions did not transfer on their own, whereas evolutionary and regulatory layers provided a conserved signal that improved prediction of human rank, direction and shared leading-edge genes. Finally, we provide a step-by-step R Markdown notebook that applies the best model to user input data.
 
 ------------------------------------------------------------------------
 
@@ -21,12 +21,13 @@ Mice are the key preclinical animal models in vaccine and immunological research
 
 | Challenge | Vaccine / Agent | Organisms | Human GEO | Mouse GEO | Platforms |
 |:---|:---|:---|:---|:---|:---|
-| Influenza | Fluad (TIV + MF59) | Human, Mouse | GSE124689 | GSE120661 | Illumina HumanHT-12, Agilent 8×60K |
-| Hepatitis B | Engerix B | Human, Mouse | GSE124533 | GSE120661 | Illumina HumanHT-12, Agilent 8×60K |
-| *Staphylococcus aureus* bacteremia | — | Human, Mouse | GSE19668 | GSE120661 | Affymetrix HuGene 1.0 ST, Agilent 8×60K |
-| *Escherichia coli* sepsis | — | Human, Mouse | GSE33341 | GSE120661 | Affymetrix HuGene 1.0 ST, Agilent 8×60K |
-| Burn | — | Human, Mouse | Clinical cohort | GSE182858 | Custom array, Illumina MouseWG-6 v2.0 |
-| Trauma | — | Human | GSE36809 | — | Affymetrix HuGene 1.0 ST |
+| Influenza | Fluad (TIV + MF59) | Human, Mouse | GSE124689 | GSE120661 | Agilent 8×60K |
+| Hepatitis B | Engerix B | Human, Mouse | GSE124533 | GSE120661 | Agilent 8×60K |
+| *Staphylococcus aureus* bacteremia | — | Human, Mouse | GSE33341 | GSE19668 | Affymetrix HuGene 1.0 ST, Mouse 430 2.0 |
+| *Escherichia coli* sepsis | — | Human, Mouse | GSE33341 | GSE33341 | Affymetrix HuGene 1.0 ST, Mouse 430 2.0 |
+| Burn | — | Human, Mouse | GSE37069 | GSE7404 | Affymetrix U133 Plus 2.0, Mouse 430.2 |
+| Trauma | — | Human, Mouse | GSE36809 | GSE7404 | Affymetrix HuGene 1.0 ST, Mouse 430 2.0 |
+| Duchenne muscular dystrophy (negative control) | — | Mouse | — | GSE1025 | Affymetrix Murine U74A v2 |
 
 ------------------------------------------------------------------------
 
@@ -34,25 +35,25 @@ Mice are the key preclinical animal models in vaccine and immunological research
 
 ![Flowchart](diagram_animal.png)
 
-The computational pipeline is structured into 9 modular R Markdown notebooks designed to be executed sequentially:
+The computational pipeline is structured into 10 modular R Markdown notebooks designed to be executed sequentially:
 
 1.  **`0_Data_Curation.Rmd`** — Programmatically scans and filters raw BioProject metadata from NCBI. Isolates time-course vaccination and infection studies, applying inclusion/exclusion criteria to remove oncology, autoimmune, or toxicology studies.
 2.  **`1_QualityControl.Rmd`** — Evaluates data fidelity using Array Quality Metrics (`arrayQualityMetrics`) and Relative Log Expression (RLE) distributions to identify sample-level outliers and technical variation.
 3.  **`2_Preprocessing_and_DGE.Rmd`** — Downloads ExpressionSets via `GEOquery`, normalizes array intensities (RMA for Affymetrix; Quantile normalization via `limma` for Illumina/Agilent), resolves probe redundancy by selecting the **probe with the maximum variance across samples**, and models differential expression with `limma` Empirical Bayes moderation (`adj. p-value <= 0.05`).
 4.  **`3.1_Comparing_Human_Mouse_DGE_analyses.Rmd`** — Executes cross-species gene-level comparative analyses. Computes macroevolutionary effect size delta ($\Delta \text{log}_2\text{FC} = \text{log}_2\text{FC}_H - \text{log}_2\text{FC}_M$), coefficient of variation (CV), sampling stability from downsampling, and inverse-variance statistical weights ($1 / (SE_H^2 + SE_M^2)$).
 5.  **`3.2_Comparing_Human_Mouse_GSEA.Rmd`** — Consolidates the multi-condition DGE data and runs unified pathway-level Gene Set Enrichment Analysis via `fgsea` on Blood Transcription Modules (BTMs) and MSigDB Hallmarks, using an exploratory threshold of $\text{padj} \le 0.25$, alongside single-sample GSEA (`GSVA/ssGSEA`).
-6.  **`3.3_Comparing_Human_Mouse_Functional_Analyses.Rmd`** — Evaluates higher-order functional conservation. Generates module-level NES and mean log₂FC cross-species correlations over time (**Figure 43a**), quantifies shared vs. species-specific leading-edge genes (LEGs) (**Figure 43c**), and plots rank conservation for core modules such as "immune activation - generic cluster" (**Figure 43d**).
-7.  **`4_Performance_EqualTImepoints.Rmd` & `4_Performance_DifferentTimepoints.rmd`** — Assesses murine predictive power for human module regulation. Generates ROC curves and computes Area Under the Curve (AUC) (**Figure 43b**) for matched (equal) timepoints and cross-temporal (different) timepoints, benchmarked against biological controls (e.g., Duchenne Muscular Dystrophy, DMD) and permutation null distributions.
+6.  **`3.3_Comparing_Human_Mouse_Functional_Analyses.Rmd`** — Evaluates higher-order functional conservation. Generates module-level NES and mean log₂FC cross-species correlations over time (**Figure 4a**), quantifies shared vs. species-specific leading-edge genes (LEGs) (**Figure 5a**), and plots rank conservation for core modules such as "immune activation - generic cluster" (**Figure 5b**).
+7.  **`4_Performance_EqualTImepoints.Rmd` & `4_Performance_DifferentTimepoints.rmd`** — Assesses murine predictive power for human module regulation. Generates ROC curves and computes Area Under the Curve (AUC) (**Figure 4b**) for matched (equal) timepoints and cross-temporal (different) timepoints, benchmarked against biological controls (e.g., Duchenne Muscular Dystrophy, DMD) and permutation null distributions.
 8.  **`5.1_EvolutionaryAnalysis_Protein.Rmd` & `5.2_EvolutionaryAnalysis_Regulation.Rmd`** — Dissects evolutionary determinants. Retrieves Ensembl BioMart coding sequences (CDS) and amino acid identity %, computes codon-level pairwise alignment and **Kimura 2-Parameter (K80) genetic distances**, and integrates ENCODE candidate Cis-Regulatory Elements (cCREs: PLS, pELS, dELS, and CTCF-bound sites) across GRCh38 and mm10 to assess promoter conservation.
 9.  **`6_Statistical_Modelling.Rmd`** — Builds multi-modal machine learning workflows using `tidymodels` (Random Forest via `ranger`, Elastic Net) combining coding sequence distance (`dist_k80`), amino acid identity, transcription factor networks, and promoter cCRE structures to model the genomic determinants of translatability.
-10. **`Modelling/6_Statistical_Modelling_v2.Rmd`** — Consolidated modelling pipeline that predicts the **human** response gene by gene. Uses two nested feature layers (**DGE Baseline → Full + BTM**), two universes (all human DEGs for *rank transfer* and *direction*; mouse LEGs for *shared-LEG classification*), and **leave-one-pathogen-out (LOCO)** cross-validation. Benchmarks four algorithms — linear/logistic regression, **lasso**, **random forest** and a **neural network** — and exports the best model per task plus four out-of-fold scores (`score_shared`, `score_rank`, `score_direction`, `score_translational`). See [Statistical modelling](#statistical-modelling-v2) below.
+10. **`Modelling/6_Statistical_Modelling.Rmd`** — Consolidated modelling pipeline that predicts the **human** response gene by gene. Uses two nested feature layers (**DGE Baseline → Full + BTM**), two universes (all human DEGs for *rank transfer* and *direction*; mouse LEGs for *shared-LEG classification*), and **leave-one-condition-out (LOCO)** cross-validation. Benchmarks four algorithms — linear/logistic regression, **lasso**, **random forest** and a **neural network** — and exports the best model per task plus four out-of-fold scores (`score_shared`, `score_rank`, `score_direction`, `score_translational`). See [Statistical modelling](#statistical-modelling-v2) below.
 
 ------------------------------------------------------------------------
 
 ## Repository Structure
 
 ``` text
-animals_vax_atlas/
+mousetohuman_multilayer/
 ├── scripts_notebooks/
 │   ├── required.R                           # Global libraries, theme_vaxgo, palettes, utility functions
 │   ├── 0_Data_Curation.Rmd                  # BioProject curation and filtering
@@ -61,15 +62,15 @@ animals_vax_atlas/
 │   ├── 2_Preprocessing_and_DGE_Simplified.Rmd # Streamlined preprocessing and DGE pipeline
 │   ├── 3.1_Comparing_Human_Mouse_DGE_analyses.Rmd # Cross-species DGE comparison, noise & delta metrics
 │   ├── 3.2_Comparing_Human_Mouse_GSEA.Rmd   # fgsea & ssGSEA unified pipeline (BTMs, Hallmarks)
-│   ├── 3.3_Comparing_Human_Mouse_Functional_Analyses.Rmd # Functional correlations, LEGs, rank conservation (Fig 43a,c,d)
-│   ├── 4_Performance_EqualTImepoints.Rmd    # Equal-timepoint ROC/AUC classification (Fig 43b)
+│   ├── 3.3_Comparing_Human_Mouse_Functional_Analyses.Rmd # Functional correlations, LEGs, rank conservation (Fig 4a,c,d)
+│   ├── 4_Performance_EqualTImepoints.Rmd    # Equal-timepoint ROC/AUC classification (Fig 4b)
 │   ├── 4_Performance_DifferentTimepoints.rmd # Cross-temporal ROC/AUC benchmarking with controls
 │   ├── 5.1_EvolutionaryAnalysis_Protein.Rmd # Protein sequence identity and Kimura K80 CDS distance
 │   ├── 5.2_EvolutionaryAnalysis_Regulation.Rmd # ENCODE cCRE promoter/enhancer regulatory architecture
 │   ├── 6_Statistical_Modelling.Rmd          # tidymodels predictive modeling of translatability drivers
 │   └── FIT_training_datasets.Rmd            # Found In Translation (FIT) benchmarking
 ├── Modelling/                               # Consolidated mouse-to-human transfer modelling (v2)
-│   ├── 6_Statistical_Modelling_v2.Rmd       # LOCO modelling: DGE Baseline -> Full + BTM
+│   ├── 6_Statistical_Modelling.Rmd       # LOCO modelling: DGE Baseline -> Full + BTM
 │   ├── Models/                              # Fitted workflows (rf_model_*.rds, nn_model_*.rds) and metrics
 │   ├── Tables/                              # LOCO metrics, observed-vs-predicted, priority lists
 │   └── Figures/                             # Fig. 7 (multilayer modelling), contributions, AUC bars
@@ -158,8 +159,8 @@ All pre-processed intermediate files are archived in `tables/`, allowing downstr
 ### Step 0 — Setup Environment
 
 ``` bash
-git clone https://github.com/wapsyed/animals_vax_atlas.git
-cd animals_vax_atlas
+git clone https://github.com/wapsyed/mousetohuman_multilayer.git
+cd mousetohuman_multilayer
 ```
 
 ``` r
@@ -178,12 +179,12 @@ Each notebook sources `scripts_notebooks/required.R`, initializing the shared wo
 | **2** | `2_Preprocessing_and_DGE.Rmd` | Raw GEO ExpressionSets or `tables/*_exprs.rds` | `tables/*_dge_limma_degs.rds`, `tables/*_log2fc_sample_clean_long.rds` |
 | **3.1** | `3.1_Comparing_Human_Mouse_DGE_analyses.Rmd` | `tables/all_human_mouse_dge_limma_degs.rds` | `tables/human_mouse_log2fc_avg_wide_all.rds`, divergence weights |
 | **3.2** | `3.2_Comparing_Human_Mouse_GSEA.Rmd` | `all_human_mouse_dge_limma_degs_matched_control.rds`, BTM & Hallmark CSVs | `tables/all_human_mouse_gsea_btm_results.rds`, `tables/*_gsea_mean_wide.rds` |
-| **3.3** | `3.3_Comparing_Human_Mouse_Functional_Analyses.Rmd` | `all_human_mouse_gsea_btm_results.rds`, `all_human_mouse_gsea_btm_legs.rds` | Module correlation over time (**Fig 43a**), LEG barplots (**Fig 43c**), Rank conservation (**Fig 43d**) |
-| **4** | `4_Performance_EqualTImepoints.Rmd` & `4_Performance_DifferentTimepoints.rmd` | `all_human_mouse_dge_limma_degs_matched_filtered.rds`, BTM annotations | ROC curves, AUC summary tables (**Fig 43b**), PR curves |
+| **3.3** | `3.3_Comparing_Human_Mouse_Functional_Analyses.Rmd` | `all_human_mouse_gsea_btm_results.rds`, `all_human_mouse_gsea_btm_legs.rds` | Module correlation over time (**Fig 4a**), LEG barplots (**Fig 5a**), Rank conservation (**Fig 5b**) |
+| **4** | `4_Performance_EqualTImepoints.Rmd` & `4_Performance_DifferentTimepoints.rmd` | `all_human_mouse_dge_limma_degs_matched_filtered.rds`, BTM annotations | ROC curves, AUC summary tables (**Fig 4b**), PR curves |
 | **5.1** | `5.1_EvolutionaryAnalysis_Protein.Rmd` | Ensembl BioMart CDS data, `all_alignments`, `all_human_mouse_gsea_btm_legs.rds` | `human_mouse_cds_distance.rds` (Kimura K80), protein identity vs $\Delta\text{log}_2\text{FC}$ |
 | **5.2** | `5.2_EvolutionaryAnalysis_Regulation.Rmd` | ENCODE cCRE BED files (`tables/Genomic/*`), gene TSS coords | `cres_type_homology_comparison_wide.rds`, promoter conservation plots |
 | **6** | `6_Statistical_Modelling.Rmd` | `human_mouse_statsmodelling_parameters_values.rds` | `tidymodels` Random Forest & Elastic Net models, VIP feature importance |
-| **6 (v2)** | `Modelling/6_Statistical_Modelling_v2.Rmd` | `human_mouse_statsmodelling_gene_annotated_layers.rds`, `dge_btm_process_genes_diff_bygene_clean_filtered.rds` | `Modelling/Models/rf_model_*.rds`, LOCO metrics, `score_table_v2.rds`, Fig. 7 |
+| **6 (v2)** | `Modelling/6_Statistical_Modelling.Rmd` | `human_mouse_statsmodelling_gene_annotated_layers.rds`, `dge_btm_process_genes_diff_bygene_clean_filtered.rds` | `Modelling/Models/rf_model_*.rds`, LOCO metrics, `score_table_v2.rds`, Fig. 7 |
 
 ------------------------------------------------------------------------
 
@@ -201,7 +202,7 @@ Outputs are saved directly to `Figures/example_btm_correlation_day7.png`.
 
 ## Statistical modelling {#statistical-modelling-v2}
 
-The consolidated pipeline `Modelling/6_Statistical_Modelling.Rmd` predicts the **human** response gene by gene from a mouse experiment, using biological feature layers and **leave-one-pathogen-out (LOCO)** cross-validation.
+The consolidated pipeline `Modelling/6_Statistical_Modelling.Rmd` predicts the **human** response gene by gene from a mouse experiment, using biological feature layers and **leave-one-condition-out (LOCO)** cross-validation.
 
 ### Design
 
@@ -226,7 +227,8 @@ The **random forest is the best algorithm for rank transfer and directional conc
 
 | File | Task |
 |:---|:---|
-| `rf_model_shared.rds` / `nn_model_shared.rds` | Shared vs Mouse-only classification |
+| `lasso_model_shared.rds` | Shared vs Mouse-only classification (best model) |
+| `rf_model_shared.rds` / `nn_model_shared.rds` | Shared vs Mouse-only classification (alternatives) |
 | `rf_model_rank.rds` / `nn_model_rank.rds` | Human absolute rank regression |
 | `rf_model_direction.rds` / `nn_model_direction.rds` | Directional concordance classification |
 
@@ -257,7 +259,7 @@ Resources to help you apply the models:
 
 If you use this code or data, please cite:
 
-> Prates-Syed WA, Lira AA, Cortes N, Silva JDQ, Hamaguchi B, Carvalho E, Castillo-Chávez A, Durães-Carvalho R, Cabral-Marques O, Sabino EC, Krieger JE, Hagan T, Cabral-Miranda G. *From Mice to Humans: Functional Modules Improve the Translatability of Transcriptomic Responses.* Genes and Immunity (under review).
+> Prates-Syed WA, Lira AA, Cortes N, Silva JDQ, Hamaguchi B, Carvalho E, Castillo-Chávez A, Durães-Carvalho R, Cabral-Marques O, Sabino EC, Krieger JE, Hagan T, Cabral-Miranda G. *From mice to humans: A multi-omic predictive framework for translational immunology.* Genes and Immunity (under review).
 
 ------------------------------------------------------------------------
 
