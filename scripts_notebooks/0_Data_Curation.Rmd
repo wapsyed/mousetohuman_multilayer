@@ -21,35 +21,36 @@ source(here("scripts_notebooks", "required.R"))
 Import the BioProject search results, clean column names and extract relevant metadata fields.
 
 ```{r}
-# Import the raw BioProject dataset --------
-animals_vaccines_bioproject_result <- read_csv(here("tables", "DataCuration", "animals_vaccines_bioproject_result.csv"), 
-    col_names = FALSE)
-
-# Clean the table by dropping NAs, filling study IDs, widening, and stripping prefixes from values --------
-datacuration_clean <- animals_vaccines_bioproject_result %>%
-  drop_na() %>% 
-  mutate(study = if_else(X1 =="Title", X2, NA)) %>% 
-  fill(study, .direction = c("down")) %>% 
-  pivot_wider(names_from = X1, values_from = X2) %>% 
-  select(-study) %>% 
-  clean_names() %>% 
-  mutate(title = str_remove(title, "^\\d+\\.\\s"),
-         organism = str_remove(organism, "Organism: "),
-         organism = str_remove(organism, "Taxonomy ID "),
-         bio_project_accession = str_remove(bio_project_accession, "BioProject Accession: "),
-         id = str_remove(id, "ID: "))
-
-datacuration_clean
-
-# Save the cleaned table --------
-write_csv(datacuration_clean, here("tables", "DataCuration", "datacuration_step2.csv"))
+# # Import the raw BioProject dataset --------
+# animals_vaccines_bioproject_result <- read_csv(here("tables", 
+#                                                     "DataCuration", "animals_vaccines_bioproject_result.txt"), 
+#     col_names = FALSE)
+# 
+# # Clean the table by dropping NAs, filling study IDs, widening, and stripping prefixes from values --------
+# datacuration_clean <- animals_vaccines_bioproject_result %>%
+#   drop_na() %>% 
+#   mutate(study = if_else(X1 =="Title", X2, NA)) %>% 
+#   fill(study, .direction = c("down")) %>% 
+#   pivot_wider(names_from = X1, values_from = X2) %>% 
+#   select(-study) %>% 
+#   clean_names() %>% 
+#   mutate(title = str_remove(title, "^\\d+\\.\\s"),
+#          organism = str_remove(organism, "Organism: "),
+#          organism = str_remove(organism, "Taxonomy ID "),
+#          bio_project_accession = str_remove(bio_project_accession, "BioProject Accession: "),
+#          id = str_remove(id, "ID: "))
+# 
+# datacuration_clean
+# 
+# # Save the cleaned table --------
+# write_csv(datacuration_clean, here("tables", "DataCuration", "datacuration_step2.csv"))
 ```
 
 Barplot showing the number of immunization datasets per genus, highlighting Homo and Mus in blue.
 
 ```{r fig.height=8, fig.width=2}
 # Import cleaned data --------
-datacuration_clean <- read_csv(here("tables", , "DataCuration", "datacuration_step2.csv"))
+datacuration_clean <- read_csv(here("tables",  "DataCuration", "datacuration_step2.csv"))
 
 # Filter for vaccination-related titles, separate genus, and count by genus --------
 organisms_datacuration <- datacuration_clean %>%
@@ -154,7 +155,7 @@ bioproject_metadata_df <- bioproject_metadata_df %>%
   filter(!str_detect(project_description, "cancer|neoantigen|tumor|autoimmune|drug|opioid"))
 
 # Save and reimport the filtered metadata --------
-write_excel_csv2(bioproject_metadata_df, here("tables", "mice_vaccination_mining2.csv"))
+write_excel_csv2(bioproject_metadata_df, here("tables", "DataCuration", "mice_vaccination_mining2.csv"))
 
 mice_vaccination_mining2 <- read_delim(here("table", "DataCuration", "mice_vaccination_mining2.csv"), 
     delim = ";", escape_double = FALSE, trim_ws = TRUE)
@@ -200,7 +201,7 @@ Retrieve metadata from GEO for individual series and annotate platform informati
 #   rename(gpl = accession,
 #          title_platform = title)
 # 
-# saveRDS(gpl_annotation_human_mouse, file = here("tables", "gpl_annotation_human_mouse.rds"))
+# saveRDS(gpl_annotation_human_mouse, file = here("tables","DataCuration", "gpl_annotation_human_mouse.rds"))
 # 
 # gpl_annotation_human_mouse <- 
 #   readRDS(file = here("tables", "gpl_annotation_human_mouse.rds"))
@@ -253,7 +254,7 @@ AnimalVax_geo_metadata_df <- geo_metadata_df %>%
          gpl, taxon, entrytype, gdstype, pdat, suppfile, pubmedids, bioproject)
 
 # Save GEO metadata --------
-saveRDS(geo_metadata_df, file = here("tables", "geo_metadata_df.rds"))
+saveRDS(geo_metadata_df, file = here("tables", "DataCuration", "geo_metadata_df.rds"))
 
 ```
 
@@ -383,9 +384,9 @@ demographics_mice_studies <- AnimalVax_DataCuration_SelectedDatasets_long %>%
                "Yes" = 23),
     name = "Adjuvanted"
   ) +
-  scale_fill_manual(values = colors_vaccines,
+  scale_fill_manual(values = colors$colors_vaccines,
                     name = "Vaccine") +
-  scale_color_manual(values = colors_vaccines,
+  scale_color_manual(values = colors$colors_vaccines,
                     name = "Vaccine") +
   theme_vaxgo() +
   labs(x = "Day", 
@@ -465,7 +466,7 @@ Build each layer of a Sankey diagram from pathogen type through sample source, t
 AnimalVax_DataCuration_Annotated_sankey_level1 <- AnimalVax_DataCuration_Annotated %>% 
   select(source = pathogen_type, target = target_pathogen, gse_id) %>%  
   group_by(source, target) %>% 
-  summarize(value = n(),
+  summarise(value = n(),
             step_from = 0, step_to = 1,
             gse_ids = paste0(gse_id, collapse = ";"),
             layer = "pathogen_type to target_pathogen") 
@@ -474,7 +475,7 @@ AnimalVax_DataCuration_Annotated_sankey_level1 <- AnimalVax_DataCuration_Annotat
 AnimalVax_DataCuration_Annotated_sankey_level2 <- AnimalVax_DataCuration_Annotated %>% 
   select(source = target_pathogen, target = target_antigen, gse_id) %>%
   group_by(source, target) %>% 
-  summarize(value = n(),
+  summarise(value = n(),
             step_from = 1, step_to = 2,
             gse_ids = paste0(gse_id, collapse = ";"),
             layer = "target_pathogen to target_antigen") 
@@ -483,7 +484,7 @@ AnimalVax_DataCuration_Annotated_sankey_level2 <- AnimalVax_DataCuration_Annotat
 AnimalVax_DataCuration_Annotated_sankey_level3 <- AnimalVax_DataCuration_Annotated %>% 
   select(source = target_antigen, target = vaccine_type, gse_id) %>%
   group_by(source, target) %>% 
-  summarize(value = n(),
+  summarise(value = n(),
             step_from = 2, step_to = 3,
             gse_ids = paste0(gse_id, collapse = ";"),
             layer = "target_antigen to vaccine_type")
@@ -492,7 +493,7 @@ AnimalVax_DataCuration_Annotated_sankey_level3 <- AnimalVax_DataCuration_Annotat
 AnimalVax_DataCuration_Annotated_sankey_level4 <- AnimalVax_DataCuration_Annotated %>% 
   select(source = vaccine_type, target = adjuvanted, gse_id) %>%
   group_by(source, target) %>% 
-  summarize(value = n(),
+  summarise(value = n(),
             step_from = 3, step_to = 4,
             gse_ids = paste0(gse_id, collapse = ";"),
             layer = "vaccine_type to adjuvanted") %>% 
@@ -503,7 +504,7 @@ AnimalVax_DataCuration_Annotated_sankey_level4 <- AnimalVax_DataCuration_Annotat
 AnimalVax_DataCuration_Annotated_sankey_level5 <- AnimalVax_DataCuration_Annotated %>% 
   select(source = adjuvanted, target = administration_route, gse_id) %>%
   group_by(source, target) %>% 
-  summarize(value = n(),
+  summarise(value = n(),
             step_from = 4, step_to = 5,
             gse_ids = paste0(gse_id, collapse = ";"),
             layer = "adjuvanted to administration_route") %>% 
@@ -514,7 +515,7 @@ AnimalVax_DataCuration_Annotated_sankey_level5 <- AnimalVax_DataCuration_Annotat
 AnimalVax_DataCuration_Annotated_sankey_level6 <- AnimalVax_DataCuration_Annotated %>% 
   select(source = administration_route, target = main_sample_source, gse_id) %>%
   group_by(source, target) %>% 
-  summarize(value = n(),
+  summarise(value = n(),
             step_from = 5, step_to = 6,
             gse_ids = paste0(gse_id, collapse = ";"),
             layer = "administration_route to main_sample_source")
@@ -549,7 +550,7 @@ AnimalVax_DataCuration_Annotated_blood <- AnimalVax_DataCuration_Annotated %>%
 AnimalVax_DataCuration_Annotated_sankey_level1 <- AnimalVax_DataCuration_Annotated_blood %>% 
   select(source = pathogen_type, target = target_pathogen, gse_id) %>%  
   group_by(source, target) %>% 
-  summarize(value = n(),
+  summarise(value = n(),
             step_from = 0, step_to = 1,
             gse_ids = paste0(gse_id, collapse = ";"),
             layer = "pathogen_type to target_pathogen") 
@@ -558,7 +559,7 @@ AnimalVax_DataCuration_Annotated_sankey_level1 <- AnimalVax_DataCuration_Annotat
 AnimalVax_DataCuration_Annotated_sankey_level2 <- AnimalVax_DataCuration_Annotated_blood %>% 
   select(source = target_pathogen, target = target_antigen, gse_id) %>%
   group_by(source, target) %>% 
-  summarize(value = n(),
+  summarise(value = n(),
             step_from = 1, step_to = 2,
             gse_ids = paste0(gse_id, collapse = ";"),
             layer = "target_pathogen to target_antigen") 
@@ -567,7 +568,7 @@ AnimalVax_DataCuration_Annotated_sankey_level2 <- AnimalVax_DataCuration_Annotat
 AnimalVax_DataCuration_Annotated_sankey_level3 <- AnimalVax_DataCuration_Annotated_blood %>% 
   select(source = target_antigen, target = vaccine_type, gse_id) %>%
   group_by(source, target) %>% 
-  summarize(value = n(),
+  summarise(value = n(),
             step_from = 2, step_to = 3,
             gse_ids = paste0(gse_id, collapse = ";"),
             layer = "target_antigen to vaccine_type")
@@ -576,7 +577,7 @@ AnimalVax_DataCuration_Annotated_sankey_level3 <- AnimalVax_DataCuration_Annotat
 AnimalVax_DataCuration_Annotated_sankey_level4 <- AnimalVax_DataCuration_Annotated_blood %>% 
   select(source = vaccine_type, target = adjuvanted, gse_id) %>%
   group_by(source, target) %>% 
-  summarize(value = n(),
+  summarise(value = n(),
             step_from = 3, step_to = 4,
             gse_ids = paste0(gse_id, collapse = ";"),
             layer = "vaccine_type to adjuvanted") %>% 
@@ -587,7 +588,7 @@ AnimalVax_DataCuration_Annotated_sankey_level4 <- AnimalVax_DataCuration_Annotat
 AnimalVax_DataCuration_Annotated_sankey_level5 <- AnimalVax_DataCuration_Annotated_blood %>% 
   select(source = adjuvanted, target = administration_route, gse_id) %>%
   group_by(source, target) %>% 
-  summarize(value = n(),
+  summarise(value = n(),
             step_from = 4, step_to = 5,
             gse_ids = paste0(gse_id, collapse = ";"),
             layer = "adjuvanted to administration_route") %>% 
@@ -598,7 +599,7 @@ AnimalVax_DataCuration_Annotated_sankey_level5 <- AnimalVax_DataCuration_Annotat
 AnimalVax_DataCuration_Annotated_sankey_level6 <- AnimalVax_DataCuration_Annotated_blood %>% 
   select(source = administration_route, target = main_sample_source, gse_id) %>%
   group_by(source, target) %>% 
-  summarize(value = n(),
+  summarise(value = n(),
             step_from = 5, step_to = 6,
             gse_ids = paste0(gse_id, collapse = ";"),
             layer = "administration_route to main_sample_source")
@@ -868,144 +869,6 @@ mice_vaccination_annotated
 
 # 2. Demographics
 
-## Fluad and Engerix B
-
-Import mouse and human Fluad datasets, harmonize column names, and bind them into a single metadata table.
-
-```{r}
-# Import expression and metadata files --------
-GSE124689_expression_not_normalized_log2_raw_symbol <- read_rds(file = here("tables", "influenza_GSE124689_exprs_not_normalized.rds"))
-GSE124689_metadata_clean <- readRDS(file = here("tables", "influenza_fluad_human_metadata_clean.rds"))
-GSE120661_counts_not_normalized_log2_annotations <- read_rds(here("tables", "GSE120661_counts_not_normalized_log2_annotations_not_normalized_log2.rds"))
-GSE120661_samples_pbmc <- read_rds(here("tables", "GSE120661_samples_pbmc.rds"))
-
-# Prepare mouse metadata and bind with human metadata --------
-human_mouse_fluad_metadata <- GSE120661_samples_pbmc %>% 
-  filter(treatment == "Fluad") %>% 
-  select(sample_id = geo_sample, participant_id = subject_id, vaccine = treatment,
-         sex, strain, sample_type = tissue, timepoint, condition) %>% 
-  mutate(organism = "Mouse", type = "Inactivated", adjuvant = "MF59",
-         age = 7,
-         timepoint = as.character(timepoint) %>% as.numeric() / 24,
-         timepoint = if_else(timepoint < 1 & timepoint != 0,
-                             as.character(round(timepoint, 1)),
-                             as.character(as.integer(round(timepoint, 0)))),
-         race = strain, 
-         array = "Agilent-028005 SurePrint G3 Mouse GE 8x60K Microarray") %>% 
-  bind_rows(GSE124689_metadata_clean %>% 
-              select(sample_id, participant_id, condition, timepoint,
-                     sex, age, race, vaccine, sample_type, array, type, adjuvant) %>% 
-              mutate(organism = "Human", vaccine = "Fluad",
-                     timepoint = as.character(timepoint)))
-
-human_mouse_fluad_metadata
-
-# Save the combined metadata --------
-saveRDS(human_mouse_fluad_metadata, file = here("tables", "influenza_fluad_human_mouse_metadata.rds"))
-```
-
-##### By organism
-
-Dot plot showing the number of samples per timepoint and organism for the Fluad datasets.
-
-```{r fig.height=5, fig.width=5}
-# Count samples by organism, timepoint, and race --------
-demography_samples <- human_mouse_fluad_metadata %>% 
-  group_by(organism, timepoint, race) %>% 
-  summarize(n = n()) %>% 
-  mutate(timepoint = as.character(timepoint)) 
-
-# Build the demographic dot plot --------
-demography_samples_plot <- demography_samples %>% 
-  ggplot() +
-  aes(x = timepoint, y = organism) +
-  geom_point(aes(size = n, fill = organism), pch = 22) +
-  scale_size_binned(breaks = c(1, 10, 50), range = c(2, 10)) +
-  scale_fill_manual(values = c("Human" = "#90A4AEFF", "Mouse" = "#4DBBD5FF", "FIT" = "#4361ee")) +
-  scale_color_manual(values = c("Human" = "#90A4AEFF", "Mouse" = "#4DBBD5FF", "FIT" = "#4361ee")) +
-  theme_vaxgo() +
-  theme(legend.position = "right", axis.title.x = element_text(size = 10),
-        legend.title = element_text(size = 10), axis.text.x = element_text(angle = 0),
-        panel.grid.major.y = element_line(size = 1, linetype = 1, color = "black"),
-        panel.grid.major.x = element_line(size = 0.5, linetype = 2, color = "gray75"),
-        axis.line.x = element_line(size = 0.5, colour = "black", linetype = 1),
-        axis.line.y = element_line(size = 0, colour = "black", linetype = 1),
-        axis.ticks.x = element_line(size = 1, color = "black"),
-        axis.ticks.y = element_line(size = 0, color = "black"),
-        plot.margin = margin(0, 0, 0, 0, unit = "cm")) +
-  labs(x = "Days", y = "", size = "Samples", fill = "Organism") +
-  geom_label(aes(label = n), fill = "white", label.size = NA, size = 3,
-             nudge_x = 0, nudge_y = 0.1, data = filter(demography_samples, organism == "Human")) +
-  geom_label(aes(label = n), fill = "white", label.size = NA, size = 3,
-             nudge_x = 0, nudge_y = 0.1, data = filter(demography_samples, organism == "Mouse")) +
-  theme(legend.position = "none")
-
-demography_samples_plot
-
-# Save the demography plot --------
-ggsave(demography_samples_plot, filename = here("Figures", "influenza_fluad_human_mouse_demography.png"),
-         width = 5, height = 5)
-
-```
-
-### By sex
-
-Pie chart showing the sex distribution per organism for the Fluad datasets.
-
-```{r fig.height=5, fig.width=2}
-# Count unique participants by organism and sex --------
-demography_samples_sex <- human_mouse_fluad_metadata %>% 
-  select(participant_id, sex, organism) %>% 
-  distinct() %>% 
-  group_by(organism, sex) %>%
-  summarize(n = n())
-
-# Build a faceted pie chart --------
-demography_samples_sex %>% 
-ggplot() +
-  aes(x = organism, y = n, fill = sex, weight = n, label = n) +
-  geom_col(color = "black") +
-  coord_polar(theta = "y") +
-  theme_void() +
-  labs(fill = "Sex") +
-  theme(axis.title = element_blank(), axis.text = element_blank(),
-        plot.title = element_text(size = 15, hjust = 0.5),
-        strip.text = element_text(size = 12),
-        legend.text = element_text(size = 10), legend.title = element_text(size = 10),
-        plot.margin = margin(1, 0, 0, 0, unit = "cm"), legend.position = "top") +
-  facet_wrap(vars(fct_rev(organism)), scales = "free", ncol = 1) +
-  scale_fill_manual(values = c("Male" = "#4DBBD5FF", "Female" = "#4361ee"))
-```
-
-Violin plot of age distribution for human participants in the Fluad dataset.
-
-```{r fig.height=5, fig.width=2}
-# Extract unique human participants and their ages --------
-demography_samples_age <- human_mouse_fluad_metadata %>% 
-  select(participant_id, age, organism) %>% 
-  distinct() %>% 
-  filter(organism == "Human")
-
-# Build the age violin plot with boxplot and quasirandom points --------
-demography_samples_age %>% 
-  ggplot() +
-  aes(x = organism, y = age) +
-  geom_violin(aes(fill = organism)) +
-  geom_boxplot(fill = "white", outliers = FALSE, width = 0.1) +
-  geom_quasirandom(color = "black", fill = NA, 
-                   position = position_dodge2(width = 0.2), pch = 21, alpha = 0.5) +
-  scale_y_continuous(expand = c(0, 0), limits = c(0, 50)) +
-  scale_fill_manual(values = c("Human" = "#90A4AEFF", "Mouse" = "#4DBBD5FF")) +
-  theme_vaxgo() +
-  theme(legend.position = "none", legend.key = element_blank(),
-        axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0),
-        strip.text.x = element_text(color = "white", size = 10, face = "bold"),
-        strip.text.y = element_text(color = "black", size = 10, hjust = 0, angle = 0),
-        panel.spacing.y = unit(0.8, "lines"),
-        strip.background.x = element_rect(fill = "black")) +
-  labs(y = "Age", x = "Human")
-```
-
 ## All
 
 Import the combined human-mouse metadata, standardize timepoint labels and factor levels, and compute sample counts per pathogen and organism.
@@ -1023,8 +886,8 @@ all_human_mouse_metadata
 
 # Count samples by pathogen, organism, and timepoint --------
 demography_samples <- all_human_mouse_metadata %>% 
-  group_by(pathogen, organism, timepoint) %>% 
-  summarise(n = n(), time_unit) %>% 
+  group_by(pathogen, organism, timepoint, time_unit) %>% 
+  summarise(n = n()) %>% 
   ungroup() %>% 
   distinct()
 demography_samples
@@ -1032,9 +895,10 @@ demography_samples
 
 ### By organism
 
-Faceted dot plot of sample counts per timepoint and organism, for each pathogen.
+
 
 ```{r fig.height=6, fig.width=5}
+
 # Build the multi-pathogen demographic dot plot --------
 demography_samples_plot <- demography_samples %>%
   ggplot() +

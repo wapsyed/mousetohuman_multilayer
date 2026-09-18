@@ -2,6 +2,15 @@
 title: "QualityControl"
 output: html_document
 ---
+# Required
+
+```{r message=FALSE, warning=FALSE}
+# install.packages("here") if needed
+# install.packages("here")
+library(here)
+source(here("scripts_notebooks", "required.R"))
+```
+
 
 #Influenza
 ## Quality control
@@ -974,7 +983,7 @@ correlation_long_all_timepoints <- human_mouse_fluad_raw_qn_log2fc %>%
 
 
 
-#Summarize data
+#summarise data
 correlation_long_all_timepoints %>% 
   group_by(timepoint) %>% 
   arrange(timepoint, -correlation) %>% 
@@ -1171,7 +1180,7 @@ correlation_long_all_timepoints <- human_mouse_fluad_raw_qn_log2fc %>%
   # group_by(timepoint) %>% 
   # arrange(-correlation)
 
-#Summarize data
+#summarise data
 correlation_long_all_timepoints %>% 
   group_by(timepoint) %>% 
   arrange(timepoint, -correlation) %>% 
