@@ -55,7 +55,10 @@ if (!isTRUE(getOption("vaxgo.skip_package_loading"))) {
   # devtools::install_github('erocoar/gghalves')
   # install.packages("https://cran.r-project.org/src/contrib/Archive/notifier/notifier_1.0.0.tar.gz")
   # install.packages("vip", repos = c("https://bgreenwell.r-universe.dev", "https://cloud.r-project.org"))
-  library(vip)
+
+  # Load vip (variable importance plots) only if installed, so the script does
+  # not fail in environments that do not use it ----
+  if (requireNamespace("vip", quietly = TRUE)) library(vip)
 
   for (pkg in all_packages) {
     if (!require(pkg, character.only = TRUE, quietly = TRUE)) {
@@ -67,11 +70,13 @@ if (!isTRUE(getOption("vaxgo.skip_package_loading"))) {
     }
   }
 
-  # Install ggsankey (GitHub-only) once if missing, then load it ----
-  if (!requireNamespace("ggsankey", quietly = TRUE)) {
+  # Install ggsankey (GitHub-only) once if missing, then load it. The install
+  # needs devtools, so it is skipped when devtools is unavailable ----
+  if (!requireNamespace("ggsankey", quietly = TRUE) &&
+      requireNamespace("devtools", quietly = TRUE)) {
     devtools::install_github("davidsjoberg/ggsankey")
   }
-  library(ggsankey)
+  if (requireNamespace("ggsankey", quietly = TRUE)) library(ggsankey)
 }
 
 # Optional GitHub-only packages, install manually when needed ----
@@ -245,7 +250,29 @@ colors = list(organism = c("FIT" = "#4361ee",
                 "+ Sequence + TFs + CRE type + CTCF"        = "#4cc9f0",
                 "+ Sequence + TFs + CRE type + CTCF + Homology"        = "#184e77",
                 "Full + BTM"        = "#4361ee"
-              )
+              ),
+              immune_colors = c("SIGNAL TRANSDUCTION" = "gray80",
+                                "CELL CYCLE" = "gray50",
+                                "ECM AND MIGRATION" = "gray25",
+                                "ENERGY METABOLISM" = "black", 
+                                "INNATE RESPONSE" = "#184e77",
+                                "INFLAMMATORY/TLR/CHEMOKINES"  = "#3a86ff",
+                                "INTERFERON/ANTIVIRAL SENSING" = "#669bbc",
+                                "NEUTROPHILS" = "#219ebc",
+                                "NK CELLS" = "#a2d2ff",
+                                "IFN"= "#4361ee",
+                                "MONOCYTES" = "#4cc9f0",
+                                "DC ACTIVATION" = "#9f86c0",
+                                "PLATELETS" = "#06d6a0",
+                                "B CELLS" = "#e5383b",
+                                "T CELLS" = "#E07A5F",
+                                "PLASMA CELLS" = "#EFC000FF"),
+              hallmarks_colors = c("Immune Response" = "#4cc9f0",
+                                   "Apoptosis and Hormonal Response" = "#06d6a0",
+                                   "Differentiation and Cell Structure" = "gray80",
+                                   "Metabolism"  = "#4361ee", 
+                                   "Proliferation and Repair" = "#001219",
+                                   "Signaling and Stress Response"   = "#0A9396")
               )
 
 
