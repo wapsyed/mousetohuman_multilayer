@@ -1,0 +1,1198 @@
+---
+title: "FIT"
+author: "Wasim Aluísio Prates-Syed"
+date: "2025-07-23"
+output: 
+  html_document: 
+    toc: TRUE
+    toc_depth: 4
+    code_folding: hide
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval=FALSE, cache = TRUE)
+```
+
+
+# Explore FIT datasets
+
+## Import required codes
+```{r}
+# install.packages("here")
+library(here)
+source(here("scripts_notebooks", "required.R"))
+```
+
+## Found in translation
+Ref: Normand, R., Du, W., Briller, M. et al. Found In Translation: a machine learning model for mouse-to-human inference. Nat Methods 15, 1067–1073 (2018). https://doi.org/10.1038/s41592-018-0214-9
+Github: https://github.com/shenorrLabTRDF/FIT.mouse2man 
+
+- Standard (ST): which include human and mouse datasets that were conducted in separate experiments;
+- Reference (RF), in which the human and mouse datasets were directly contrasted in a publication authored by researchers who had generated at least one of the datasets.
+- CSP IDs can be enumarated by different comparisons with different mice strains, for example A/J and CD1 mice, and timpoints (not clearly stated).
+```{r}
+#Install model package
+# library(devtools)
+library(FIT.mouse2man)
+
+#Import files
+pca_rotations = FIT.mouse2man::pca_rotations
+best_models = FIT.mouse2man::best_models
+slopes_per_gene_V2.0 = FIT.mouse2man::slopes_per_gene_V2.0
+
+#Gene lookup table
+HS_MM_Symbol_Entrez = FIT.mouse2man::HS_MM_Symbol_Entrez %>% 
+  rename(human_symbol = HGNC_symbol,
+         mouse_symbol =MGI.symbol,
+         HS.Entrez = Human.Entrez,
+         MM.Entrez = Mouse.Ortholog) %>% 
+  mutate(HS.Entrez = as.character(HS.Entrez),
+         MM.Entrez = as.character(MM.Entrez))
+
+#Training data
+AllData_V2.0 = FIT.mouse2man::AllData_V2.0 %>% 
+  mutate(csp_id_short = str_remove(CSP_ID, "Microarrays_RF_"),
+         csp_id_short = str_remove(csp_id_short, "Microarrays_ST_"),
+         csp_id_short = str_remove(csp_id_short, "RNAseq_ST_"),
+         csp_id_short = str_remove(csp_id_short, "RNAseq_RF_")) %>% 
+  inner_join(HS_MM_Symbol_Entrez, 
+             by = join_by("HS.Entrez", "MM.Entrez")) %>% 
+  separate(csp_id_short, into = c("del", "csp_id_index")) %>% 
+  select(-del)
+  
+#Check
+AllData_V2.0$csp_id_index %>% unique()
+
+```
+
+
+## Filter datasets
+Get metadata for datasets on Supplementary Files of FIT paper and filter datasets with blood-derived samples
+```{r}
+#Get metadata for datasets on Supplementary Files of FIT paper and filter datasets with blood-derived samples
+#Import
+fit_training_datasets_metadata <- read_excel(here("tables", "processed_data", "FIT_metadata_supplementary.xlsx"))
+
+#Clean grouped header
+fit_training_datasets_metadata_newcols = fit_training_datasets_metadata %>% 
+  slice_head(n = 2) %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  
+  #Fill sub columns
+  rownames_to_column("V0") %>% 
+  
+  mutate(V1 = if_else(is.na(V1), V0, V1),
+         V0 = ifelse(str_detect(V0, "^\\.\\.\\.\\d+$"), NA, V0),
+         V1 = ifelse(str_detect(V1, "^\\.\\.\\.\\d+$"), NA, V1)) %>% 
+  
+  #Fill columns
+  fill(V0, .direction = "down") %>% 
+  fill(V1, .direction = "down") %>% 
+  
+  #Fill columns manually
+  mutate(V2 = if_else(V0 == V1, V0, V2),
+         V3 = if_else(V0 == V1, V0, NA),
+         V3 = if_else(is.na(V2), paste0(V0,"_", V1), V2),
+         V2 = if_else(is.na(V2), V3, V2),
+         V3 = if_else(V2 == "Disease" & V0 != "Disease", 
+                      paste0(V0, "_", V1, "_", V2), 
+                      V3),
+         V3 = if_else(V2 == "Control" & V0 != "Control", 
+                      paste0(V0, "_", V1, "_", V2), 
+                      V3),
+         #Clean table further
+         V3 = str_remove(V3, " Data"),
+         V3 = make_clean_names(V3)) %>% 
+  select(V3)
+
+#Set new names
+fit_training_datasets_metadata_clean = fit_training_datasets_metadata %>% 
+  filter(!row_number() %in% c(1:2)) %>% 
+  setNames(fit_training_datasets_metadata_newcols %>% pull()) %>% 
+    clean_names() %>%
+  fill(disease, .direction = "down")
+
+fit_training_datasets_metadata_clean %>% 
+  saveRDS(file = here("tables", "FIT", "fit_training_datasets_metadata_clean.rds"))
+  
+#Get datasets with blood-derived samples only, in both organisms
+fit_training_datasets_blood = fit_training_datasets_metadata_clean %>% 
+  filter(str_detect(human_tissue_control, "Blood"),
+         str_detect(mouse_tissue_disease, "Blood"))
+
+AllData_V2.0_blood = AllData_V2.0 %>% 
+  filter(CSP_ID %in% c(fit_training_datasets_blood$comparison_id %>% unique())) 
+
+AllData_V2.0_blood %>% 
+  saveRDS(here("tables", "FIT", "AllData_FIT_training_blood.rds"))
+
+```
+
+
+##Import
+```{r}
+#Import data
+fit_training_datasets_metadata_clean = readRDS(file = here("tables", "FIT", "fit_training_datasets_metadata_clean.rds"))
+
+fit_training_datasets_metadata_clean = fit_training_datasets_metadata_clean %>% 
+  mutate(
+  #Shorten tissue names
+  human_tissue_disease_short = case_when(
+    human_tissue_disease %in% c("Lung", "Lung epithelium") ~ "Lung",
+    human_tissue_disease == "Mammary Epithelium" ~ "Mammary",
+    human_tissue_disease %in% c("Blood", "White Blood Cells") ~ "Blood",
+    human_tissue_disease %in% c("Peripheral Blood Monocytes", "Monocytes") ~ "Monocytes",
+    human_tissue_disease == "Peripheral Blood Mononuclear Cell" ~ "PBMC",
+    human_tissue_disease %in% c("Neuron") ~ "Neuron",
+    human_tissue_disease %in% c("Brain", "Cerebrum") ~ "Brain",
+    human_tissue_disease == "Cerebral Cortex" ~ "Cortex",
+    human_tissue_disease == "Cerebellum" ~ "Cerebellum",
+    human_tissue_disease == "Caudate Nucleus" ~ "Caudate",
+    human_tissue_disease == "Renal Tubule" ~ "Kidney",
+    human_tissue_disease == "Ovary" ~ "Ovary",
+    human_tissue_disease == "Colon" ~ "Colon",
+    human_tissue_disease == "Skin" ~ "Skin",
+    human_tissue_disease == "Heart" ~ "Heart",
+    human_tissue_disease %in% c("MUSCLE, QUADRICEPS FEMORIS", "Quadriceps") ~ "Quadriceps",
+    human_tissue_disease %in% c("Tibialis", "Calf", "skeletal muscle") ~ "Muscle",
+    human_tissue_disease == "Fibroblast Culture" ~ "Fibroblast",
+    human_tissue_disease == "Nasal Epithelial Cells" ~ "Nasal Epith.",
+    human_tissue_disease == "Biopsy Sample" ~ "Biopsy",
+    human_tissue_disease == "Glioblastoma Cell Line" ~ "Glioblastoma",
+    human_tissue_disease %in% c("Human Cell Line", "LNCaP cells", "lymphoblast") ~ "Cell line",
+    human_tissue_disease == "T-cell" ~ "T cell",
+    TRUE ~ human_tissue_disease
+  ),
+  #Group by organ
+  human_organ = case_when(
+  human_tissue_disease %in% c(
+    "Lung",
+    "Lung epithelium"
+  ) ~ "Lung",
+
+  human_tissue_disease %in% c(
+    "Brain",
+    "Cerebrum",
+    "Cerebral Cortex",
+    "Cerebellum",
+    "Caudate Nucleus",
+    "Neuron"
+  ) ~ "Brain",
+
+  human_tissue_disease %in% c(
+    "Blood",
+    "White Blood Cells",
+    "Peripheral Blood Monocytes",
+    "Monocytes",
+    "Peripheral Blood Mononuclear Cell",
+    "T-cell"
+  ) ~ "Blood/Immune",
+
+  human_tissue_disease == "Renal Tubule" ~ "Kidney",
+
+  human_tissue_disease == "Mammary Epithelium" ~ "Mammary",
+
+  human_tissue_disease == "Ovary" ~ "Ovary",
+
+  human_tissue_disease == "Colon" ~ "Colon",
+
+  human_tissue_disease == "Skin" ~ "Skin",
+
+  human_tissue_disease == "Heart" ~ "Heart",
+
+  human_tissue_disease %in% c(
+    "MUSCLE, QUADRICEPS FEMORIS",
+    "Quadriceps",
+    "Tibialis",
+    "Calf",
+    "skeletal muscle"
+  ) ~ "Muscle",
+
+  human_tissue_disease == "Nasal Epithelial Cells" ~ "Nasal",
+
+  human_tissue_disease %in% c(
+    "Fibroblast Culture",
+    "Biopsy Sample"
+  ) ~ "Other tissue",
+
+  human_tissue_disease %in% c(
+    "Glioblastoma Cell Line",
+    "Human Cell Line",
+    "LNCaP cells",
+    "lymphoblast"
+  ) ~ "Cell line",
+
+  TRUE ~ "Other"
+),
+  mouse_tissue_short = case_when(
+    mouse_tissue_disease == "Lung" ~ "Lung",
+    mouse_tissue_disease == "Embryonic Tissue" ~ "Embryo",
+    mouse_tissue_disease %in% c("Blood", "White Blood Cells") ~ "Blood",
+    mouse_tissue_disease == "Brain" ~ "Brain",
+    mouse_tissue_disease == "Corpus Striatum" ~ "Striatum",
+    mouse_tissue_disease == "BRAIN, HIPPOCAMPUS" ~ "Hippocampus",
+    mouse_tissue_disease == "Cerebral Cortex" ~ "Cortex",
+    mouse_tissue_disease == "Brain Olig2+ Cells" ~ "Olig2+ cells",
+    mouse_tissue_disease %in% c("Kidney", "immortal kidney epithelium") ~ "Kidney",
+    mouse_tissue_disease == "Liver" ~ "Liver",
+    mouse_tissue_disease == "Ovary" ~ "Ovary",
+    mouse_tissue_disease == "Colon" ~ "Colon",
+    mouse_tissue_disease == "Skin" ~ "Skin",
+    mouse_tissue_disease == "Spleen" ~ "Spleen",
+    mouse_tissue_disease == "Heart" ~ "Heart",
+    mouse_tissue_disease == "Diaphragm" ~ "Diaphragm",
+    mouse_tissue_disease %in% c("MUSCLE, QUADRICEPS FEMORIS", "skeletal muscle", "Calf") ~ "Muscle",
+    mouse_tissue_disease == "Peritoneal Macrophage" ~ "Macrophage",
+    mouse_tissue_disease == "Bone Marrow Sca+Lin- Cells" ~ "HSC prog.",
+    mouse_tissue_disease == "Hematopoietic Stem Cell" ~ "HSC",
+    mouse_tissue_disease == "CD4+ T cells" ~ "CD4 T",
+    mouse_tissue_disease %in% c("Peritoneal Cavity B Cells", "Splenic B Cells") ~ "B cell",
+    mouse_tissue_disease == "Organoid" ~ "Organoid",
+    TRUE ~ mouse_tissue_disease
+  ),
+  #Group by organ
+  mouse_organ = case_when(
+    mouse_tissue_disease == "Lung" ~ "Lung",
+    mouse_tissue_disease == "Embryonic Tissue" ~ "Embryo",
+    mouse_tissue_disease %in% c(
+      "Brain",
+      "Corpus Striatum",
+      "Cerebral Cortex",
+      "BRAIN, HIPPOCAMPUS",
+      "Brain Olig2+ Cells"
+    ) ~ "Brain",
+    mouse_tissue_disease %in% c(
+      "Blood",
+      "White Blood Cells",
+      "Bone Marrow Sca+Lin- Cells",
+      "Hematopoietic Stem Cell",
+      "Peritoneal Macrophage",
+      "Peritoneal Cavity B Cells",
+      "Splenic B Cells",
+      "CD4+ T cells"
+    ) ~ "Blood/Immune",
+    mouse_tissue_disease %in% c(
+      "Kidney",
+      "immortal kidney epithelium"
+    ) ~ "Kidney",
+    mouse_tissue_disease == "Liver" ~ "Liver",
+    mouse_tissue_disease == "Spleen" ~ "Spleen",
+    mouse_tissue_disease == "Ovary" ~ "Ovary",
+    mouse_tissue_disease == "Colon" ~ "Colon",
+    mouse_tissue_disease == "Skin" ~ "Skin",
+    mouse_tissue_disease == "Heart" ~ "Heart",
+    mouse_tissue_disease == "Diaphragm" ~ "Diaphragm",
+    mouse_tissue_disease %in% c(
+      "MUSCLE, QUADRICEPS FEMORIS",
+      "skeletal muscle",
+      "Calf"
+    ) ~ "Muscle",
+    mouse_tissue_disease == "Organoid" ~ "Organoid",
+    TRUE ~ "Other"
+  ),
+ #Group diseases
+disease_group = case_when(
+  disease %in% c(
+    "Cancer",
+    "Adenocarcinoma",
+    "Ovarian Cancer",
+    "Prostate Cancer",
+    "Brain Tumor",
+    "Alveolar Soft Part Sarcoma (ASPS)",
+    "Mucosa-Associated Lymphoid Tissue Lymphoma (MALT lymphoma)"
+  ) ~ "Cancer",
+
+  disease %in% c(
+    "E.coli Infection",
+    "Influenza",
+    "Leptospiral Infection",
+    "Staphylococcal Infection (Staph Infection)",
+    "Sepsis"
+  ) ~ "Infectious",
+
+  disease %in% c(
+    "Lupus",
+    "Rheumatoid Arthritis (RA)",
+    "Atopic Dermatitis",
+    "Inflammatory Bowel Diseases (IBD)"
+  ) ~ "Autoimmune/Inflammatory",
+
+  disease %in% c(
+    "Autism",
+    "Epilepsy-Autism",
+    "Down Syndrome",
+    "Huntington"
+  ) ~ "Neurological",
+
+  disease %in% c(
+    "Duchenne Muscular Dystrophy (DMD)",
+    "Myotonic Dystrophy"
+  ) ~ "Muscular Dystrophy",
+
+  disease %in% c(
+    "Cystic Fibrosis",
+    "Pulmonary Fibrosis"
+  ) ~ "Pulmonary Disease",
+
+  disease %in% c(
+    "Alpha-1 Antitrypsin Deficiancy",
+    "Gaucher's Disease (Gaucher)"
+  ) ~ "Genetic / Metabolic",
+
+  disease %in% c(
+    "Burns",
+    "Injury"
+  ) ~ "Injury / Trauma",
+
+  TRUE ~ "Other"
+),
+disease_short = case_when(
+  disease == "Adenocarcinoma" ~ "Adenoca.",
+  disease == "Cancer" ~ "Cancer",
+  disease == "Ovarian Cancer" ~ "Ov. cancer",
+  disease == "Prostate Cancer" ~ "Pros. cancer",
+  disease == "Brain Tumor" ~ "Brain tumor",
+  disease == "Alveolar Soft Part Sarcoma (ASPS)" ~ "ASPS",
+  disease == "Mucosa-Associated Lymphoid Tissue Lymphoma (MALT lymphoma)" ~ "MALT lymphoma",
+
+  disease == "E.coli Infection" ~ "E. coli inf.",
+  disease == "Influenza" ~ "Influenza",
+  disease == "Leptospiral Infection" ~ "Leptospiral inf.",
+  disease == "Staphylococcal Infection (Staph Infection)" ~ "Staph. inf.",
+  disease == "Sepsis" ~ "Sepsis",
+
+  disease == "Lupus" ~ "Lupus",
+  disease == "Rheumatoid Arthritis (RA)" ~ "RA",
+  disease == "Atopic Dermatitis" ~ "Atopic derm.",
+  disease == "Inflammatory Bowel Diseases (IBD)" ~ "IBD",
+
+  disease == "Autism" ~ "Autism",
+  disease == "Epilepsy-Autism" ~ "Epilepsy-Autism",
+  disease == "Down Syndrome" ~ "Down syn.",
+  disease == "Huntington" ~ "Huntington",
+
+  disease == "Duchenne Muscular Dystrophy (DMD)" ~ "DMD",
+  disease == "Myotonic Dystrophy" ~ "Myotonic dyst.",
+
+  disease == "Cystic Fibrosis" ~ "Cystic Fibrosis",
+  disease == "Pulmonary Fibrosis" ~ "Pulm. fibrosis",
+
+  disease == "Alpha-1 Antitrypsin Deficiancy" ~ "A1AT def.",
+  disease == "Gaucher's Disease (Gaucher)" ~ "Gaucher",
+
+  disease == "Burns" ~ "Burns",
+  disease == "Injury" ~ "Injury",
+
+  TRUE ~ disease
+)
+  )
+
+fit_training_datasets_metadata_clean
+
+#Import
+AllData_V2.0_blood = readRDS(here("tables", "FIT", "AllData_FIT_training_blood.rds"))
+ImmuneGO_BTM_grouped_genes = read_csv(file = here("tables", "Gene sets", "ImmuneGO_BTM_grouped_genes.csv"))
+
+
+AllData_V2.0_manual = AllData_V2.0 %>% 
+  select(CSP_ID:qval.MM) %>% 
+  inner_join(fit_training_datasets_metadata_clean %>% 
+               rename(CSP_ID = comparison_id),
+             by = "CSP_ID") %>% 
+  clean_names() 
+
+#Save
+# AllData_V2.0_manual %>% 
+#   saveRDS(here("tables", "FIT", "fit_training_datasets_expression.rds"))
+
+```
+
+## Plot distributions
+```{r fig.height=12, fig.width=20}
+AllData_V2.0_distributions_plot = AllData_V2.0_manual %>% 
+  clean_names() %>% 
+  pivot_longer(cols = c(fc_hs:qval_mm),
+               names_to = "metric",
+               values_to = "value") %>% 
+  mutate(organism = if_else(str_detect(metric, "mm"),"Mouse", "Human")) %>% 
+  filter(metric %in% c("fc_hs", "fc_mm")) %>% 
+  mutate(metric = if_else(str_detect(metric, "fc"), "fc", metric)) %>% 
+  ggplot() +
+  aes(x = value, fill = organism) +
+  geom_histogram( position = position_identity(), alpha = 0.5, bins = 50) +
+  #Facet
+  facet_nested_wrap(vars(disease_group, disease_short, paste0(mouse_organ, ", ", human_organ)),
+                    scales = "free_y",
+                    # axes = "all",
+                    strip = strip_nested(size = "variable")) +
+  scale_y_continuous(expand = c(0.01, 0.01), n.breaks = 3) +
+  scale_x_continuous(limits = c(-2, 2)) +
+  scale_fill_manual(values = c(colors$organism))+
+  scale_color_manual(values = c(colors$organism)) +
+  geom_vline(linetype = 2, xintercept = 0) + 
+    theme_vaxgo() +
+  theme(axis.text.x = element_text(angle = 0),
+        legend.position = "top",
+        strip.text.x = element_text(color = "black", size = 10),
+        strip.text.y = element_text(color = "black", angle = 0, hjust = 0), 
+        panel.spacing.y = unit(0, "lines"),
+        strip.background.y = element_rect(fill = NA, color = NA),
+        ggh4x.facet.nestline = element_line(colour = "black", linetype = 1)) +
+  labs(fill = "Organism",
+       color = "Organism",
+       x = "Log2-fold change",
+       y = "Frequency",
+       title = "All samples")
+
+AllData_V2.0_distributions_plot
+
+
+#Save
+# AllData_V2.0_distributions_plot %>% 
+#   ggsave(filename = here("Figures", "FIT_Trainingdata_distributions_all.png"),
+#          width = 20,
+#          height = 12)
+
+```
+
+
+```{r fig.height=8, fig.width=10}
+AllData_V2.0_blood_distributions_plot = AllData_V2.0_manual %>% 
+  clean_names() %>% 
+  pivot_longer(cols = c(fc_hs:qval_mm),
+               names_to = "metric",
+               values_to = "value") %>% 
+  mutate(organism = if_else(str_detect(metric, "mm"),"Mouse", "Human")) %>% 
+  filter(metric %in% c("fc_hs", "fc_mm")) %>% 
+  mutate(metric = if_else(str_detect(metric, "fc"), "fc", metric)) %>% 
+  ggplot() +
+  aes(x = value, fill = organism) +
+  geom_histogram( position = position_identity(), alpha = 0.5, bins = 50) +
+  facet_wrap(~disease, 
+             scale = "free_y", axes = "all",
+             ncol = 1
+             # strip.position="right"
+             ) +
+  scale_y_continuous(expand = c(0.01, 0.01), n.breaks = 3) +
+  scale_x_continuous(limits = c(-2, 2)) +
+    scale_fill_manual(
+  values = c(
+    Mouse = "#546E7AFF",
+    Human = "#4DBBD5FF"))+
+    scale_color_manual(
+  values = c(
+    Mouse = "#546E7AFF",
+    Human = "#4DBBD5FF"))+
+    theme_vaxgo() +
+  theme(axis.text.x = element_text(angle = 0),
+        legend.position = "top",
+        strip.text.x = element_text(color = "black", size = 10),
+        strip.text.y = element_text(color = "black", angle = 0, hjust = 0), 
+        panel.spacing.y = unit(0.8, "lines"),
+        plot.margin = margin(0.5, 1, 0.2, 1, "cm"),
+        strip.background.y = element_rect(fill = NA, color = NA)) +
+  labs(fill = "Organism",
+       color = "Organism",
+       x = "Log2-fold change",
+       y = "Frequency",
+       title = "Blood samples")
+
+
+#Plot all
+AllData_V2.0_distributions_all = AllData_V2.0_distributions_plot + AllData_V2.0_blood_distributions_plot +
+  plot_layout(widths = c(1, 0.15),
+              guides = "collect",
+              axes = "collect") +
+  plot_annotation(theme = theme(legend.position = "top"))
+
+AllData_V2.0_distributions_all
+
+#Save
+# AllData_V2.0_distributions_all %>% 
+#   ggsave(filename = here("Figures", "FIT_Trainingdata_distributions_all.png"),
+#          width = 10,
+#          height = 10)
+
+```
+
+
+
+##Correlation plots
+```{r fig.height=12, fig.width=10}
+# Calculate the correlation
+
+AllData_V2.0_manual_correlation = AllData_V2.0_manual %>%
+  clean_names() %>%
+  # filter(qval_hs <= 0.05 | qval_mm <= 0.05) %>%
+  # filter(str_detect(human_tissue_control, "Blood"),
+  #        str_detect(mouse_tissue_disease, "Blood")) %>% 
+  mutate(
+    csp_id_index = parse_number(csp_id)
+  ) 
+
+cor_data <- AllData_V2.0_manual_correlation %>% 
+  group_by(disease, csp_id_index) %>%
+  dplyr::summarise(
+    test = list(
+      cor.test(
+        fc_mm,
+        fc_hs,
+        method = "spearman",
+        use = "pairwise.complete.obs"
+      )
+    ),
+    label_pos_x = max(fc_mm, na.rm = TRUE),
+    label_pos_y = max(fc_hs, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    cor_value = map_dbl(test, ~ .x$estimate),
+    p_value   = map_dbl(test, ~ .x$p.value),
+    p_sig = case_when(
+      p_value < 0.001 ~ "***",
+      p_value < 0.01  ~ "**",
+      p_value < 0.05  ~ "*",
+      TRUE ~ "ns"
+    ),
+    label_all = paste0("r = ", round(cor_value, 2),p_sig)
+  )  %>%
+  select(-test)
+
+
+cor_data_degs <- AllData_V2.0_manual_correlation %>% 
+  filter(qval_hs <= 0.05 & qval_mm <= 0.05) %>% 
+  drop_na(fc_mm, fc_hs) %>% 
+  group_by(disease, csp_id_index) %>%
+  filter(n() >= 3) %>%      
+  dplyr::summarise(
+    test = list(
+      cor.test(
+        fc_mm,
+        fc_hs,
+        method = "spearman",
+        use = "pairwise.complete.obs"
+      )
+    ),
+    label_pos_x = max(fc_mm, na.rm = TRUE),
+    label_pos_y = max(fc_hs, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    cor_value = purrr::map_dbl(test, ~ as.numeric(.x$estimate)),
+    p_value   = purrr::map_dbl(test, ~ .x$p.value),
+    p_sig = case_when(
+      p_value < 0.001 ~ "***",
+      p_value < 0.01  ~ "**",
+      p_value < 0.05  ~ "*",
+      TRUE ~ "ns"
+    ),
+    label_degs = paste0("r = ", round(cor_value, 2), " ", p_sig)
+  ) %>%
+  select(-test)
+
+
+
+cor_data
+cor_data_degs
+
+AllData_V2.0_manual_cor = AllData_V2.0_manual_correlation %>% 
+  full_join(cor_data %>% select(disease, csp_id_index, label_all),
+             by = join_by("disease", "csp_id_index")) %>% 
+  full_join(cor_data_degs %>% select(disease, csp_id_index, label_degs),
+             by = join_by("disease", "csp_id_index")) 
+```
+
+
+```{r fig.height=10, fig.width=16}
+#Log2FC scatterplot
+blood_l2fc_scatterplot = AllData_V2.0_manual_cor %>%
+  filter(human_tissue_disease == "Blood" & mouse_tissue_disease == "Blood") %>% 
+  filter(qval_hs <= 0.05 | qval_mm <= 0.05) %>%
+  mutate(
+    csp_id_index = parse_number(csp_id),
+    comparison = paste("Comparison", csp_id_index)
+  ) %>%
+
+  #Plot
+  ggplot() +
+  aes(x = fc_mm,
+      y = fc_hs) +
+  
+  facet_nested_wrap(~disease+paste("Comparison", csp_id_index, "\n All: ", label_all, "\n DEGs: ", label_degs), 
+                    scales = "free", nest_line = T,
+                    nrow = 4,
+                    strip = strip_nested(size = "variable")) +
+  
+  #All DEGs
+  geom_point(color = "gray90") +
+  
+  #DEGs in both organisms
+  geom_point(color = "#4DBBD5FF",
+             fill = "#4DBBD5FF",
+             alpha = 1.5,
+             size = 1,
+             pch = 21,
+             
+             #Get only shared DEGs
+             data = AllData_V2.0_manual_cor %>%
+  filter(human_tissue_disease == "Blood" & mouse_tissue_disease == "Blood") %>% 
+               filter(qval_hs <= 0.05 & qval_mm <= 0.05)
+             ) +
+  
+  #Add linear models
+  stat_smooth(method = "lm", geom = "line", color = "black", alpha = 0.5, se = F, size = 1) +
+  
+  #Add lines
+  geom_abline(alpha = 0.2, linetype = 2) +
+  geom_hline(yintercept = 0, alpha = 1, linetype = 2) +
+  geom_vline(xintercept = 0, alpha = 1, linetype = 2) +
+  
+  #Theme
+  theme_vaxgo() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size =8),
+        axis.text.y = element_text(size = 8),
+        strip.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5),
+        legend.position = "none",
+        panel.spacing.y = unit(0, "lines"),
+        legend.direction = "horizontal") +
+  labs(x = "Mouse L2FC",
+       y = "Human L2FC",
+       title= "Correlation plot, Log2-Fold Change")
+
+blood_l2fc_scatterplot
+
+#Save
+blood_l2fc_scatterplot %>%
+  ggsave(filename = here("Figures", "FIT_TrainingData_blood_l2fc_scatterplot.png"),
+         height = 10,
+         width = 16)
+
+```
+
+
+
+
+
+### Annotate genes
+```{r fig.height=8, fig.width=8}
+
+## Plot correlation-----
+# cov_genes_FIT_training = AllData_V2.0 %>% 
+#   clean_names() %>% 
+#   select(hs_entrez, mean_human = fc_hs, mean_mouse = fc_mm) %>% 
+#   inner_join(HS_MM_Symbol_Entrez %>%
+#                clean_names() %>%
+#                select(human_symbol = hgnc_symbol,
+#                       hs_entrez = human_entrez) %>% 
+#                mutate(hs_entrez = as.character(hs_entrez)),
+#              by = "hs_entrez") %>% 
+#   arrange(human_symbol) %>% 
+#   group_by(human_symbol) %>% 
+#   summarize(sd_human = sd(mean_human),
+#             cov = cov(mean_human, mean_mouse),
+#             mean_human_time = mean(mean_human),
+#             mean_mouse_time = mean(mean_mouse)) %>% 
+#   arrange(-cov)
+# 
+# cov_genes_FIT_training %>% filter(abs(cov) > 0.001) #15891 genes from 6,373 (92.9%)
+# cov_genes_FIT_training %>% filter(abs(cov) > 0.01) #11320 genes from 6,373 (50.3%)
+# cov_genes_FIT_training %>% filter(abs(cov) > 0.1) #1151 genes
+# cov_genes_FIT_training %>% filter(abs(cov) > 0.2) #356 genes
+# cov_genes_FIT_training %>% filter(abs(cov) > 0.3) #186 genes
+# 
+# 
+# genes_vary_human_all_FIT = cov_genes_FIT_training %>% 
+#   filter(abs(mean_human_time) >= 0.1,
+#         abs(mean_mouse_time) <= 0.1) %>% 
+#   arrange(-abs(cov))
+# 
+# genes_vary_mouse_all_FIT = cov_genes_FIT_training %>% 
+#   filter(abs(mean_mouse_time) >= 0.1,
+#                 abs(mean_human_time) <= 0.1) %>% 
+#   arrange(-abs(cov))
+# 
+# genes_vary_human_mouse_all_FIT = cov_genes_FIT_training %>% 
+#   filter(abs(mean_human_time) >= 0.1,
+#          abs(mean_mouse_time) >= 0.1) %>% 
+#   arrange(-abs(cov))
+# 
+# genes_not_vary_human_mouse_all_FIT = cov_genes_FIT_training %>% 
+#    filter(abs(mean_human_time) <= 0.1, 
+#           abs(mean_mouse_time) <= 0.1) %>%  
+#   arrange(-abs(cov))
+# 
+# cov_genes_FIT_training %>% filter(abs(mean_human_time) > 0.1) #3,962
+# cov_genes_FIT_training %>% filter(abs(mean_human_time) > 0.2) #2191
+# 
+# cov_genes_FIT_training %>% filter(abs(mean_mouse_time) > 0.1) #3363
+# cov_genes_FIT_training %>% filter(abs(mean_mouse_time) > 0.2) #1631
+# 
+# cov_genes_FIT_training %>% filter(abs(mean_mouse_time) < 0.1) #3,010
+# cov_genes_FIT_training %>% filter(abs(mean_mouse_time) < 0.2) #4742
+# 
+# 
+# 
+# genes_vary_human_all_FIT #5,787
+# genes_vary_mouse_all_FIT #1,807
+# genes_not_vary_human_mouse_all_FIT #6,476
+# genes_vary_human_mouse_all_FIT #2,355
+
+# #Plot
+# genes_vary_human = cov_genes_FIT_training %>% 
+#   ggplot() +
+#   aes(x = mean_human_time,
+#       y = mean_mouse_time) +
+#     geom_point(color = "#3182bd", fill = NA, pch = 21) +
+#   scale_x_continuous(limits = c(-1.5, 1.5)) +
+#   scale_y_continuous(limits = c(-1.5, 1.5)) +
+#     gghighlight(abs(mean_human_time) >= 0.1,
+#                 abs(mean_mouse_time) <= 0.1,
+#               use_direct_label = FALSE, 
+#               unhighlighted_params = list(alpha = 0.2, fill = NA)) +
+#   geom_label_repel(aes(label = human_symbol), max.overlaps = 20, force_pull = 4, size = 3,
+#                   data = cov_genes_FIT_training %>% 
+#                     filter(abs(mean_human_time) > 0.1,
+#                 abs(mean_mouse_time) <= 0.1) %>% 
+#                   arrange(-abs(cov)) %>% 
+#                   slice_head(n = 10)) +
+#    theme_vaxgo() +
+#   labs(title = "Which genes vary only in human?",
+#        subtitle = "Top 10 genes with highest covariance. Mean cutoff > 0.1.")
+# 
+# genes_vary_mouse = cov_genes_FIT_training %>% 
+#   ggplot() +
+#   aes(x = mean_human_time,
+#       y = mean_mouse_time) +
+#     geom_point(color = "#90A4AEFF", fill = NA, pch = 21) +
+#   scale_x_continuous(limits = c(-1.5, 1.5)) +
+#   scale_y_continuous(limits = c(-1.5, 1.5)) +
+#   gghighlight(abs(mean_mouse_time) >= 0.1,
+#                 abs(mean_human_time) <= 0.1,
+#               use_direct_label = FALSE,
+#               unhighlighted_params = list(alpha = 0.2, fill = NA)) +
+#   geom_label_repel(aes(label = human_symbol), max.overlaps = 20, force_pull = 4, size = 3,
+#                   data = cov_genes_FIT_training %>% 
+#                     filter(abs(mean_mouse_time) >= 0.1,
+#                 abs(mean_human_time) <= 0.1) %>% 
+#                   arrange(-abs(cov)) %>% 
+#                   slice_head(n = 10)) +
+# 
+#   theme_vaxgo() +
+#   labs(title = "Which genes vary only in mouse?",
+#        subtitle = "Top 10 genes with highest covariance. Mean cutoff > 0.1") 
+# 
+# 
+# genes_vary_mouse_human = cov_genes_FIT_training %>% 
+#   ggplot() +
+#   aes(x = mean_human_time,
+#       y = mean_mouse_time) +
+#   geom_point(color = "black", fill = NA, pch = 21) +
+#   scale_x_continuous(limits = c(-1.5, 1.5)) +
+#   scale_y_continuous(limits = c(-1.5, 1.5)) +
+#   gghighlight(abs(mean_human_time) >= 0.1,
+#                 abs(mean_mouse_time) >= 0.1,
+#                             unhighlighted_params = list(alpha = 0.2, fill = NA)) +
+#   geom_label_repel(aes(label = human_symbol), max.overlaps = 20, force_pull = 4, size = 3,
+#                   data = cov_genes_FIT_training %>% 
+#                     filter(abs(mean_human_time) >= 0.1,
+#                 abs(mean_mouse_time) >= 0.1) %>% 
+#                   arrange(-abs(cov)) %>% 
+#                   slice_head(n = 10)) +
+#   theme_vaxgo() +
+#   labs(title = "Which genes vary in both human and mouse?",
+#        subtitle = "Top 10 genes with highest covariance. Mean cutoff > 0.1")
+# 
+# genes_notvary_mouse_human = cov_genes_FIT_training %>% 
+#   ggplot() +
+#   aes(x = mean_human_time,
+#       y = mean_mouse_time) +
+#   geom_point(color = "black", fill = NA, pch = 21) +
+#   scale_x_continuous(limits = c(-1.5, 1.5)) +
+#   scale_y_continuous(limits = c(-1.5, 1.5)) +
+#   gghighlight(abs(mean_human_time) <= 0.1,
+#                 abs(mean_mouse_time) <= 0.1,
+#               unhighlighted_params = list(alpha = 0.2, fill = NA)) +
+#   geom_label_repel(aes(label = human_symbol), 
+#                   # color = "red",
+#                   max.overlaps = 20, force_pull = 4, size = 3, 
+#                   data = cov_genes_FIT_training %>% 
+#                     filter(abs(mean_human_time) <= 0.1, 
+#                              abs(mean_mouse_time) <= 0.1) %>%  
+#                     arrange(-abs(cov)) %>% 
+#                     slice_head(n = 10)) +
+#   theme_vaxgo() +
+#   labs(title = "Which genes do not vary in both human and mouse?",
+#        subtitle = "Top 10 genes with highest covariance. Mean cutoff < 0.1")
+#   
+# 
+# #Plot all
+# genes_vary_mouse + genes_vary_human + genes_vary_mouse_human + genes_notvary_mouse_human +
+#   plot_layout(guides = "collect", axes = "collect", axis_titles =  "collect",
+#               ncol =  2)
+  
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#===================
+# Predict with FIT
+Ref: Normand, R., Du, W., Briller, M. et al. Found In Translation: a machine learning model for mouse-to-human inference. Nat Methods 15, 1067–1073 (2018). https://doi.org/10.1038/s41592-018-0214-9
+Github: https://github.com/shenorrLabTRDF/FIT.mouse2man 
+
+Load the FIT.mouse2man orthology mapping package from GitHub.
+```{r}
+# (Install orthology package if needed)
+# library(devtools)
+# devtools::install_github('shenorrLabTRDF/FIT.mouse2man')
+library(FIT.mouse2man)
+#Import files
+pca_rotations = FIT.mouse2man::pca_rotations
+best_models = FIT.mouse2man::best_models
+HS_MM_Symbol_Entrez = FIT.mouse2man::HS_MM_Symbol_Entrez
+MM_Entrez_symbol_desc = FIT.mouse2man::MM_Entrez_symbol_desc
+Psoriasis_classifier_neg = FIT.mouse2man::Psoriasis_classifier_neg
+slopes_per_gene_V2.0 = FIT.mouse2man::slopes_per_gene_V2.0
+StaphInfection_classifier_pos = FIT.mouse2man::StaphInfection_classifier_pos
+AllData_V2.0 = FIT.mouse2man::AllData_V2.0 #Training data
+```
+
+Obs.: Make sure that datasets from FIT package were retrieved
+
+## Fluad
+```{r}
+#Import
+all_degs_mouse = readRDS(file = here("tables", "Differential gene expression", "influenza_mouse_dge_limma_degs.rds")) 
+
+mouse_fluad_log2_hgnc_symbol = readRDS(here("tables", "processed_data", "influenza_mouse_exprs_hgnc_symbol.rds"))
+### Loop for every time point -----
+all_degs_fit2 = all_degs_mouse %>% 
+  select(symbol, EffectSize = mean, condition) %>%
+  inner_join(mouse_fluad_log2_hgnc_symbol %>% 
+               select(symbol = human_symbol, MM.Entrez = mouse_entrez),
+             by = "symbol") %>% 
+  mutate(row = MM.Entrez)
+
+# Generate csv for every condition
+all_conditions <- unique(all_degs_fit2$condition)
+purrr::walk(all_conditions, function(cond) {
+  
+  delete_dupes <- all_degs_fit2 %>%
+    filter(condition == cond) %>%
+    get_dupes(row) %>%
+    pull(row)
+  
+  filtered_df <- all_degs_fit2 %>%
+    filter(condition == cond, !row %in% delete_dupes) %>%
+    select(-condition) %>% 
+    column_to_rownames("row") %>% 
+    select(MM.Entrez, EffectSize)
+  
+  file_name <- paste0(cond, "_FIT_mouse.csv")
+  file_path <- here("tables", file_name)
+  
+# Save metadata to CSV
+  write_csv(filtered_df, file_path)
+})
+
+# FIT loop
+fit_results_combined <- map2_dfr(all_conditions, all_conditions, function(cond, cond_name) {
+  
+  file_path <- here("tables", paste0(cond, "_FIT_mouse.csv"))
+  
+  fit_output <- FIT.mouse2man::FIT(MouseFile = file_path, DataType = "rnaseq")
+
+  fit_output_tbl <- as_tibble(fit_output) %>%
+    mutate(condition = cond_name)
+  
+  return(fit_output_tbl)
+})
+
+#Print
+fit_results_combined
+
+#Save
+fit_results_combined %>% saveRDS(here("tables", "FIT", "influenza_mouse_fit_prediction_alltimes.rds"))
+
+# Load data
+fit_results_combined = readRDS(here("tables", "FIT", "influenza_mouse_fit_prediction_alltimes.rds"))
+
+#Pivot longer
+fit_example_results = fit_results_combined %>% 
+  clean_names() %>%  
+  pivot_longer(cols = c(mouse_effect_size, fit_prediction),
+               names_to = "measure", 
+               values_to = "value") %>% 
+  arrange(mouse_symbol) %>% 
+  mutate(pathogen = "Influenza",
+         treatment = "Fluad",
+         timepoint = str_remove(condition, "Fluad_") %>% str_remove("_PBMC")) %>% 
+  select(pathogen,treatment,  timepoint, everything())
+
+#Save
+fit_example_results %>% 
+  saveRDS(file = here("tables", "FIT", "influenza_mouse_fit_prediction_results.rds"))
+
+#Visualize distribution
+fit_example_results %>% 
+  ggplot() +
+  aes(x = value,
+      fill = timepoint,
+      color = timepoint) +
+  facet_wrap(~measure, ncol = 1) +
+  geom_histogram() +
+  theme_vaxgo() 
+```
+
+
+
+## Engerix B
+Load the Engerix B mouse dataset from saved RDS files.
+
+```{r}
+# Load data
+all_degs_human_mouse = readRDS(file = here("tables", "Differential gene expression", "hepatitisb_human_mouse_dge_limma_degs.rds")) 
+all_degs_mouse = readRDS(file = here("tables", "Differential gene expression", "influenza_mouse_dge_limma_degs.rds")) 
+mouse_engerixb_log2_hgnc_symbol = readRDS(here("tables", "Differential gene expression", "hepatitisb_mouse_log2fc_sample_clean_long.rds"))
+annot = readRDS(here("tables", "Differential gene expression", "probe_annot_hepatitisb_engerixb_mouse.rds"))
+
+#Input
+input2FIT = mouse_engerixb_log2_hgnc_symbol %>% 
+  ungroup() %>% 
+  inner_join(annot %>% select(probe_id = agilent_sureprint_g3_ge_8x60k, 
+                              MM.Entrez = entrezgene_id),
+             by = "probe_id") %>% 
+  select(participant_id, timepoint, MM.Entrez, EffectSize = log2fc) %>% 
+  group_by(timepoint, MM.Entrez) %>% 
+  summarise(mean_log2fc = mean(EffectSize, na.rm = T)) %>% 
+  drop_na() %>% 
+  mutate(row = MM.Entrez,
+         pathogen = "Hepatitis B",
+         condition = paste0(pathogen, "_D", timepoint)) %>% 
+  select(row, condition, EffectSize = mean_log2fc, MM.Entrez) %>% 
+  ungroup()
+
+### Loop for every time point -----
+# Generate csv for every condition
+all_conditions <- unique(input2FIT$condition)
+purrr::walk(all_conditions, function(cond) {
+  
+  delete_dupes <- input2FIT %>%
+    filter(condition == cond) %>%
+    get_dupes(row) %>%
+    pull(row)
+  
+  filtered_df <- input2FIT %>%
+    filter(condition == cond, !row %in% delete_dupes) %>%
+    select(-condition) %>% 
+    column_to_rownames("row") %>% 
+    select(MM.Entrez, EffectSize)
+  
+  file_name <- paste0(cond, "_FIT_mouse.csv")
+  file_path <- here("tables", file_name)
+  
+# Save metadata to CSV
+  write_csv(filtered_df, file_path)
+})
+
+# FIT loop
+fit_results_combined <- map2_dfr(all_conditions, all_conditions, function(cond, cond_name) {
+  
+  file_path <- here("tables", paste0(cond, "_FIT_mouse.csv"))
+  
+  fit_output <- FIT.mouse2man::FIT(MouseFile = file_path, DataType = "rnaseq")
+
+  fit_output_tbl <- as_tibble(fit_output) %>%
+    mutate(condition = cond_name)
+  
+  return(fit_output_tbl)
+})
+
+#Print
+fit_results_combined
+
+#Save
+fit_results_combined %>% saveRDS(here("tables", "hepatitisb_mouse_fit_prediction_alltimes.rds"))
+
+#Pivot longer
+fit_engerixb_results = fit_results_combined %>% 
+  clean_names() %>%  
+  pivot_longer(cols = c(mouse_effect_size, fit_prediction),
+               names_to = "measure", 
+               values_to = "value") %>% 
+  mutate(pathogen = "Hepatitis B",
+         vaccine = "Engerix B", 
+         treatment = vaccine,
+         timepoint = str_remove(condition, "Hepatitis B_D")) %>% 
+  select(pathogen,treatment,  timepoint, everything()) %>% 
+  arrange(mouse_symbol) %>% 
+  select(pathogen, timepoint, everything())
+
+#Save
+fit_engerixb_results %>% 
+  saveRDS(file = here("tables", "hepatitisb_fit_prediction_results_alltimes.rds"))
+
+#Visualize distribution
+fit_engerixb_results %>% 
+  ggplot() +
+  aes(x = value,
+      fill = timepoint,
+      color = timepoint) +
+  facet_wrap(~measure, ncol = 1) +
+  geom_histogram() +
+  theme_vaxgo() 
+
+```
+
+
+
+
+
+
+
+
+
+## S aureus
+
+Calculate mean log2 fold-change values for each gene across samples.
+
+```{r}
+#Get log2fc mean
+all_degs_human_mouse = readRDS(file = here("tables", "Differential gene expression", "saureus_human_mouse_dge_limma_degs.rds")) 
+
+mouse_saureus_log2_hgnc_symbol = readRDS(here("tables", "Differential gene expression", "saureus_human_mouse_samples_log2fc.rds"))
+annot = readRDS(here("tables", "Differential gene expression", "probe_annot_saureus_infection_mouse.rds"))
+
+input2FIT = mouse_saureus_log2_hgnc_symbol %>% 
+  ungroup() %>% 
+    filter(timepoint == 12) %>% 
+  inner_join(annot %>% select(probe_id = affy_mouse430_2, MM.Entrez = entrezgene_id),
+             by = "probe_id") %>% 
+  select(participant_id, MM.Entrez, EffectSize = log2fc) %>% 
+  group_by(MM.Entrez) %>% 
+  summarise(mean_log2fc = mean(EffectSize, na.rm = T)) %>% 
+  drop_na()
+  
+
+#Save
+input2FIT %>% 
+  write_csv(file = here("tables", "FIT", "saureus_mouse_fit_prediction_input_12h.csv"))
+
+#Run FIT
+FIT_day12_results = FIT.mouse2man::FIT(MouseFile = here("tables", "FIT", "saureus_mouse_fit_prediction_input_12h.csv"), DataType = "rnaseq")
+
+#Pivot longer
+fit_saureus_results = FIT_day12_results %>% 
+  clean_names() %>%  
+  pivot_longer(cols = c(mouse_effect_size, fit_prediction),
+               names_to = "measure", 
+               values_to = "value") %>% 
+  mutate(pathogen = "Staphylococcus aureus",
+         timepoint = "12") %>% 
+  arrange(mouse_symbol) %>% 
+  select(pathogen, timepoint, everything())
+
+#Save
+fit_saureus_results %>% 
+  saveRDS(file = here("tables", "saureus_mouse_fit_prediction_results_12h.rds"))
+
+#Visualize distribution
+fit_saureus_results %>% 
+  ggplot() +
+  aes(x = value,
+      fill = timepoint,
+      color = timepoint) +
+  facet_wrap(~measure, ncol = 1) +
+  geom_histogram() +
+  theme_vaxgo() 
+
+```
+
+
+## E. coli
+
+Calculate mean log2 fold-change values for each gene across samples.
+
+```{r}
+#Get log2fc mean
+all_degs_human_mouse = readRDS(file = here("tables", "Differential gene expression", "ecoli_human_mouse_dge_limma_degs.rds")) 
+
+mouse_ecoli_log2_hgnc_symbol = readRDS(here("tables", "Differential gene expression", "ecoli_human_mouse_samples_log2fc.rds"))
+
+annot = readRDS(here("tables", "Differential gene expression", "probe_annot_ecoli_infection_mouse.rds"))
+
+input2FIT = mouse_ecoli_log2_hgnc_symbol %>% 
+  ungroup() %>% 
+    filter(timepoint == 12) %>% 
+  inner_join(annot %>% select(probe_id = affy_mouse430_2,
+                              MM.Entrez = entrezgene_id),
+             by = "probe_id") %>% 
+  select(participant_id = subject_id, MM.Entrez, EffectSize = log2fc) %>% 
+  group_by(MM.Entrez) %>% 
+  summarise(mean_log2fc = mean(EffectSize, na.rm = T)) %>% 
+  drop_na()
+  
+
+#Save
+input2FIT %>% 
+  write_csv(file = here("tables", "FIT", "ecoli_mouse_fit_prediction_input_12h.csv"))
+
+#Run FIT
+FIT_day12_results = FIT.mouse2man::FIT(MouseFile = here("tables", "FIT", "ecoli_mouse_fit_prediction_input_12h.csv"), DataType = "rnaseq")
+
+#Pivot longer
+fit_ecoli_results = FIT_day12_results %>% 
+  clean_names() %>%  
+  pivot_longer(cols = c(mouse_effect_size, fit_prediction),
+               names_to = "measure", 
+               values_to = "value") %>% 
+  mutate(pathogen = "Escherichia coli",
+         timepoint = "12") %>% 
+  arrange(mouse_symbol) %>% 
+  select(pathogen, timepoint, everything())
+
+#Save
+fit_ecoli_results %>% 
+  saveRDS(file = here("tables", "FIT", "ecoli_mouse_fit_prediction_results_12h.rds"))
+
+#Visualize distribution
+fit_ecoli_results %>% 
+  ggplot() +
+  aes(x = value,
+      fill = timepoint,
+      color = timepoint) +
+  facet_wrap(~measure, ncol = 1) +
+  geom_histogram() +
+  theme_vaxgo() 
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

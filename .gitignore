@@ -77,3 +77,9 @@ human_mouse_log2fc_avg_wide_degs_all_immune_nonimmune.rds
 
 # Staging folder for the standalone prediction repository (uploaded separately)
 novo repo/
+
+# Large expression matrices / series matrices (local only)
+tables/processed_data/influenza_hepatitisb_mouse_exprs.rds
+tables/processed_data/influenza_human_exprs.rds
+tables/raw_data/GSE120661_series_matrix.txt.gz
+tables/raw_data/GSE124689_series_matrix.txt.gz

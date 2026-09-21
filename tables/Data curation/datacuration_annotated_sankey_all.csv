@@ -1,0 +1,276 @@
+source,target,value,step_from,step_to,gse_ids,layer
+Adjuvant,Adjuvant,5,0,1,GSE120661;GSE120661;GSE120661;GSE180384;GSE189000,pathogen_type to target_pathogen
+Adjuvant,None,1,0,1,GSE112920,pathogen_type to target_pathogen
+Bacteria,A. baumannii,1,0,1,GSE141729,pathogen_type to target_pathogen
+Bacteria,Bovine crucellosis,1,0,1,GSE125765,pathogen_type to target_pathogen
+Bacteria,Brucella,2,0,1,GSE121040;GSE254248,pathogen_type to target_pathogen
+Bacteria,C. tetani,1,0,1,GSE268421,pathogen_type to target_pathogen
+Bacteria,DTP,1,0,1,GSE144218,pathogen_type to target_pathogen
+Bacteria,DTP-IPV-HBV,1,0,1,GSE120661,pathogen_type to target_pathogen
+Bacteria,F. tularensis,1,0,1,GSE186408,pathogen_type to target_pathogen
+Bacteria,H. influenzae,1,0,1,GSE120661,pathogen_type to target_pathogen
+Bacteria,Klebsiella,5,0,1,GSE157382;GSE157382;GSE174849;GSE178385;GSE178385,pathogen_type to target_pathogen
+Bacteria,Listeria,1,0,1,GSE112741,pathogen_type to target_pathogen
+Bacteria,M. tuberculosis,1,0,1,GSE226075,pathogen_type to target_pathogen
+Bacteria,N. meningitidis,9,0,1,GSE104337;GSE104337;GSE131914;GSE132199;GSE132199;GSE139529;GSE139529;GSE224584;GSE224584,pathogen_type to target_pathogen
+Bacteria,S. aureus,12,0,1,GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543,pathogen_type to target_pathogen
+Bacteria,S. pneumoniae,1,0,1,GSE173361,pathogen_type to target_pathogen
+Bacteria,Tuberculosis,19,0,1,GSE100288;GSE100288;GSE135592;GSE135592;GSE135592;GSE139948;GSE139948;GSE164590;GSE212202;GSE212203;GSE212204;GSE213340;GSE213342;GSE244126;GSE261448;GSE261448;GSE264141;GSE264141;GSE264141,pathogen_type to target_pathogen
+Fungi,B. dermatitidis,2,0,1,GSE198466;GSE198466,pathogen_type to target_pathogen
+Fungi,C. neoformans,1,0,1,GSE271485,pathogen_type to target_pathogen
+Fungi,C. posadasii,1,0,1,GSE133140,pathogen_type to target_pathogen
+Protozoa,Leishmania,2,0,1,GSE134661;GSE134661,pathogen_type to target_pathogen
+Protozoa,Plasmodium,3,0,1,GSE188659;GSE111110;GSE129133,pathogen_type to target_pathogen
+Protozoa,Schistosome,3,0,1,GSE164094;GSE164094;GSE222444,pathogen_type to target_pathogen
+Virus,Ad26,3,0,1,GSE264344;GSE264344;GSE264344,pathogen_type to target_pathogen
+Virus,Andes virus,2,0,1,GSE240062;GSE240062,pathogen_type to target_pathogen
+Virus,ChAd,1,0,1,GSE207389,pathogen_type to target_pathogen
+Virus,Dengue virus,2,0,1,GSE154371;GSE154371,pathogen_type to target_pathogen
+Virus,HBV,1,0,1,GSE120661,pathogen_type to target_pathogen
+Virus,HIV,9,0,1,GSE198952;GSE288450;GSE288450;GSE288450;GSE288450;GSE165227;GSE165227;GSE165227;GSE165227,pathogen_type to target_pathogen
+Virus,Influenza,29,0,1,GSE101696;GSE101747;GSE120661;GSE120661;GSE134647;GSE134647;GSE134647;GSE134647;GSE160010;GSE182858;GSE182858;GSE182858;GSE182858;GSE195600;GSE195600;GSE195600;GSE198980;GSE198980;GSE198980;GSE198980;GSE205839;GSE205839;GSE205839;GSE205839;GSE205839;GSE205839;GSE279743;GSE279744;GSE289606,pathogen_type to target_pathogen
+Virus,LCMV,3,0,1,GSE107116;GSE160294;GSE161356,pathogen_type to target_pathogen
+Virus,MVA,1,0,1,GSE207389,pathogen_type to target_pathogen
+Virus,Norovirus,2,0,1,GSE279372;GSE279372,pathogen_type to target_pathogen
+Virus,RSV,3,0,1,GSE143617;GSE143617;GSE272499,pathogen_type to target_pathogen
+Virus,Rabies,1,0,1,GSE122637,pathogen_type to target_pathogen
+Virus,SARS-CoV-2,24,0,1,GSE150847;GSE155536;GSE167521;GSE173567;GSE179131;GSE201266;GSE201266;GSE217200;GSE217200;GSE223476;GSE223476;GSE223476;GSE223476;GSE223476;GSE223476;GSE223476;GSE223476;GSE227647;GSE260817;GSE261311;GSE282488;GSE282488;GSE282488;GSE292262,pathogen_type to target_pathogen
+Virus,Sindbis virus,1,0,1,GSE176203,pathogen_type to target_pathogen
+Virus,Smallpox,1,0,1,GSE225180,pathogen_type to target_pathogen
+Virus,Vaccinia,4,0,1,GSE165227;GSE165227;GSE165227;GSE165227,pathogen_type to target_pathogen
+Virus,YFV,2,0,1,GSE179131;GSE180384,pathogen_type to target_pathogen
+NA,None,1,0,1,GSE267045,pathogen_type to target_pathogen
+A. baumannii,Whole,1,1,2,GSE141729,target_pathogen to target_antigen
+Ad26,Whole,3,1,2,GSE264344;GSE264344;GSE264344,target_pathogen to target_antigen
+Adjuvant,Adjuvant,5,1,2,GSE120661;GSE120661;GSE120661;GSE180384;GSE189000,target_pathogen to target_antigen
+Andes virus,M segment,2,1,2,GSE240062;GSE240062,target_pathogen to target_antigen
+B. dermatitidis,Bl-Eng2,2,1,2,GSE198466;GSE198466,target_pathogen to target_antigen
+Bovine crucellosis,rMDH protein,1,1,2,GSE125765,target_pathogen to target_antigen
+Brucella,S19∆per mutant,1,1,2,GSE121040,target_pathogen to target_antigen
+Brucella,Whole,1,1,2,GSE254248,target_pathogen to target_antigen
+C. neoformans,Whole,1,1,2,GSE271485,target_pathogen to target_antigen
+C. posadasii,GCP-rCpa1,1,1,2,GSE133140,target_pathogen to target_antigen
+C. tetani,Tetanus toxin,1,1,2,GSE268421,target_pathogen to target_antigen
+ChAd,Whole,1,1,2,GSE207389,target_pathogen to target_antigen
+DTP,Boostrix,1,1,2,GSE144218,target_pathogen to target_antigen
+DTP-IPV-HBV,Pentavac,1,1,2,GSE120661,target_pathogen to target_antigen
+Dengue virus,ED3,1,1,2,GSE154371,target_pathogen to target_antigen
+Dengue virus,Whole,1,1,2,GSE154371,target_pathogen to target_antigen
+F. tularensis,Whole,1,1,2,GSE186408,target_pathogen to target_antigen
+H. influenzae,PRP,1,1,2,GSE120661,target_pathogen to target_antigen
+HBV,Engerix,1,1,2,GSE120661,target_pathogen to target_antigen
+HIV,Env trimer,4,1,2,GSE288450;GSE288450;GSE288450;GSE288450,target_pathogen to target_antigen
+HIV,GP120 and GagPol,4,1,2,GSE165227;GSE165227;GSE165227;GSE165227,target_pathogen to target_antigen
+HIV,Peptide,1,1,2,GSE198952,target_pathogen to target_antigen
+Influenza,A/Puerto Rico/8/34 NP,4,1,2,GSE198980;GSE198980;GSE198980;GSE198980,target_pathogen to target_antigen
+Influenza,Agrippal,1,1,2,GSE120661,target_pathogen to target_antigen
+Influenza,FluMist,1,1,2,GSE101696,target_pathogen to target_antigen
+Influenza,Fluad,1,1,2,GSE120661,target_pathogen to target_antigen
+Influenza,H1N1,2,1,2,GSE205839;GSE205839,target_pathogen to target_antigen
+Influenza,H5N1,3,1,2,GSE101747;GSE279743;GSE279744,target_pathogen to target_antigen
+Influenza,H5N8,2,1,2,GSE205839;GSE205839,target_pathogen to target_antigen
+Influenza,H7N9,2,1,2,GSE205839;GSE205839,target_pathogen to target_antigen
+Influenza,Influenza A PR/8,1,1,2,GSE289606,target_pathogen to target_antigen
+Influenza,Neuraminidase,1,1,2,GSE160010,target_pathogen to target_antigen
+Influenza,Pandemrix,3,1,2,GSE195600;GSE195600;GSE195600,target_pathogen to target_antigen
+Influenza,Quadri 2019-2020,4,1,2,GSE182858;GSE182858;GSE182858;GSE182858,target_pathogen to target_antigen
+Influenza,Whole,4,1,2,GSE134647;GSE134647;GSE134647;GSE134647,target_pathogen to target_antigen
+Klebsiella,Omp,1,1,2,GSE174849,target_pathogen to target_antigen
+Klebsiella,Whole,4,1,2,GSE157382;GSE157382;GSE178385;GSE178385,target_pathogen to target_antigen
+LCMV,GP,1,1,2,GSE107116,target_pathogen to target_antigen
+LCMV,Whole,2,1,2,GSE160294;GSE161356,target_pathogen to target_antigen
+Leishmania,CPA162-189-loaded p8-PLGA nanoparticles,2,1,2,GSE134661;GSE134661,target_pathogen to target_antigen
+Listeria,Listeria expressing OVA,1,1,2,GSE112741,target_pathogen to target_antigen
+M. tuberculosis,Mycolic acid,1,1,2,GSE226075,target_pathogen to target_antigen
+MVA,MVA,1,1,2,GSE207389,target_pathogen to target_antigen
+N. meningitidis,ACWY,2,1,2,GSE224584;GSE224584,target_pathogen to target_antigen
+N. meningitidis,Bexsero,3,1,2,GSE131914;GSE132199;GSE132199,target_pathogen to target_antigen
+N. meningitidis,OVA,1,1,2,GSE104337,target_pathogen to target_antigen
+N. meningitidis,PorB,1,1,2,GSE104337,target_pathogen to target_antigen
+N. meningitidis,fHbp,2,1,2,GSE139529;GSE139529,target_pathogen to target_antigen
+None,Adjuvant,1,1,2,GSE112920,target_pathogen to target_antigen
+None,OVA,1,1,2,GSE267045,target_pathogen to target_antigen
+Norovirus,GI.1-GII.4,2,1,2,GSE279372;GSE279372,target_pathogen to target_antigen
+Plasmodium,NIP-OVA,1,1,2,GSE188659,target_pathogen to target_antigen
+Plasmodium,Whole,2,1,2,GSE111110;GSE129133,target_pathogen to target_antigen
+RSV,F protein,2,1,2,GSE143617;GSE143617,target_pathogen to target_antigen
+RSV,G protein,1,1,2,GSE272499,target_pathogen to target_antigen
+Rabies,Whole,1,1,2,GSE122637,target_pathogen to target_antigen
+S. aureus,lsdB,12,1,2,GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543,target_pathogen to target_antigen
+S. pneumoniae,NA,1,1,2,GSE173361,target_pathogen to target_antigen
+SARS-CoV-2,LNP,1,1,2,GSE167521,target_pathogen to target_antigen
+SARS-CoV-2,RBD,5,1,2,GSE223476;GSE223476;GSE223476;GSE223476;GSE261311,target_pathogen to target_antigen
+SARS-CoV-2,Spike,13,1,2,GSE173567;GSE179131;GSE217200;GSE217200;GSE223476;GSE223476;GSE223476;GSE223476;GSE260817;GSE282488;GSE282488;GSE282488;GSE292262,target_pathogen to target_antigen
+SARS-CoV-2,Spike + nano STING,1,1,2,GSE155536,target_pathogen to target_antigen
+SARS-CoV-2,Spike Omicron,1,1,2,GSE201266,target_pathogen to target_antigen
+SARS-CoV-2,Spike Wuhan,1,1,2,GSE201266,target_pathogen to target_antigen
+SARS-CoV-2,"Structural proteins, VRPs from VEEV",1,1,2,GSE150847,target_pathogen to target_antigen
+SARS-CoV-2,dNS1-RBD,1,1,2,GSE227647,target_pathogen to target_antigen
+Schistosome,Whole,3,1,2,GSE164094;GSE164094;GSE222444,target_pathogen to target_antigen
+Sindbis virus,Spike,1,1,2,GSE176203,target_pathogen to target_antigen
+Smallpox,Whole,1,1,2,GSE225180,target_pathogen to target_antigen
+Tuberculosis,Ag85A,2,1,2,GSE100288;GSE100288,target_pathogen to target_antigen
+Tuberculosis,Ag85B,3,1,2,GSE264141;GSE264141;GSE264141,target_pathogen to target_antigen
+Tuberculosis,BCG,12,1,2,GSE135592;GSE135592;GSE135592;GSE139948;GSE139948;GSE212202;GSE212203;GSE212204;GSE213340;GSE213342;GSE261448;GSE261448,target_pathogen to target_antigen
+Tuberculosis,Whole,2,1,2,GSE164590;GSE244126,target_pathogen to target_antigen
+Vaccinia,NYVAC,4,1,2,GSE165227;GSE165227;GSE165227;GSE165227,target_pathogen to target_antigen
+YFV,Whole,2,1,2,GSE179131;GSE180384,target_pathogen to target_antigen
+A/Puerto Rico/8/34 NP,VV,4,2,3,GSE198980;GSE198980;GSE198980;GSE198980,target_antigen to vaccine_type
+ACWY,PS,2,2,3,GSE224584;GSE224584,target_antigen to vaccine_type
+Adjuvant,ADJ,6,2,3,GSE120661;GSE120661;GSE120661;GSE180384;GSE189000;GSE112920,target_antigen to vaccine_type
+Ag85A,VV,2,2,3,GSE100288;GSE100288,target_antigen to vaccine_type
+Ag85B,VV,3,2,3,GSE264141;GSE264141;GSE264141,target_antigen to vaccine_type
+Agrippal,IN,1,2,3,GSE120661,target_antigen to vaccine_type
+BCG,AT,11,2,3,GSE135592;GSE135592;GSE139948;GSE139948;GSE212202;GSE212203;GSE212204;GSE213340;GSE213342;GSE261448;GSE261448,target_antigen to vaccine_type
+BCG,IN,1,2,3,GSE135592,target_antigen to vaccine_type
+Bexsero,SU,3,2,3,GSE131914;GSE132199;GSE132199,target_antigen to vaccine_type
+Bl-Eng2,SU,2,2,3,GSE198466;GSE198466,target_antigen to vaccine_type
+Boostrix,Multiple,1,2,3,GSE144218,target_antigen to vaccine_type
+CPA162-189-loaded p8-PLGA nanoparticles,SU,2,2,3,GSE134661;GSE134661,target_antigen to vaccine_type
+ED3,SU,1,2,3,GSE154371,target_antigen to vaccine_type
+Engerix,SU,1,2,3,GSE120661,target_antigen to vaccine_type
+Env trimer,SU,4,2,3,GSE288450;GSE288450;GSE288450;GSE288450,target_antigen to vaccine_type
+F protein,SU,2,2,3,GSE143617;GSE143617,target_antigen to vaccine_type
+FluMist,AT,1,2,3,GSE101696,target_antigen to vaccine_type
+Fluad,IN,1,2,3,GSE120661,target_antigen to vaccine_type
+G protein,SU,1,2,3,GSE272499,target_antigen to vaccine_type
+GCP-rCpa1,SU,1,2,3,GSE133140,target_antigen to vaccine_type
+GI.1-GII.4,SU,2,2,3,GSE279372;GSE279372,target_antigen to vaccine_type
+GP,VV,1,2,3,GSE107116,target_antigen to vaccine_type
+GP120 and GagPol,AT,4,2,3,GSE165227;GSE165227;GSE165227;GSE165227,target_antigen to vaccine_type
+H1N1,IN,2,2,3,GSE205839;GSE205839,target_antigen to vaccine_type
+H5N1,DNA,1,2,3,GSE101747,target_antigen to vaccine_type
+H5N1,RNA,2,2,3,GSE279743;GSE279744,target_antigen to vaccine_type
+H5N8,IN,2,2,3,GSE205839;GSE205839,target_antigen to vaccine_type
+H7N9,IN,2,2,3,GSE205839;GSE205839,target_antigen to vaccine_type
+Influenza A PR/8,INF,1,2,3,GSE289606,target_antigen to vaccine_type
+LNP,RNA,1,2,3,GSE167521,target_antigen to vaccine_type
+Listeria expressing OVA,AT,1,2,3,GSE112741,target_antigen to vaccine_type
+M segment,RNA,2,2,3,GSE240062;GSE240062,target_antigen to vaccine_type
+MVA,VV,1,2,3,GSE207389,target_antigen to vaccine_type
+Mycolic acid,SU,1,2,3,GSE226075,target_antigen to vaccine_type
+NIP-OVA,SU,1,2,3,GSE188659,target_antigen to vaccine_type
+NYVAC,AT,4,2,3,GSE165227;GSE165227;GSE165227;GSE165227,target_antigen to vaccine_type
+Neuraminidase,SU,1,2,3,GSE160010,target_antigen to vaccine_type
+OVA,RNA,1,2,3,GSE267045,target_antigen to vaccine_type
+OVA,SU,1,2,3,GSE104337,target_antigen to vaccine_type
+Omp,SU,1,2,3,GSE174849,target_antigen to vaccine_type
+PRP,PS,1,2,3,GSE120661,target_antigen to vaccine_type
+Pandemrix,IN,3,2,3,GSE195600;GSE195600;GSE195600,target_antigen to vaccine_type
+Pentavac,Multiple,1,2,3,GSE120661,target_antigen to vaccine_type
+Peptide,SU,1,2,3,GSE198952,target_antigen to vaccine_type
+PorB,SU,1,2,3,GSE104337,target_antigen to vaccine_type
+Quadri 2019-2020,IN,4,2,3,GSE182858;GSE182858;GSE182858;GSE182858,target_antigen to vaccine_type
+RBD,SU,1,2,3,GSE261311,target_antigen to vaccine_type
+RBD,VV,4,2,3,GSE223476;GSE223476;GSE223476;GSE223476,target_antigen to vaccine_type
+S19∆per mutant,AT,1,2,3,GSE121040,target_antigen to vaccine_type
+Spike,AT,1,2,3,GSE179131,target_antigen to vaccine_type
+Spike,DNA,2,2,3,GSE217200;GSE217200,target_antigen to vaccine_type
+Spike,RNA,3,2,3,GSE260817;GSE282488;GSE292262,target_antigen to vaccine_type
+Spike,SU,1,2,3,GSE176203,target_antigen to vaccine_type
+Spike,VV,7,2,3,GSE173567;GSE223476;GSE223476;GSE223476;GSE223476;GSE282488;GSE282488,target_antigen to vaccine_type
+Spike + nano STING,RNA,1,2,3,GSE155536,target_antigen to vaccine_type
+Spike Omicron,RNA,1,2,3,GSE201266,target_antigen to vaccine_type
+Spike Wuhan,RNA,1,2,3,GSE201266,target_antigen to vaccine_type
+"Structural proteins, VRPs from VEEV",RNA,1,2,3,GSE150847,target_antigen to vaccine_type
+Tetanus toxin,TX,1,2,3,GSE268421,target_antigen to vaccine_type
+Whole,AT,12,2,3,GSE254248;GSE271485;GSE186408;GSE129133;GSE122637;GSE164094;GSE164094;GSE222444;GSE225180;GSE244126;GSE179131;GSE180384,target_antigen to vaccine_type
+Whole,IN,9,2,3,GSE141729;GSE134647;GSE134647;GSE134647;GSE134647;GSE157382;GSE157382;GSE178385;GSE178385,target_antigen to vaccine_type
+Whole,INF,3,2,3,GSE154371;GSE111110;GSE164590,target_antigen to vaccine_type
+Whole,VV,4,2,3,GSE264344;GSE264344;GSE264344;GSE207389,target_antigen to vaccine_type
+Whole,NA,2,2,3,GSE160294;GSE161356,target_antigen to vaccine_type
+dNS1-RBD,VV,1,2,3,GSE227647,target_antigen to vaccine_type
+fHbp,VV,2,2,3,GSE139529;GSE139529,target_antigen to vaccine_type
+lsdB,SU,12,2,3,GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543,target_antigen to vaccine_type
+rMDH protein,SU,1,2,3,GSE125765,target_antigen to vaccine_type
+NA,No info,1,2,3,GSE173361,target_antigen to vaccine_type
+ADJ,Yes,6,3,4,GSE120661;GSE120661;GSE120661;GSE180384;GSE189000;GSE112920,vaccine_type to adjuvanted
+AT,Yes,1,3,4,GSE129133,vaccine_type to adjuvanted
+AT,No,34,3,4,GSE121040;GSE254248;GSE271485;GSE186408;GSE165227;GSE165227;GSE165227;GSE165227;GSE165227;GSE165227;GSE165227;GSE165227;GSE101696;GSE112741;GSE122637;GSE179131;GSE164094;GSE164094;GSE222444;GSE225180;GSE135592;GSE135592;GSE139948;GSE139948;GSE212202;GSE212203;GSE212204;GSE213340;GSE213342;GSE244126;GSE261448;GSE261448;GSE179131;GSE180384,vaccine_type to adjuvanted
+DNA,No,3,3,4,GSE101747;GSE217200;GSE217200,vaccine_type to adjuvanted
+IN,No,2,3,4,GSE182858;GSE182858,vaccine_type to adjuvanted
+IN,Yes,10,3,4,GSE120661;GSE134647;GSE134647;GSE134647;GSE134647;GSE182858;GSE182858;GSE195600;GSE195600;GSE195600,vaccine_type to adjuvanted
+IN,No,13,3,4,GSE141729;GSE120661;GSE205839;GSE205839;GSE205839;GSE205839;GSE205839;GSE205839;GSE157382;GSE157382;GSE178385;GSE178385;GSE135592,vaccine_type to adjuvanted
+INF,No,4,3,4,GSE154371;GSE289606;GSE111110;GSE164590,vaccine_type to adjuvanted
+Multiple,No,2,3,4,GSE144218;GSE120661,vaccine_type to adjuvanted
+No info,No,1,3,4,GSE173361,vaccine_type to adjuvanted
+PS,No,3,3,4,GSE120661;GSE224584;GSE224584,vaccine_type to adjuvanted
+RNA,Yes,1,3,4,GSE155536,vaccine_type to adjuvanted
+RNA,No,12,3,4,GSE240062;GSE240062;GSE279743;GSE279744;GSE267045;GSE150847;GSE167521;GSE201266;GSE201266;GSE260817;GSE282488;GSE292262,vaccine_type to adjuvanted
+SU,Yes,15,3,4,GSE120661;GSE198952;GSE288450;GSE288450;GSE288450;GSE288450;GSE174849;GSE104337;GSE104337;GSE279372;GSE279372;GSE188659;GSE143617;GSE143617;GSE261311,vaccine_type to adjuvanted
+SU,No,26,3,4,GSE198466;GSE198466;GSE125765;GSE133140;GSE154371;GSE160010;GSE134661;GSE134661;GSE226075;GSE131914;GSE132199;GSE132199;GSE272499;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE193543;GSE176203,vaccine_type to adjuvanted
+TX,Yes,1,3,4,GSE268421,vaccine_type to adjuvanted
+VV,No,29,3,4,GSE264344;GSE264344;GSE264344;GSE207389;GSE198980;GSE198980;GSE198980;GSE198980;GSE107116;GSE207389;GSE139529;GSE139529;GSE173567;GSE223476;GSE223476;GSE223476;GSE223476;GSE223476;GSE223476;GSE223476;GSE223476;GSE227647;GSE282488;GSE282488;GSE100288;GSE100288;GSE264141;GSE264141;GSE264141,vaccine_type to adjuvanted
+No,No,2,3,4,GSE160294;GSE161356,vaccine_type to adjuvanted
+No,IN,2,4,5,GSE182858;GSE182858,adjuvanted to administration_route
+Yes,ID,1,4,5,GSE188659,adjuvanted to administration_route
+Yes,IM,15,4,5,GSE120661;GSE120661;GSE120661;GSE120661;GSE198952;GSE120661;GSE134647;GSE134647;GSE195600;GSE195600;GSE195600;GSE279372;GSE279372;GSE143617;GSE143617,adjuvanted to administration_route
+Yes,IN,3,4,5,GSE182858;GSE182858;GSE155536,adjuvanted to administration_route
+Yes,IPeri,2,4,5,GSE268421;GSE112920,adjuvanted to administration_route
+Yes,IPulm,1,4,5,GSE174849,adjuvanted to administration_route
+Yes,IV,2,4,5,GSE134647;GSE134647,adjuvanted to administration_route
+Yes,No info,5,4,5,GSE288450;GSE288450;GSE288450;GSE288450;GSE261311,adjuvanted to administration_route
+Yes,SC,4,4,5,GSE180384;GSE104337;GSE104337;GSE129133,adjuvanted to administration_route
+Yes,TransC,1,4,5,GSE189000,adjuvanted to administration_route
+No,ID,4,4,5,GSE240062;GSE240062;GSE186408;GSE167521,adjuvanted to administration_route
+No,IM,45,4,5,GSE264344;GSE264344;GSE264344;GSE207389;GSE154371;GSE154371;GSE144218;GSE120661;GSE120661;GSE165227;GSE165227;GSE165227;GSE165227;GSE101747;GSE120661;GSE160010;GSE205839;GSE205839;GSE205839;GSE107116;GSE207389;GSE131914;GSE132199;GSE132199;GSE139529;GSE139529;GSE267045;GSE193543;GSE193543;GSE193543;GSE193543;GSE173567;GSE179131;GSE217200;GSE217200;GSE223476;GSE223476;GSE223476;GSE223476;GSE260817;GSE282488;GSE282488;GSE282488;GSE292262;GSE264141,adjuvanted to administration_route
+No,IN,21,4,5,GSE141729;GSE198466;GSE125765;GSE101696;GSE198980;GSE198980;GSE205839;GSE205839;GSE205839;GSE289606;GSE178385;GSE178385;GSE150847;GSE223476;GSE223476;GSE223476;GSE223476;GSE227647;GSE225180;GSE100288;GSE164590,adjuvanted to administration_route
+No,IPeri,7,4,5,GSE121040;GSE271485;GSE165227;GSE165227;GSE165227;GSE165227;GSE176203,adjuvanted to administration_route
+No,IPulm,2,4,5,GSE157382;GSE157382,adjuvanted to administration_route
+No,ITechal,1,4,5,GSE226075,adjuvanted to administration_route
+No,IV,8,4,5,GSE160294;GSE161356;GSE112741;GSE193543;GSE193543;GSE193543;GSE193543;GSE264141,adjuvanted to administration_route
+No,No info,9,4,5,GSE134661;GSE134661;GSE224584;GSE224584;GSE122637;GSE173361;GSE201266;GSE201266;GSE244126,adjuvanted to administration_route
+No,Parenteral,1,4,5,GSE100288,adjuvanted to administration_route
+No,PerC,3,4,5,GSE164094;GSE164094;GSE222444,adjuvanted to administration_route
+No,SC,26,4,5,GSE198466;GSE254248;GSE133140;GSE198980;GSE198980;GSE111110;GSE272499;GSE193543;GSE193543;GSE193543;GSE193543;GSE135592;GSE135592;GSE135592;GSE139948;GSE139948;GSE212202;GSE212203;GSE212204;GSE213340;GSE213342;GSE261448;GSE261448;GSE264141;GSE179131;GSE180384,adjuvanted to administration_route
+No,SC or IM,2,4,5,GSE279743;GSE279744,adjuvanted to administration_route
+ID,Germinal center,1,5,6,GSE188659,administration_route to main_sample_source
+ID,Lymph node,2,5,6,GSE240062;GSE240062,administration_route to main_sample_source
+ID,Skin,1,5,6,GSE167521,administration_route to main_sample_source
+ID,Spleen,1,5,6,GSE186408,administration_route to main_sample_source
+IM,Blood,19,5,6,GSE264344;GSE120661;GSE120661;GSE120661;GSE120661;GSE120661;GSE120661;GSE120661;GSE120661;GSE131914;GSE132199;GSE132199;GSE139529;GSE139529;GSE143617;GSE143617;GSE223476;GSE223476;GSE264141,administration_route to main_sample_source
+IM,Bone marrow,1,5,6,GSE292262,administration_route to main_sample_source
+IM,Brain,1,5,6,GSE195600,administration_route to main_sample_source
+IM,Kidney,2,5,6,GSE193543;GSE193543,administration_route to main_sample_source
+IM,Liver,1,5,6,GSE267045,administration_route to main_sample_source
+IM,Lung,5,5,6,GSE134647;GSE160010;GSE205839;GSE205839;GSE205839,administration_route to main_sample_source
+IM,Lymph node,9,5,6,GSE264344;GSE198952;GSE134647;GSE195600;GSE179131;GSE217200;GSE282488;GSE282488;GSE282488,administration_route to main_sample_source
+IM,Muscle,2,5,6,GSE264344;GSE144218,administration_route to main_sample_source
+IM,Peritoneum,2,5,6,GSE165227;GSE165227,administration_route to main_sample_source
+IM,Respiratory secretion,2,5,6,GSE223476;GSE223476,administration_route to main_sample_source
+IM,Spleen,16,5,6,GSE207389;GSE154371;GSE154371;GSE165227;GSE165227;GSE101747;GSE195600;GSE107116;GSE207389;GSE279372;GSE279372;GSE193543;GSE193543;GSE173567;GSE217200;GSE260817,administration_route to main_sample_source
+IN,Blood,4,5,6,GSE182858;GSE182858;GSE223476;GSE223476,administration_route to main_sample_source
+IN,Liver,1,5,6,GSE155536,administration_route to main_sample_source
+IN,Lung,14,5,6,GSE141729;GSE198466;GSE101696;GSE182858;GSE182858;GSE198980;GSE205839;GSE205839;GSE205839;GSE178385;GSE150847;GSE227647;GSE100288;GSE164590,administration_route to main_sample_source
+IN,Nasal-associated lymphoid tissue,1,5,6,GSE125765,administration_route to main_sample_source
+IN,Respiratory secretion,3,5,6,GSE289606;GSE223476;GSE223476,administration_route to main_sample_source
+IN,Spleen,3,5,6,GSE198980;GSE178385;GSE225180,administration_route to main_sample_source
+IPeri,Heart,1,5,6,GSE268421,administration_route to main_sample_source
+IPeri,Lung,1,5,6,GSE271485,administration_route to main_sample_source
+IPeri,Peritoneum,2,5,6,GSE165227;GSE165227,administration_route to main_sample_source
+IPeri,Spleen,5,5,6,GSE121040;GSE165227;GSE165227;GSE112920;GSE176203,administration_route to main_sample_source
+IPulm,Lung,2,5,6,GSE157382;GSE174849,administration_route to main_sample_source
+IPulm,Spleen,1,5,6,GSE157382,administration_route to main_sample_source
+ITechal,Lymph node,1,5,6,GSE226075,administration_route to main_sample_source
+IV,Blood,1,5,6,GSE264141,administration_route to main_sample_source
+IV,Kidney,2,5,6,GSE193543;GSE193543,administration_route to main_sample_source
+IV,Lung,1,5,6,GSE134647,administration_route to main_sample_source
+IV,Lymph node,1,5,6,GSE134647,administration_route to main_sample_source
+IV,Skin,1,5,6,GSE112741,administration_route to main_sample_source
+IV,Spleen,4,5,6,GSE160294;GSE161356;GSE193543;GSE193543,administration_route to main_sample_source
+No info,Blood,2,5,6,GSE224584;GSE261311,administration_route to main_sample_source
+No info,Lung,1,5,6,GSE244126,administration_route to main_sample_source
+No info,Lymph node,5,5,6,GSE288450;GSE288450;GSE288450;GSE288450;GSE122637,administration_route to main_sample_source
+No info,Spleen,6,5,6,GSE134661;GSE134661;GSE224584;GSE173361;GSE201266;GSE201266,administration_route to main_sample_source
+Parenteral,Lung,1,5,6,GSE100288,administration_route to main_sample_source
+PerC,Blood,2,5,6,GSE164094;GSE222444,administration_route to main_sample_source
+PerC,Skin,1,5,6,GSE164094,administration_route to main_sample_source
+SC,Blood,1,5,6,GSE264141,administration_route to main_sample_source
+SC,Bone marrow,2,5,6,GSE133140;GSE261448,administration_route to main_sample_source
+SC,Kidney,2,5,6,GSE193543;GSE193543,administration_route to main_sample_source
+SC,Liver,2,5,6,GSE111110;GSE129133,administration_route to main_sample_source
+SC,Lung,8,5,6,GSE198466;GSE198980;GSE272499;GSE212202;GSE212203;GSE212204;GSE213340;GSE213342,administration_route to main_sample_source
+SC,Lymph node,3,5,6,GSE180384;GSE179131;GSE180384,administration_route to main_sample_source
+SC,Spleen,12,5,6,GSE254248;GSE198980;GSE104337;GSE104337;GSE193543;GSE193543;GSE135592;GSE135592;GSE135592;GSE139948;GSE139948;GSE261448,administration_route to main_sample_source
+SC or IM,Lymph node,2,5,6,GSE279743;GSE279744,administration_route to main_sample_source
+TransC,Skin,1,5,6,GSE189000,administration_route to main_sample_source

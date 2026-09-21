@@ -15,26 +15,22 @@ source(here("scripts_notebooks", "required.R"))
 # Classification: Genes
 
 ```{r}
-#=======================
-# Import datasets
-#=======================
+
 # Import BTM annotation genes
-btm_annotation_genes <- read_csv(file = here("tables", "btm_annotation_genes.csv"))
+btm_annotation_genes <- read_csv(file = here("tables", "Gene sets", "btm_annotation_genes.csv"))
 
 # Import and clean DEGs table with control
 all_degs_human_mouse_matched_bionull = 
-  readRDS(file = here("tables", "all_human_mouse_dge_limma_degs_matched_control.rds")) %>% 
+  readRDS(file = here("tables", "Differential gene expression", "all_human_mouse_dge_limma_degs_matched_control.rds")) %>% 
   mutate(timepoint = if_else(pathogen %in% c("Burn", "Trauma") & timepoint %in% c("2h", "Early hours"), "Early hours", timepoint)) 
 
 # Check original counts
 all_degs_human_mouse_matched_bionull %>% dplyr::count(pathogen, organism, timepoint)
 
 
-# ==============================================================================
-# FILTER COMPARISONS BY CORRELATION
-# ==============================================================================
 
-conditions_filtered <- readRDS(file = here("tables", "all_human_mouse_correlation_filtered_inter_weighted_filtered.rds")) %>% 
+# FILTER COMPARISONS BY CORRELATION
+conditions_filtered <- readRDS(file = here("tables", "Differential gene expression", "all_human_mouse_correlation_filtered_inter_weighted_filtered.rds")) %>% 
   mutate(pathogen_human = case_when(pathogen_human == "Hepatitis B" ~ "HepB",
                               pathogen_human == "Staphylococcus aureus" ~ "S. aureus",
                               pathogen_human == "Escherichia coli" ~ "E. coli",
@@ -68,19 +64,6 @@ all_degs_human_mouse_matched_filtered <- all_degs_human_mouse_matched_bionull %>
 all_degs_human_mouse_matched_filtered %>% 
   dplyr::count(treatment, pathogen, organism, timepoint_comparison)
 
-
-##If the control is only permuted values
-# permutation_prediction_up = perfect_prediction_up %>%
-#   group_by(pathogen, timepoint_comparison) %>% 
-#   mutate(prob = runif(n()), organism = "Permutation",
-#          model = "Permutation")
-
-# permutation_prediction_down = perfect_prediction_down %>%
-#   group_by(pathogen, timepoint_comparison) %>% 
-#   mutate(prob = runif(n()), 
-#          organism = "Permutation",
-#          model = "Permutation")
-
 #############################
 # Input
 #############################
@@ -95,9 +78,16 @@ genes_roc_allgenes
 #Filter immune genes
 genes_roc_allgenes_immunegenes = genes_roc_allgenes %>%
   filter(human_symbol %in% c(btm_annotation_genes %>%
+                           clean_names() %>% 
                          filter(module_category == "immune") %>%
-                         pull(symbol) %>%
+                         pull(module_member_genes) %>%
                          unique()))
+#Filter DEGs human
+degs_genes_human = all_degs_human_mouse_matched_filtered %>% 
+  filter(organism == "Human",
+        adj_p_val <= 0.05) %>% 
+  select(organism, human_symbol, pathogen, timepoint_comparison) %>% 
+  distinct()
 
 #Check
 genes_roc_allgenes %>%
@@ -109,13 +99,15 @@ genes_roc_allgenes %>%
 set.seed(123)
 ######## Input =======
 filename = "all_human_mouse_alternative_unicaudal"
+
 genes_df_input = bind_rows(
   genes_roc_allgenes,
   genes_roc_allgenes_immunegenes %>% mutate(organism = "Immune")
 )
 
 ######## Run analysis ======
-classification_performance_results = classification_performance_compute_genes_degs(genes_df_input)
+classification_performance_results = classification_performance_compute_genes_degs(
+  df = genes_df_input, degs_genes_human = degs_genes_human)
 
 #Extract results
 roc_auc_df = classification_performance_results$roc_auc_df
@@ -128,6 +120,7 @@ pr_curve_auc_df = classification_performance_results$pr_curve_auc_df
 pr_curve_auc_df_DEGs = classification_performance_results$pr_curve_auc_df_DEGs
 
 #Refactor
+#ROC
 roc_curve_auc_df = roc_curve_auc_df %>% 
     mutate(model = fct_relevel(model, "Human", "Mouse", "Control", "Immune", "Permutation"),
          comparison = fct_relevel(comparison, "Up", "Down"),
@@ -162,7 +155,7 @@ roc_auc_df_DEGs = roc_auc_df_DEGs %>%
          treatment = fct_relevel(treatment, "Vaccination", "Infection", "Injury")
          ) 
 
-
+#PR
 pr_curve_auc_df = pr_curve_auc_df %>% 
     mutate(model = fct_relevel(model, "Mouse", "Immune", "Permutation", "Human", "FIT", "Control"),
          comparison = fct_relevel(comparison, "Up", "Down"),
@@ -214,7 +207,7 @@ roc_curve_plot = roc_curve_auc_df %>%
              y = sensitivity, 
              color = model,
              linetype = comparison)) +
-  geom_path(size = 0.75, alpha = 1) +
+  geom_path(linewidth = 0.75, alpha = 1) +
   geom_abline(lty = 3) +
   theme_vaxgo() +
   facet_nested_wrap(~pathogen+timepoint_comparison, nrow = 2, axes = "x",
@@ -274,27 +267,13 @@ roc_curve_plot = roc_curve_auc_df %>%
   guides(fill = guide_legend(override.aes = list(size = 4)),
          color = guide_legend(override.aes = list(linewidth = 4, shape = 1))
          ) +
-  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 10),
-          axis.title.x = element_text(size = 10),
-          axis.text.y = element_text(size = 10),
-          axis.title.y = element_text(size = 10),
-          strip.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5),
-          strip.text.x = element_text(angle = 0, hjust = 0., vjust = 0.5, size = 10),
-          legend.position = "top",
-          legend.direction = "horizontal", 
-          legend.text = element_text(size = 10, hjust = 0),
-          legend.title = element_text(size = 10),
-          legend.spacing.x = unit(0, 'cm'),
-          legend.spacing.y = unit(0, 'cm'),
-          ggh4x.facet.nestline = element_line(colour = "black", linetype = 1),
-          legend.box.spacing = unit(0, "cm"),
+  theme(legend.position = "top",
           panel.spacing.y = unit(0, "lines"), 
           panel.spacing.x = unit(1, "lines"), 
           plot.margin = margin(0, 0.3, 0, 0, unit = "cm"),
-          
           ) +
   scale_x_continuous(n.breaks = 3) +
-  scale_y_continuous(n.break = 3) +
+  scale_y_continuous(n.breaks = 3) +
   guides(linetype = guide_legend(override.aes = list(linewidth = 0.5, size = 1),
                                  order = 2), 
          fill = "none",
@@ -306,10 +285,10 @@ roc_curve_auc_df %>%
   dplyr::count(pathogen, timepoint_comparison, comparison, model)
 
 #Save
-roc_curve_plot %>%
-  ggsave(filename = here("Figures", paste0(filename, "_performance_roc_All_OnlyImmune.png")),
-         width = 8,
-         height = 6)
+# roc_curve_plot %>%
+#   ggsave(filename = here("Figures", paste0(filename, "_performance_roc_All_OnlyImmune.png")),
+#          width = 8,
+#          height = 6)
 ```
 
 
@@ -384,24 +363,10 @@ roc_curve_degs_plot = roc_curve_auc_df_DEGs %>%
   guides(fill = guide_legend(override.aes = list(size = 4)),
          color = guide_legend(override.aes = list(linewidth = 4, shape = 1))
          ) +
-  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 10),
-          axis.title.x = element_text(size = 10),
-          axis.text.y = element_text(size = 10),
-          axis.title.y = element_text(size = 10),
-          strip.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5),
-          strip.text.x = element_text(angle = 0, hjust = 0., vjust = 0.5, size = 10),
-          legend.position = "top",
-          legend.direction = "horizontal", 
-          legend.text = element_text(size = 10, hjust = 0),
-          legend.title = element_text(size = 10),
-          legend.spacing.x = unit(0, 'cm'),
-          legend.spacing.y = unit(0, 'cm'),
-          ggh4x.facet.nestline = element_line(colour = "black", linetype = 1),
-          legend.box.spacing = unit(0, "cm"),
+  theme(legend.position = "top",
           panel.spacing.y = unit(0, "lines"), 
           panel.spacing.x = unit(1, "lines"), 
           plot.margin = margin(0, 0.3, 0, 0, unit = "cm"),
-          
           ) +
   scale_x_continuous(n.breaks = 3) +
   scale_y_continuous(n.break = 3) +
@@ -412,10 +377,10 @@ roc_curve_degs_plot = roc_curve_auc_df_DEGs %>%
 
 roc_curve_degs_plot
 
-roc_curve_degs_plot %>%
-  ggsave(filename = here("Figures", paste0(filename, "_performance_roc_DEGs_OnlyImmune.png")),
-         width = 8,
-         height = 6)
+# roc_curve_degs_plot %>%
+#   ggsave(filename = here("Figures", paste0(filename, "_performance_roc_DEGs_OnlyImmune.png")),
+#          width = 8,
+#          height = 6)
 ```
 
 
@@ -483,33 +448,24 @@ roc_auc_heatmap = roc_auc_df %>%
     fill = "ROC-AUC",
     title = "All genes"
   ) +
-    theme(axis.text.x = element_text(angle = 0,  hjust = 0.5, vjust = 1, size = 8),
-          axis.text.y = element_text(size = 8, hjust = 1),
-          axis.title.x = element_text(size = 8),
-          axis.title.y = element_text(size = 8),
-          strip.text = element_text(size = 8, margin = margin(1, 0, 1, 0)),
-          strip.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5, size = 8),
-          strip.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5, size = 8),
-          panel.spacing = unit(1, "lines"),
-          plot.margin = margin(0, 0.5, 0, 0, unit = "cm"),
-          legend.position = "top",
-          legend.direction = "horizontal",
-          legend.margin=margin(0,0,0,0),
-          legend.box.margin=margin(0,0,-10,0),
-          legend.text = element_text(size = 8, hjust = 0),
-          legend.title = element_text(size = 8),
-          ggh4x.facet.nestline = element_line(colour = "black", linetype = 1, size = 0.5)
-    ) 
-
+  theme(legend.position = "top",
+          panel.spacing.y = unit(0, "lines"), 
+          panel.spacing.x = unit(1, "lines"), 
+          plot.margin = margin(0, 0.3, 0, 0, unit = "cm"),
+          ) 
+#Display
 roc_auc_heatmap
-  
 
-roc_auc_heatmap %>%
-  ggsave(filename = here("Figures", paste0(filename, "_performance_roc_auc_heatmap_All_OnlyImmune.png")),
-         width = 8,
-         height = 3)
+
+# roc_auc_heatmap %>%
+#   ggsave(filename = here("Figures", paste0(filename, "_performance_roc_auc_heatmap_All_OnlyImmune.png")),
+#          width = 8,
+#          height = 3)
 ```
+
+
 #### DEGs: Heatmap
+
 ```{r fig.height=3, fig.width=8}
 #### DEGs: Heatmap
 roc_auc_DEGs_heatmap = roc_auc_df_DEGs %>% 
@@ -571,198 +527,22 @@ roc_auc_DEGs_heatmap = roc_auc_df_DEGs %>%
     y = "Model",
     fill = "ROC-AUC",
   ) +
-    theme(axis.text.x = element_text(angle = 0,  hjust = 0.5, vjust = 1, size = 8),
-          axis.text.y = element_text(size = 8, hjust = 1),
-          axis.title.x = element_text(size = 8),
-          axis.title.y = element_text(size = 8),
-          strip.text = element_text(size = 8, margin = margin(1, 0, 1, 0)),
-          strip.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5, size = 8),
-          strip.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5, size = 8),
-          panel.spacing = unit(1, "lines"),
-          plot.margin = margin(0, 0.5, 0, 0, unit = "cm"),
-          legend.position = "top",
-          legend.direction = "horizontal",
-          legend.margin=margin(0,0,0,0),
-          legend.box.margin=margin(0,0,-10,0),
-          legend.text = element_text(size = 8, hjust = 0),
-          legend.title = element_text(size = 8),
-          ggh4x.facet.nestline = element_line(colour = "black", linetype = 1, size = 0.5)
-    ) 
+  theme(legend.position = "top",
+          panel.spacing.y = unit(0, "lines"), 
+          panel.spacing.x = unit(1, "lines"), 
+          plot.margin = margin(0, 0.3, 0, 0, unit = "cm"),
+          ) 
 
 roc_auc_DEGs_heatmap
   
 #Save
-roc_auc_DEGs_heatmap %>%
-  ggsave(filename = here("Figures", paste0(filename, "_performance_roc_auc_heatmap_DEGs_OnlyImmune.png")),
-         width = 8,
-         height = 3)
+# roc_auc_DEGs_heatmap %>%
+#   ggsave(filename = here("Figures", paste0(filename, "_performance_roc_auc_heatmap_DEGs_OnlyImmune.png")),
+#          width = 8,
+#          height = 3)
 ```
 
 
-#### All Genes: Lineplots
-
-```{r fig.height=12, fig.width=3}
-# 
-# auc_lineplot = auc_lineplot_df %>% 
-#   ggplot() +
-#    aes(x = timepoint_comparison,
-#       y = auc,
-#       fill = model,
-#       color = model,
-#       group = model) + 
-#   
-#   facet_nested_wrap(~treatment+pathogen+comparison,
-#                     scales = "free",
-#                     ncol = 2,
-#                     strip = strip_nested(size = "variable")
-#                     ) +
-#   
-#   geom_line(width = 1,
-#             aes(linetype = model)) +
-#   
-#   geom_point(size = 2,
-#              pch = 21,
-#              color = "black",
-#              stroke = 0.5) + 
-#   geom_text_repel(aes(label = n_genes), size = 2) +
-#   # Add a reference line for random prediction (AUC = 0.5)
-#   geom_hline(yintercept = 0.5, linetype = "dashed", color = "black", linewidth = 0.2) +
-#   # geom_text_repel(aes(label = auc), 
-#   #                 size = 2.5, 
-#   #                 # direction = "y", 
-#   #                 segment.alpha = 1) +
-# 
-#   scale_x_discrete(expand = c(0.05, 0.05)) +
-#   # scale_y_continuous(expand = c(0.01, 0.01)) +
-#   theme_vaxgo() +
-#   scale_linetype_manual(values = c(
-#     "Mouse" = 1,
-#     "Immune" = 1,
-#     "Human" = 1,
-#     "Permutation" = 2
-#     )) +
-#   scale_fill_manual(values = colors$organism) +
-#   scale_color_manual(values = colors$organism) +
-#   labs(
-#     x = "Time",
-#     y = "AUC",
-#     fill = "Model",
-#     shape = "Model",
-#   ) +
-#     theme(axis.text.x = element_text(angle = 0,  hjust = 0.5, vjust = 1, size = 8),
-#           axis.text.y = element_text(size = 8, hjust = 1),
-#           axis.title.x = element_text(size = 8),
-#           axis.title.y = element_text(size = 8),
-#           strip.text = element_text(size = 8, margin = margin(1, 0, 1, 0)),
-#           strip.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5, size = 8),
-#           strip.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5, size = 8),
-#           panel.spacing = unit(0, "lines"),
-#           plot.margin = margin(0, 0.5, 0, 0, unit = "cm"),
-#           legend.position = "top",
-#           legend.direction = "horizontal",
-#           legend.margin=margin(0,0,0,0),
-#           legend.box.margin=margin(0,0,-10,0),
-#           legend.text = element_text(size = 8, hjust = 0),
-#           legend.title = element_text(size = 8),
-#           ggh4x.facet.nestline = element_line(colour = "black", linetype = 1, size = 0.5)
-#     ) +
-#   guides(color = "none",
-#          shape = "none",
-#          linetype = "none",
-#          # fill = guide_legend(nrow = 2, by.row = T)
-#          )
-# 
-# auc_lineplot
-# auc_lineplot %>%
-#   ggsave(filename = here("Figures", paste0(filename, "_performance_roc_auc_lineplot_All_OnlyImmune.png"),
-#          width = 3,
-#          height = 12)
-
-```
-
-
-
-
-
-#### DEGs: Lineplots
-```{r fig.height=12, fig.width=3}
-# 
-# auc_DEGs_lineplot = auc_lineplot_df_DEGs %>% 
-#   ggplot() +
-#    aes(x = timepoint_comparison,
-#       y = auc,
-#       fill = model,
-#       color = model,
-#       group = model) + 
-#   
-#   facet_nested_wrap(~treatment+pathogen+comparison,
-#                     scales = "free",
-#                     ncol = 2,
-#                     strip = strip_nested(size = "variable")
-#                     ) +
-#   
-#   geom_line(width = 1,
-#             aes(linetype = model)) +
-#   
-#   geom_point(size = 2,
-#              pch = 21,
-#              color = "black",
-#              stroke = 0.5) + 
-#   geom_text_repel(aes(label = n_genes), size = 2) +
-#   # Add a reference line for random prediction (AUC = 0.5)
-#   geom_hline(yintercept = 0.5, linetype = "dashed", color = "black", linewidth = 0.2) +
-#   # geom_text_repel(aes(label = auc), 
-#   #                 size = 2.5, 
-#   #                 # direction = "y", 
-#   #                 segment.alpha = 1) +
-# 
-#   scale_x_discrete(expand = c(0.05, 0.05)) +
-#   # scale_y_continuous(expand = c(0.01, 0.01)) +
-#   theme_vaxgo() +
-#   scale_linetype_manual(values = c(
-#     "Mouse" = 1,
-#     "Immune" = 1,
-#     "Human" = 1,
-#     "Permutation" = 2
-#     )) +
-#   scale_fill_manual(values = colors$organism) +
-#   scale_color_manual(values = colors$organism) +
-#   labs(
-#     x = "Time",
-#     y = "AUC",
-#     fill = "Model",
-#     shape = "Model",
-#   ) +
-#     theme(axis.text.x = element_text(angle = 0,  hjust = 0.5, vjust = 1, size = 8),
-#           axis.text.y = element_text(size = 8, hjust = 1),
-#           axis.title.x = element_text(size = 8),
-#           axis.title.y = element_text(size = 8),
-#           strip.text = element_text(size = 8, margin = margin(1, 0, 1, 0)),
-#           strip.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5, size = 8),
-#           strip.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5, size = 8),
-#           panel.spacing = unit(0, "lines"),
-#           plot.margin = margin(0, 0.5, 0, 0, unit = "cm"),
-#           legend.position = "top",
-#           legend.direction = "horizontal",
-#           legend.margin=margin(0,0,0,0),
-#           legend.box.margin=margin(0,0,-10,0),
-#           legend.text = element_text(size = 8, hjust = 0),
-#           legend.title = element_text(size = 8),
-#           ggh4x.facet.nestline = element_line(colour = "black", linetype = 1, size = 0.5)
-#     ) +
-#   guides(color = "none",
-#          shape = "none",
-#          linetype = "none",
-#          fill = guide_legend(nrow = 2, by.row = T))
-# 
-# auc_DEGs_lineplot
-# 
-# auc_DEGs_lineplot %>%
-#   ggsave(filename = here("Figures", paste0(filename, "_performance_roc_auc_lineplot_DEGs_OnlyImmune.png"),
-#          width = 3,
-#          height = 12)
-
-```
 
 
 
@@ -848,24 +628,10 @@ pr_curve_plot = pr_curve_auc_df %>%
   guides(fill = guide_legend(override.aes = list(size = 4)),
          color = guide_legend(override.aes = list(linewidth = 4, shape = 1))
          ) +
-  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 10),
-          axis.title.x = element_text(size = 10),
-          axis.text.y = element_text(size = 10),
-          axis.title.y = element_text(size = 10),
-          strip.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5),
-          strip.text.x = element_text(angle = 0, hjust = 0., vjust = 0.5, size = 10),
-          legend.position = "top",
-          legend.direction = "horizontal", 
-          legend.text = element_text(size = 10, hjust = 0),
-          legend.title = element_text(size = 10),
-          legend.spacing.x = unit(0, 'cm'),
-          legend.spacing.y = unit(0, 'cm'),
-          ggh4x.facet.nestline = element_line(colour = "black", linetype = 1),
-          legend.box.spacing = unit(0, "cm"),
+  theme(legend.position = "top",
           panel.spacing.y = unit(0, "lines"), 
           panel.spacing.x = unit(1, "lines"), 
           plot.margin = margin(0, 0.3, 0, 0, unit = "cm"),
-          
           ) +
   scale_x_continuous(n.breaks = 3) +
   scale_y_continuous(n.break = 3) +
@@ -874,11 +640,13 @@ pr_curve_plot = pr_curve_auc_df %>%
          fill = "none",
          color = guide_legend(override.aes = list(linewidth = 3)))
 
+#Print
 pr_curve_plot
-pr_curve_plot %>%
-  ggsave(filename = here("Figures", paste0(filename, "_performance_pr_All_OnlyImmune.png")),
-         width = 8,
-         height = 6)
+
+# pr_curve_plot %>%
+#   ggsave(filename = here("Figures", paste0(filename, "_performance_pr_All_OnlyImmune.png")),
+#          width = 8,
+#          height = 6)
 ```
 
 
@@ -954,24 +722,10 @@ pr_curve_DEGs_plot = pr_curve_auc_df_DEGs %>%
   guides(fill = guide_legend(override.aes = list(size = 4)),
          color = guide_legend(override.aes = list(linewidth = 4, shape = 1))
          ) +
-  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 10),
-          axis.title.x = element_text(size = 10),
-          axis.text.y = element_text(size = 10),
-          axis.title.y = element_text(size = 10),
-          strip.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5),
-          strip.text.x = element_text(angle = 0, hjust = 0., vjust = 0.5, size = 10),
-          legend.position = "top",
-          legend.direction = "horizontal", 
-          legend.text = element_text(size = 10, hjust = 0),
-          legend.title = element_text(size = 10),
-          legend.spacing.x = unit(0, 'cm'),
-          legend.spacing.y = unit(0, 'cm'),
-          ggh4x.facet.nestline = element_line(colour = "black", linetype = 1),
-          legend.box.spacing = unit(0, "cm"),
+  theme(legend.position = "top",
           panel.spacing.y = unit(0, "lines"), 
           panel.spacing.x = unit(1, "lines"), 
           plot.margin = margin(0, 0.3, 0, 0, unit = "cm"),
-          
           ) +
   scale_x_continuous(n.breaks = 3) +
   scale_y_continuous(n.break = 3) +
@@ -980,12 +734,14 @@ pr_curve_DEGs_plot = pr_curve_auc_df_DEGs %>%
          fill = "none",
          color = guide_legend(override.aes = list(linewidth = 3)))
 
+#Print
 pr_curve_DEGs_plot
 
-pr_curve_DEGs_plot %>%
-  ggsave(filename = here("Figures", paste0(filename, "_performance_pr_DEGS_OnlyImmune.png")),
-         width = 8,
-         height = 6)
+#Save
+# pr_curve_DEGs_plot %>%
+#   ggsave(filename = here("Figures", paste0(filename, "_performance_pr_DEGS_OnlyImmune.png")),
+#          width = 8,
+#          height = 6)
 ```
 
 
@@ -1056,33 +812,22 @@ pr_auc_heatmap = pr_auc_df %>%
     title = "All genes",
     fill = "PR-AUC",
   ) +
-    theme(axis.text.x = element_text(angle = 0,  hjust = 0.5, vjust = 1, size = 8),
-          axis.text.y = element_text(size = 8, hjust = 1),
-          axis.title.x = element_text(size = 8),
-          axis.title.y = element_text(size = 8),
-          strip.text = element_text(size = 8, margin = margin(1, 0, 1, 0)),
-          strip.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5, size = 8),
-          strip.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5, size = 8),
-          panel.spacing = unit(1, "lines"),
-          plot.margin = margin(0, 0.5, 0, 0, unit = "cm"),
-          legend.position = "top",
-          legend.direction = "horizontal",
-          legend.margin=margin(0,0,0,0),
-          legend.box.margin=margin(0,0,-10,0),
-          legend.text = element_text(size = 8, hjust = 0),
-          legend.title = element_text(size = 8),
-          ggh4x.facet.nestline = element_line(colour = "black", linetype = 1, size = 0.5)
-    ) 
+theme(legend.position = "top",
+          panel.spacing.y = unit(0, "lines"), 
+          panel.spacing.x = unit(1, "lines"), 
+          plot.margin = margin(0, 0.3, 0, 0, unit = "cm")
+          ) 
 
+#Print
 pr_auc_heatmap
   
-#Save
-pr_auc_heatmap %>%
-  ggsave(filename = here("Figures", 
-                         paste0(filename, 
-                               "_performance_pr_auc_heatmap_All_OnlyImmune.png")),
-         width = 8,
-         height = 3)
+# #Save
+# pr_auc_heatmap %>%
+#   ggsave(filename = here("Figures", 
+#                          paste0(filename, 
+#                                "_performance_pr_auc_heatmap_All_OnlyImmune.png")),
+#          width = 8,
+#          height = 3)
 
 ```
 
@@ -1151,203 +896,24 @@ pr_auc_DEGs_heatmap = pr_auc_DEGs_df %>%
     title = "DEGs",
     fill = "PR-AUC",
   ) +
-    theme(axis.text.x = element_text(angle = 0,  hjust = 0.5, vjust = 1, size = 8),
-          axis.text.y = element_text(size = 8, hjust = 1),
-          axis.title.x = element_text(size = 8),
-          axis.title.y = element_text(size = 8),
-          strip.text = element_text(size = 8, margin = margin(1, 0, 1, 0)),
-          strip.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5, size = 8),
-          strip.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5, size = 8),
-          panel.spacing = unit(1, "lines"),
+       theme(
           plot.margin = margin(0, 0.5, 0, 0, unit = "cm"),
           legend.position = "top",
           legend.direction = "horizontal",
-          legend.margin=margin(0,0,0,0),
-          legend.box.margin=margin(0,0,-10,0),
-          legend.text = element_text(size = 8, hjust = 0),
-          legend.title = element_text(size = 8),
           ggh4x.facet.nestline = element_line(colour = "black", linetype = 1, size = 0.5)
     ) 
 
+#Print
 pr_auc_DEGs_heatmap
   
 #Save
-pr_auc_DEGs_heatmap %>%
-  ggsave(filename = here("Figures", 
-                         paste0(filename, "_performance_pr_auc_heatmap_DEGs_OnlyImmune.png")),
-         width = 8,
-         height = 3)
+# pr_auc_DEGs_heatmap %>%
+#   ggsave(filename = here("Figures", 
+#                          paste0(filename, "_performance_pr_auc_heatmap_DEGs_OnlyImmune.png")),
+#          width = 8,
+#          height = 3)
 
 ```
-
-####All genes: Lineplots
-PR-AUC as lineplots
-```{r fig.height=12, fig.width=3}
-# pr_auc_lineplot = pr_auc_df %>% 
-#   ggplot() +
-#    aes(x = timepoint_comparison,
-#       y = pr_auc,
-#       fill = model,
-#       color = model,
-#       group = model) + 
-#   
-#   facet_nested_wrap(~treatment+pathogen+comparison,
-#                     scales = "free",
-#                     ncol = 2,
-#                     strip = strip_nested(size = "variable")
-#                     ) +
-#   
-#   geom_line(width = 1,
-#             aes(linetype = model)) +
-#   
-#   geom_point(size = 2,
-#              pch = 21,
-#              color = "black",
-#              stroke = 0.5) + 
-#   geom_text_repel(aes(label = n_genes), size = 2) +
-#   # Add a reference line for random prediction (AUC = 0.5)
-#     # geom_text_repel(aes(label = auc), 
-#   #                 size = 2.5, 
-#   #                 # direction = "y", 
-#   #                 segment.alpha = 1) +
-# 
-#   scale_x_discrete(expand = c(0.05, 0.05)) +
-#   # scale_y_continuous(expand = c(0.01, 0.01)) +
-#   theme_vaxgo() +
-#   scale_linetype_manual(values = c(
-#     "Mouse" = 1,
-#     "Immune" = 1,
-#     "Human" = 1,
-#     "Permutation" = 2
-#     )) +
-#   scale_fill_manual(values = colors$organism) +
-#   scale_color_manual(values = colors$organism) +
-#   labs(
-#     x = "Time",
-#     y = "PR-AUC",
-#     fill = "Model",
-#     shape = "Model",
-#   ) +
-#     theme(axis.text.x = element_text(angle = 0,  hjust = 0.5, vjust = 1, size = 8),
-#           axis.text.y = element_text(size = 8, hjust = 1),
-#           axis.title.x = element_text(size = 8),
-#           axis.title.y = element_text(size = 8),
-#           strip.text = element_text(size = 8, margin = margin(1, 0, 1, 0)),
-#           strip.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5, size = 8),
-#           strip.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5, size = 8),
-#           panel.spacing = unit(0, "lines"),
-#           plot.margin = margin(0, 0.5, 0, 0, unit = "cm"),
-#           legend.position = "top",
-#           legend.direction = "horizontal",
-#           legend.margin=margin(0,0,0,0),
-#           legend.box.margin=margin(0,0,-10,0),
-#           legend.text = element_text(size = 8, hjust = 0),
-#           legend.title = element_text(size = 8),
-#           ggh4x.facet.nestline = element_line(colour = "black", linetype = 1, size = 0.5)
-#     ) +
-#   guides(color = "none",
-#          shape = "none",
-#          linetype = "none",
-#          fill = guide_legend(nrow = 2, by.row = T))
-# 
-# pr_auc_lineplot
-# 
-# pr_auc_lineplot %>%
-#   ggsave(filename = here("Figures",
-#                          paste0(filename, "_performance_pr_auc_lineplot_All_OnlyImmune.png")),
-#          width = 3,
-#          height = 12)
-
-```
-
-
-
-
-
-#### DEGs: Lineplots
-PR-AUC as lineplots
-```{r fig.height=12, fig.width=3}
-
-
-# pr_auc_lineplot = pr_auc_df %>% 
-#   ggplot() +
-#    aes(x = timepoint_comparison,
-#       y = pr_auc,
-#       fill = model,
-#       color = model,
-#       group = model) + 
-#   
-#   facet_nested_wrap(~treatment+pathogen+comparison,
-#                     scales = "free",
-#                     ncol = 2,
-#                     strip = strip_nested(size = "variable")
-#                     ) +
-#   
-#   geom_line(width = 1,
-#             aes(linetype = model)) +
-#   
-#   geom_point(size = 2,
-#              pch = 21,
-#              color = "black",
-#              stroke = 0.5) + 
-#   geom_text_repel(aes(label = n_genes), size = 2) +
-#   # Add a reference line for random prediction (AUC = 0.5)
-#     # geom_text_repel(aes(label = auc), 
-#   #                 size = 2.5, 
-#   #                 # direction = "y", 
-#   #                 segment.alpha = 1) +
-# 
-#   scale_x_discrete(expand = c(0.05, 0.05)) +
-#   # scale_y_continuous(expand = c(0.01, 0.01)) +
-#   theme_vaxgo() +
-#   scale_linetype_manual(values = c(
-#     "Mouse" = 1,
-#     "Immune" = 1,
-#     "Human" = 1,
-#     "Permutation" = 2
-#     )) +
-#   scale_fill_manual(values = colors$organism) +
-#   scale_color_manual(values = colors$organism) +
-#   labs(
-#     x = "Time",
-#     y = "PR-AUC",
-#     fill = "Model",
-#     shape = "Model",
-#   ) +
-#     theme(axis.text.x = element_text(angle = 0,  hjust = 0.5, vjust = 1, size = 8),
-#           axis.text.y = element_text(size = 8, hjust = 1),
-#           axis.title.x = element_text(size = 8),
-#           axis.title.y = element_text(size = 8),
-#           strip.text = element_text(size = 8, margin = margin(1, 0, 1, 0)),
-#           strip.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5, size = 8),
-#           strip.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5, size = 8),
-#           panel.spacing = unit(0, "lines"),
-#           plot.margin = margin(0, 0.5, 0, 0, unit = "cm"),
-#           legend.position = "top",
-#           legend.direction = "horizontal",
-#           legend.margin=margin(0,0,0,0),
-#           legend.box.margin=margin(0,0,-10,0),
-#           legend.text = element_text(size = 8, hjust = 0),
-#           legend.title = element_text(size = 8),
-#           ggh4x.facet.nestline = element_line(colour = "black", linetype = 1, size = 0.5)
-#     ) +
-#   guides(color = "none",
-#          shape = "none",
-#          linetype = "none",
-#          fill = guide_legend(nrow = 2, by.row = T))
-# 
-# pr_auc_lineplot
-# 
-# pr_auc_lineplot %>%
-#   ggsave(filename = here("Figures",
-#                          paste0(filename, "_performance_pr_auc_lineplot_DEGs_OnlyImmune.png")),
-#          width = 3,
-#          height = 12)
-
-```
-
-
-
 
 
 
@@ -1362,14 +928,14 @@ PR-AUC as lineplots
 
 ```{r}
 #Import ========================
-gsea_btm_results_all_matched = readRDS(here("tables", "all_human_mouse_gsea_btm_results_matched.rds"))
+gsea_btm_results_all_matched = readRDS(here("tables", "Functional analysis", "all_human_mouse_gsea_btm_results_matched.rds"))
 
 
 # ==============================================================================
 # FILTER COMPARISONS BY CORRELATION
 # ==============================================================================
 
-conditions_filtered <- readRDS(file = here("tables", "all_human_mouse_correlation_filtered_inter_weighted_filtered.rds")) %>% 
+conditions_filtered <- readRDS(file = here("tables", "Differential gene expression", "all_human_mouse_correlation_filtered_inter_weighted_filtered.rds")) %>% 
   mutate(pathogen_human = case_when(pathogen_human == "Hepatitis B" ~ "HepB",
                               pathogen_human == "Staphylococcus aureus" ~ "S. aureus",
                               pathogen_human == "Escherichia coli" ~ "E. coli",
@@ -1514,24 +1080,10 @@ roc_curve_plot = roc_curve_auc_df %>%
   guides(fill = guide_legend(override.aes = list(size = 4)),
          color = guide_legend(override.aes = list(linewidth = 4, shape = 1))
          ) +
-  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 10),
-          axis.title.x = element_text(size = 10),
-          axis.text.y = element_text(size = 10),
-          axis.title.y = element_text(size = 10),
-          strip.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5),
-          strip.text.x = element_text(angle = 0, hjust = 0., vjust = 0.5, size = 10),
-          legend.position = "top",
-          legend.direction = "horizontal", 
-          legend.text = element_text(size = 10, hjust = 0),
-          legend.title = element_text(size = 10),
-          legend.spacing.x = unit(0, 'cm'),
-          legend.spacing.y = unit(0, 'cm'),
-          ggh4x.facet.nestline = element_line(colour = "black", linetype = 1),
-          legend.box.spacing = unit(0, "cm"),
+theme(legend.position = "top",
           panel.spacing.y = unit(0, "lines"), 
           panel.spacing.x = unit(1, "lines"), 
           plot.margin = margin(0, 0.3, 0, 0, unit = "cm"),
-          
           ) +
   scale_x_continuous(n.breaks = 3) +
   scale_y_continuous(n.break = 3) +
@@ -1546,10 +1098,10 @@ roc_curve_plot = roc_curve_auc_df %>%
 roc_curve_plot
 
 #Save
-roc_curve_plot %>%
-  ggsave(filename = here("Figures", paste0(filename, "_performance_roc_BTMs.png")),
-         width = 8,
-         height = 6)
+# roc_curve_plot %>%
+#   ggsave(filename = here("Figures", paste0(filename, "_performance_roc_BTMs.png")),
+#          width = 8,
+#          height = 6)
 ```
 
 #### ROC AUC Heatmap
@@ -1637,131 +1189,14 @@ roc_auc_heatmap = roc_auc_df %>%
 #Print
 roc_auc_heatmap
   
-# Save
-roc_auc_heatmap %>%
-  ggsave(filename = here("Figures", paste0(filename, "_performance_roc_auc_heatmap_BTMs.png")),
-         width = 8,
-         height = 3)
+# # Save
+# roc_auc_heatmap %>%
+#   ggsave(filename = here("Figures", paste0(filename, "_performance_roc_auc_heatmap_BTMs.png")),
+#          width = 8,
+#          height = 3)
 ```
 
 
-AUC as lineplots
-```{r fig.height=4, fig.width=12}
-# 
-# #Get n genes
-# ngenes = bind_rows(
-#   classified_df_probs_up %>%
-#     filter(pred == "up") %>% 
-#   group_by(pathogen, timepoint, model) %>% 
-#   summarise(n_genes = n(),
-#             comparison = "Up") %>% 
-#     ungroup(),
-#   classified_df_probs_down %>%
-#     filter(pred == "down") %>% 
-#   group_by(pathogen, timepoint, model) %>% 
-#   summarise(n_genes = n(),
-#             comparison = "Down") %>% 
-#     ungroup(),
-# )
-# 
-# 
-# # Visualize AUC
-# auc_lineplot_df <- bind_rows(auc_results_up,
-#                       auc_results_down) %>%
-#   inner_join(ngenes, by = join_by(comparison, pathogen, timepoint, model)) %>% 
-#   mutate(model = factor(model, levels = c("Human", "Mouse", "Immune", "Permutation")),
-#          comparison = factor(comparison, levels = c("Up", "Down")),
-#          timepoint = str_replace(timepoint, "Early hours", "Early\nhours"),
-#          timepoint = fct_relevel(timepoint, c("Early\nhours", "2h", "4h", "6h", "12h", "24h", "Day 1", "Day 3", "Day 7")),
-#          pathogen = case_when(pathogen == "Hepatitis B" ~ "HepB",
-#                               pathogen == "Staphylococcus aureus" ~ "S. aureus",
-#                               pathogen == "Escherichia coli" ~ "E. coli",
-#                               T ~ pathogen),
-#          pathogen = fct_relevel(pathogen, "Influenza", "HepB", "S. aureus", "E. coli", "Burn", "Trauma"),
-#          treatment = case_when(pathogen %in% c("HepB", "Influenza") ~ "Vaccination",
-#                                pathogen %in% c( "S. aureus", "E. coli") ~ "Infection",
-#                                pathogen %in% c( "Burn", "Trauma") ~ "Injury",
-#                                T ~ pathogen),
-#          treatment = fct_relevel(treatment, "Vaccination", "Infection", "Injury")
-#          ) 
-# 
-# auc_lineplot = auc_lineplot_df %>% 
-#   ggplot() +
-#    aes(x = timepoint,
-#       y = auc,
-#       fill = model,
-#       color = model,
-#       group = model) + 
-#   
-#   facet_nested_wrap(~treatment+pathogen+comparison,
-#                     scales = "free",
-#                     nrow = 2,
-#                     strip = strip_nested(size = "variable")
-#                     ) +
-#   
-#   geom_line(width = 1,
-#             aes(linetype = model)) +
-#   
-#   geom_point(size = 2,
-#              pch = 21,
-#              color = "black",
-#              stroke = 0.5) + 
-#   geom_text_repel(aes(label = n_genes), 
-#                   color = "black",
-#                   size = 3) +
-#   # Add a reference line for random prediction (AUC = 0.5)
-#   geom_hline(yintercept = 0.5, linetype = "dashed", color = "black", linewidth = 0.2) +
-#   # geom_text_repel(aes(label = auc), 
-#   #                 size = 2.5, 
-#   #                 # direction = "y", 
-#   #                 segment.alpha = 1) +
-# 
-#   scale_x_discrete(expand = c(0.05, 0.05)) +
-#   # scale_y_continuous(expand = c(0.01, 0.01)) +
-#   theme_vaxgo() +
-#   scale_linetype_manual(values = c(
-#     "Mouse" = 1,
-#     "Immune" = 1,
-#     "Human" = 1,
-#     "Permutation" = 2
-#     )) +
-#   scale_fill_manual(values = colors$organism) +
-#   scale_color_manual(values = colors$organism) +
-#   labs(
-#     x = "Time",
-#     y = "AUC",
-#     fill = "Model",
-#     shape = "Model",
-#   ) +
-#     theme(axis.text.x = element_text(angle = 0,  hjust = 0.5, vjust = 1, size = 8),
-#           axis.text.y = element_text(size = 8, hjust = 1),
-#           axis.title.x = element_text(size = 8),
-#           axis.title.y = element_text(size = 8),
-#           strip.text = element_text(size = 8, margin = margin(1, 0, 1, 0)),
-#           strip.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5, size = 8),
-#           strip.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5, size = 8),
-#           panel.spacing = unit(0, "lines"),
-#           plot.margin = margin(0, 0.5, 0, 0, unit = "cm"),
-#           legend.position = "top",
-#           legend.direction = "horizontal",
-#           legend.margin=margin(0,0,0,0),
-#           legend.box.margin=margin(0,0,-10,0),
-#           legend.text = element_text(size = 8, hjust = 0),
-#           legend.title = element_text(size = 8),
-#           ggh4x.facet.nestline = element_line(colour = "black", linetype = 1, size = 0.5)
-#     ) +
-#   guides(color = "none",
-#          shape = "none",
-#          linetype = "none",
-#          fill = guide_legend(nrow = 1, by.row = T))
-# 
-# auc_lineplot
-# auc_lineplot %>%
-#   ggsave(filename = here("Figures", paste0(filename, "_performance_roc_auc_lineplot_", gene_set_filename, ".png")),
-#          width = 12,
-#          height = 4)
-
-```
 
 
 #### PR curve
@@ -1793,24 +1228,10 @@ pr_curve_plot = pr_curve_auc_df %>%
   guides(fill = guide_legend(override.aes = list(size = 4)),
          color = guide_legend(override.aes = list(linewidth = 4, shape = 1))
          ) +
-  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 10),
-          axis.title.x = element_text(size = 10),
-          axis.text.y = element_text(size = 10),
-          axis.title.y = element_text(size = 10),
-          strip.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5),
-          strip.text.x = element_text(angle = 0, hjust = 0., vjust = 0.5, size = 10),
-          legend.position = "top",
-          legend.direction = "horizontal", 
-          legend.text = element_text(size = 10, hjust = 0),
-          legend.title = element_text(size = 10),
-          legend.spacing.x = unit(0, 'cm'),
-          legend.spacing.y = unit(0, 'cm'),
-          ggh4x.facet.nestline = element_line(colour = "black", linetype = 1),
-          legend.box.spacing = unit(0, "cm"),
+theme(legend.position = "top",
           panel.spacing.y = unit(0, "lines"), 
           panel.spacing.x = unit(1, "lines"), 
           plot.margin = margin(0, 0.3, 0, 0, unit = "cm"),
-          
           ) +
   scale_x_continuous(n.breaks = 3) +
   scale_y_continuous(n.break = 3) +
@@ -1909,15 +1330,16 @@ pr_auc_heatmap = pr_auc_df %>%
           ggh4x.facet.nestline = element_line(colour = "black", linetype = 1, size = 0.5)
     ) 
 
+#Print
 pr_auc_heatmap
   
-#Save
-pr_auc_heatmap %>%
-  ggsave(filename = here("Figures",
-                         paste0(filename,
-                               "_performance_pr_auc_heatmap_DEGs.png")),
-         width = 8,
-         height = 3)
+# #Save
+# pr_auc_heatmap %>%
+#   ggsave(filename = here("Figures",
+#                          paste0(filename,
+#                                "_performance_pr_auc_heatmap_DEGs.png")),
+#          width = 8,
+#          height = 3)
 
 ```
 
@@ -2037,24 +1459,10 @@ roc_curve_plot = roc_curve_auc_df %>%
   guides(fill = guide_legend(override.aes = list(size = 4)),
          color = guide_legend(override.aes = list(linewidth = 4, shape = 1))
          ) +
-  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 10),
-          axis.title.x = element_text(size = 10),
-          axis.text.y = element_text(size = 10),
-          axis.title.y = element_text(size = 10),
-          strip.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5),
-          strip.text.x = element_text(angle = 0, hjust = 0., vjust = 0.5, size = 10),
-          legend.position = "top",
-          legend.direction = "horizontal", 
-          legend.text = element_text(size = 10, hjust = 0),
-          legend.title = element_text(size = 10),
-          legend.spacing.x = unit(0, 'cm'),
-          legend.spacing.y = unit(0, 'cm'),
-          ggh4x.facet.nestline = element_line(colour = "black", linetype = 1),
-          legend.box.spacing = unit(0, "cm"),
+theme(legend.position = "top",
           panel.spacing.y = unit(0, "lines"), 
           panel.spacing.x = unit(1, "lines"), 
           plot.margin = margin(0, 0.3, 0, 0, unit = "cm"),
-          
           ) +
   scale_x_continuous(n.breaks = 3) +
   scale_y_continuous(n.break = 3) +
@@ -2068,11 +1476,11 @@ roc_curve_plot = roc_curve_auc_df %>%
 #Print
 roc_curve_plot
 
-#Save
-roc_curve_plot %>%
-  ggsave(filename = here("Figures", paste0(filename, "_performance_roc_BTMs_NES.png")),
-         width = 8,
-         height = 6)
+# #Save
+# roc_curve_plot %>%
+#   ggsave(filename = here("Figures", paste0(filename, "_performance_roc_BTMs_NES.png")),
+#          width = 8,
+#          height = 6)
 ```
 
 #### ROC AUC Heatmap
@@ -2149,11 +1557,11 @@ roc_auc_heatmap = roc_auc_df %>%
 #Print
 roc_auc_heatmap
   
-# Save
-roc_auc_heatmap %>%
-  ggsave(filename = here("Figures", paste0(filename, "_performance_roc_auc_heatmap_BTMs_NES.png")),
-         width = 10,
-         height = 3)
+# # Save
+# roc_auc_heatmap %>%
+#   ggsave(filename = here("Figures", paste0(filename, "_performance_roc_auc_heatmap_BTMs_NES.png")),
+#          width = 10,
+#          height = 3)
 ```
 
 
@@ -2186,24 +1594,10 @@ pr_curve_plot = pr_curve_auc_df %>%
   guides(fill = guide_legend(override.aes = list(size = 4)),
          color = guide_legend(override.aes = list(linewidth = 4, shape = 1))
          ) +
-  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 10),
-          axis.title.x = element_text(size = 10),
-          axis.text.y = element_text(size = 10),
-          axis.title.y = element_text(size = 10),
-          strip.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5),
-          strip.text.x = element_text(angle = 0, hjust = 0., vjust = 0.5, size = 10),
-          legend.position = "top",
-          legend.direction = "horizontal", 
-          legend.text = element_text(size = 10, hjust = 0),
-          legend.title = element_text(size = 10),
-          legend.spacing.x = unit(0, 'cm'),
-          legend.spacing.y = unit(0, 'cm'),
-          ggh4x.facet.nestline = element_line(colour = "black", linetype = 1),
-          legend.box.spacing = unit(0, "cm"),
+theme(legend.position = "top",
           panel.spacing.y = unit(0, "lines"), 
           panel.spacing.x = unit(1, "lines"), 
           plot.margin = margin(0, 0.3, 0, 0, unit = "cm"),
-          
           ) +
   scale_x_continuous(n.breaks = 3) +
   scale_y_continuous(n.break = 3) +
@@ -2214,10 +1608,10 @@ pr_curve_plot = pr_curve_auc_df %>%
 
 pr_curve_plot
 #Save
-pr_curve_plot %>%
-  ggsave(filename = here("Figures", paste0(filename, "_performance_pr_BTMs_NES.png")),
-         width = 8,
-         height = 6)
+# pr_curve_plot %>%
+#   ggsave(filename = here("Figures", paste0(filename, "_performance_pr_BTMs_NES.png")),
+#          width = 8,
+#          height = 6)
 ```
 
 #### PR AUC heatmap
@@ -2297,13 +1691,13 @@ pr_auc_heatmap = pr_auc_df %>%
 
 pr_auc_heatmap
   
-#Save
-pr_auc_heatmap %>%
-  ggsave(filename = here("Figures",
-                         paste0(filename,
-                               "_performance_pr_auc_heatmap_BTMs_NES.png")),
-         width = 10,
-         height = 3)
+# #Save
+# pr_auc_heatmap %>%
+#   ggsave(filename = here("Figures",
+#                          paste0(filename,
+#                                "_performance_pr_auc_heatmap_BTMs_NES.png")),
+#          width = 10,
+#          height = 3)
 
 ```
 

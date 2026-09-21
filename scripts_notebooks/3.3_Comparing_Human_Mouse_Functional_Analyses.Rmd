@@ -33,11 +33,11 @@ consistent column names and pathogen labels.
 
 ```{r}
 # Import annotation tables for BTMs and Hallmark gene sets
-btm_annotation_genes <- read_csv(here("tables", "btm_annotation_genes.csv"))
-msigdbr_grouped <- read_csv(here("tables", "msigdb_hallmarks_grouped_genes.csv"))
+btm_annotation_genes <- read_csv(here("tables", "Gene sets", "btm_annotation_genes.csv"))
+msigdbr_grouped <- read_csv(here("tables", "Gene sets", "msigdb_hallmarks_grouped_genes.csv"))
 
 #Load DGE results
-all_degs <- readRDS(here("tables", "all_human_mouse_dge_limma_degs.rds"))
+all_degs <- readRDS(here("tables", "Differential gene expression", "all_human_mouse_dge_limma_degs.rds"))
 
 # Extract unique condition labels 
 annotation_conditions <- all_degs %>%
@@ -45,7 +45,7 @@ annotation_conditions <- all_degs %>%
   distinct()
 
 #Filter timepoints combinations
-conditions_filtered <- readRDS(file = here("tables", "all_human_mouse_correlation_filtered_inter_weighted_filtered.rds")) %>% 
+conditions_filtered <- readRDS(file = here("tables", "Differential gene expression", "all_human_mouse_correlation_filtered_inter_weighted_filtered.rds")) %>% 
   mutate(pathogen_human = case_when(pathogen_human == "Hepatitis B" ~ "HepB",
                               pathogen_human == "Staphylococcus aureus" ~ "S. aureus",
                               pathogen_human == "Escherichia coli" ~ "E. coli",
@@ -61,25 +61,25 @@ conditions_filtered <- readRDS(file = here("tables", "all_human_mouse_correlatio
 
 # ── Load BTM (Blood Transcriptional Modules) results
 # Load mean log2FC per BTM process, collapsed across genes within each module
-dge_btm_mean_process <- readRDS(here("tables", "all_human_mouse_dge_btm_mean_process.rds")) 
+dge_btm_mean_process <- readRDS(here("tables", "Functional analysis", "all_human_mouse_dge_btm_mean_process.rds")) 
 
 # Load gene-level BTM membership
-dge_btm_process_genes <- readRDS(here("tables", "all_human_mouse_dge_btm_process_genes.rds"))
+dge_btm_process_genes <- readRDS(here("tables", "Functional analysis", "all_human_mouse_dge_btm_process_genes.rds"))
 
-dge_btm_process_genes_wide = readRDS(here("tables", "all_human_mouse_dge_btm_process_genes_wide.rds")) %>% 
+dge_btm_process_genes_wide = readRDS(here("tables", "Functional analysis", "all_human_mouse_dge_btm_process_genes_wide.rds")) %>% 
   inner_join(conditions_filtered,
              by = join_by(pathogen, timepoint_comparison))
 
 # Load pre-computed GSEA results
-gsea_results <- readRDS(here("tables", "all_human_mouse_gsea_btm_results.rds"))
+gsea_results <- readRDS(here("tables", "Functional analysis", "all_human_mouse_gsea_btm_results.rds"))
 
 # Load BTM GSEA + matched results
-dge_btm_gsea_mean_wide <- readRDS(here("tables", "all_human_mouse_dge_btm_gsea_mean_wide.rds")) %>% 
+dge_btm_gsea_mean_wide <- readRDS(here("tables", "Functional analysis", "all_human_mouse_dge_btm_gsea_mean_wide.rds")) %>% 
   inner_join(conditions_filtered,
              by = join_by(pathogen, timepoint_comparison))
 
 # Matched GSEA results where human and mouse timepoints have been aligned for direct comparison
-gsea_btm_results_all_matched <- readRDS(here("tables", "all_human_mouse_gsea_btm_results_matched.rds")) %>% 
+gsea_btm_results_all_matched <- readRDS(here("tables", "Functional analysis", "all_human_mouse_gsea_btm_results_matched.rds")) %>% 
   inner_join(conditions_filtered,
              by = join_by(pathogen, timepoint_comparison))
 
@@ -1275,7 +1275,7 @@ correlation_processes_bypathogen_time_df %>%
 
 #Save
 correlation_processes_bypathogen_time_df %>%
-  saveRDS(file = here("tables", "all_human_mouse_dge_btm_process_genes_correlation.rds"))
+  saveRDS(file = here("tables", "Functional analysis", "all_human_mouse_dge_btm_process_genes_correlation.rds"))
 
 # # Compute per-gene Spearman correlation across conditions
 # dge_btm_process_genes_correlation_bygene <- dge_btm_process_genes_wide %>%
@@ -1315,7 +1315,7 @@ correlation_processes_bypathogen_time_df %>%
 # dge_btm_process_genes_correlation_bygene
 # 
 # dge_btm_process_genes_correlation_bygene %>%
-#   saveRDS(file = here("tables", "all_human_mouse_dge_btm_process_genes_correlation_bygene.rds"))
+#   saveRDS(file = here("tables", "Functional analysis", "all_human_mouse_dge_btm_process_genes_correlation_bygene.rds"))
 ```
 
 ###### Violinplot: Distribution of Correlation values
@@ -1567,7 +1567,7 @@ gsea_btm_results_core_joined %>%
 
 #Save
 gsea_btm_results_core_joined %>%
-  saveRDS(file = here("tables", "all_human_mouse_gsea_btm_results_core_joined.rds"))
+  saveRDS(file = here("tables", "Functional analysis", "all_human_mouse_gsea_btm_results_core_joined.rds"))
 ```
 
 Compute the percentage of leading-edge genes shared between organisms,
@@ -1576,7 +1576,7 @@ stratified by status, process, pathogen, and timepoint.
 ```{r fig.height = 12, fig.width=4}
 #Import
 gsea_btm_results_core_joined =
-  readRDS(file = here("tables", "all_human_mouse_gsea_btm_results_core_joined.rds"))
+  readRDS(file = here("tables", "Functional analysis", "all_human_mouse_gsea_btm_results_core_joined.rds"))
 
 #Filter genes analysed in both species
 matching_genes = dge_btm_process_genes_wide %>%
@@ -1623,7 +1623,7 @@ legs_perc <- gsea_btm_results_core_joined %>%
 
 # # Save summary table
 legs_perc %>%
-  saveRDS(file = here("tables", "all_human_mouse_gsea_btm_results_core_summary.rds"))
+  saveRDS(file = here("tables", "Functional analysis", "all_human_mouse_gsea_btm_results_core_summary.rds"))
 
 # Report mean and median shared percentage per pathogen
 legs_perc %>%
@@ -1647,7 +1647,7 @@ annotating extreme processes.
 
 ```{r fig.height = 4, fig.width=10}
 #Import
-legs_perc = readRDS(file = here("tables", "all_human_mouse_gsea_btm_results_core_summary.rds"))
+legs_perc = readRDS(file = here("tables", "Functional analysis", "all_human_mouse_gsea_btm_results_core_summary.rds"))
 
 # Prepare plot data
 shared_perc_plot_df = legs_perc %>%
@@ -1848,7 +1848,7 @@ btm_correlation_shared_perc_plots
 # Compare log2FC and ranks of Leading Edge genes across species
 
 # 1. Define target process
-correlation_processes_bypathogen_time_df = readRDS(file = here("tables", "all_human_mouse_dge_btm_process_genes_correlation.rds"))
+correlation_processes_bypathogen_time_df = readRDS(file = here("tables", "Functional analysis", "all_human_mouse_dge_btm_process_genes_correlation.rds"))
 dge_btm_process_genes_correlation = correlation_processes_bypathogen_time_df
 
 # Unite all data sources into a master data frame by sequential joins
@@ -1923,7 +1923,7 @@ df_legs = df_legs %>%
 
 #Save
 df_legs %>% 
-  saveRDS(file = here("tables", "all_human_mouse_gsea_btm_legs.rds"))
+  saveRDS(file = here("tables", "Functional analysis", "all_human_mouse_gsea_btm_legs.rds"))
 
 # Check distinct pathogen-timepoint combinations
 dge_btm_gsea_mean_wide %>%
@@ -1971,8 +1971,8 @@ df_legs_ranked
 
 ```{r fig.height=2.5, fig.width=8}
 #Import
-df_legs = readRDS(file = here("tables", "all_human_mouse_gsea_btm_legs.rds"))
-legs_perc = readRDS(file = here("tables", "all_human_mouse_gsea_btm_results_core_summary.rds"))
+df_legs = readRDS(file = here("tables", "Functional analysis", "all_human_mouse_gsea_btm_legs.rds"))
+legs_perc = readRDS(file = here("tables", "Functional analysis", "all_human_mouse_gsea_btm_results_core_summary.rds"))
 
 #Define process
 process_selected <- "cell cycle and transcription"
@@ -2282,7 +2282,7 @@ leading_edges_plots_short %>%
 ##### Unite LEGs with DGE for future analyses
 ```{r}
 # Gene expression
-dge_btm_process_genes_diff_bygene = readRDS(here("tables", "human_mouse_log2fc_avg_wide_degs_all_immune_nonimmune.rds"))
+dge_btm_process_genes_diff_bygene = readRDS(here("tables", "Differential gene expression", "human_mouse_log2fc_avg_wide_degs_all_immune_nonimmune.rds"))
 
 dge_btm_process_genes_diff_bygene_clean = dge_btm_process_genes_diff_bygene %>% 
   filter(gene_set == "All genes", comparison == "Human vs. Mouse") %>% 
@@ -2300,7 +2300,7 @@ dge_btm_process_genes_diff_bygene_clean = dge_btm_process_genes_diff_bygene %>%
   
 
 #LEGs
-all_human_mouse_gsea_btm_results_core_joined = readRDS(file = here("tables", "all_human_mouse_gsea_btm_results_core_joined.rds"))
+all_human_mouse_gsea_btm_results_core_joined = readRDS(file = here("tables", "Functional analysis", "all_human_mouse_gsea_btm_results_core_joined.rds"))
 
 gsea_btm_legs_clean =
   all_human_mouse_gsea_btm_results_core_joined %>%
@@ -2347,7 +2347,7 @@ dge_btm_process_genes_diff_bygene_clean_filtered %>% dplyr::count(pathogen, time
 
 #Save
 dge_btm_process_genes_diff_bygene_clean_filtered %>% 
-  saveRDS(file = here("tables", "dge_btm_process_genes_diff_bygene_clean_filtered.rds"))
+  saveRDS(file = here("tables", "Functional analysis", "dge_btm_process_genes_diff_bygene_clean_filtered.rds"))
 
 
 dge_btm_process_genes_diff_bygene_clean_filtered
@@ -2364,7 +2364,7 @@ dge_btm_process_genes_diff_bygene_clean_filtered
 ```{r fig.height=2.5, fig.width=8}
 
 dge_btm_process_genes_diff_bygene_clean_filtered =
-  readRDS(file = here("tables", "dge_btm_process_genes_diff_bygene_clean_filtered.rds"))
+  readRDS(file = here("tables", "Functional analysis", "dge_btm_process_genes_diff_bygene_clean_filtered.rds"))
 
 # Gene expression
 legs_divergence_plot = dge_btm_process_genes_diff_bygene_clean_filtered %>% 

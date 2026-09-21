@@ -29,7 +29,7 @@ seed <- 123
 gene_annotated_layers <- readRDS(here("tables", "human_mouse_statsmodelling_gene_annotated_layers.rds")) %>%
   distinct(hgnc_symbol, .keep_all = TRUE)
 
-dge_btm_process_genes_diff_bygene_clean_filtered <- readRDS(here("tables", "dge_btm_process_genes_diff_bygene_clean_filtered.rds"))
+dge_btm_process_genes_diff_bygene_clean_filtered <- readRDS(here("tables", "Functional analysis", "dge_btm_process_genes_diff_bygene_clean_filtered.rds"))
 ```
 
 # Feature sets

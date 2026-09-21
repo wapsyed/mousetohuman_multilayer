@@ -34,12 +34,12 @@ consistent column names and pathogen labels.
 
 ```{r}
 #Import gene sets
-btm_annotation_genes <- read_csv(here("tables", "btm_annotation_genes.csv"))
-msigdbr_grouped <- read_csv(here("tables", "msigdb_hallmarks_grouped_genes.csv"))
+btm_annotation_genes <- read_csv(here("tables", "Gene sets", "btm_annotation_genes.csv"))
+msigdbr_grouped <- read_csv(here("tables", "Gene sets", "msigdb_hallmarks_grouped_genes.csv"))
 
 #Import DEGs table
 #Save
-all_human_mouse_dge_limma_degs_matched_control = readRDS(file = here("tables", "all_human_mouse_dge_limma_degs_matched_control.rds"))
+all_human_mouse_dge_limma_degs_matched_control = readRDS(file = here("tables", "Differential gene expression", "all_human_mouse_dge_limma_degs_matched_control.rds"))
 
 #Filter out matched Control (DMD) and add only one timepoint
 all_degs = all_human_mouse_dge_limma_degs_matched_control %>% 
@@ -133,7 +133,7 @@ dge_btm_process_genes_wide <- dge_btm_process_genes %>%
 dge_btm_process_genes_wide
 
 #Save
-saveRDS(dge_btm_process_genes_wide, here("tables", "all_human_mouse_dge_btm_process_genes_wide.rds"))
+saveRDS(dge_btm_process_genes_wide, here("tables", "Functional analysis", "all_human_mouse_dge_btm_process_genes_wide.rds"))
 
 # Collapse gene-level log2FC to module-level
 dge_btm_mean_process <- dge_btm_process_genes %>%
@@ -188,8 +188,8 @@ dge_btm_mean_process %>%
   arrange(pathogen, timepoint)
 
 #Save
-saveRDS(dge_btm_mean_process, here("tables", "all_human_mouse_dge_btm_mean_process.rds"))
-saveRDS(dge_btm_process_genes, here("tables", "all_human_mouse_dge_btm_process_genes.rds"))
+saveRDS(dge_btm_mean_process, here("tables", "Functional analysis", "all_human_mouse_dge_btm_mean_process.rds"))
+saveRDS(dge_btm_process_genes, here("tables", "Functional analysis", "all_human_mouse_dge_btm_process_genes.rds"))
 ```
 
 ### BTM GSEA
@@ -237,7 +237,7 @@ gsea_results %>% dplyr::count(pathogen, organism, timepoint)
 
 
 #Save
-saveRDS(gsea_results, here("tables", "all_human_mouse_gsea_btm_results.rds"))
+saveRDS(gsea_results, here("tables", "Functional analysis", "all_human_mouse_gsea_btm_results.rds"))
 ```
 
 
@@ -312,7 +312,7 @@ dge_btm_gsea_mean_wide = gsea_results_human %>%
   )
 
 #Save
-saveRDS(dge_btm_gsea_mean_wide, here("tables", "all_human_mouse_dge_btm_gsea_mean_wide.rds"))
+saveRDS(dge_btm_gsea_mean_wide, here("tables", "Functional analysis", "all_human_mouse_dge_btm_gsea_mean_wide.rds"))
 
 
 #Pivot longer
@@ -327,7 +327,7 @@ gsea_btm_results_all_matched = dge_btm_gsea_mean_wide %>%
   )
 
 #Save
-saveRDS(gsea_btm_results_all_matched, here("tables", "all_human_mouse_gsea_btm_results_matched.rds"))
+saveRDS(gsea_btm_results_all_matched, here("tables", "Functional analysis", "all_human_mouse_gsea_btm_results_matched.rds"))
 
 
 
@@ -551,8 +551,8 @@ dge_hallmarks_mean_process %>%
   arrange(pathogen, timepoint)
 
 #Save
-saveRDS(dge_hallmarks_mean_process, here("tables", "all_human_mouse_dge_hallmarks_mean_process.rds"))
-saveRDS(dge_hallmarks_process_genes, here("tables", "all_human_mouse_dge_hallmarks_process_genes.rds"))
+saveRDS(dge_hallmarks_mean_process, here("tables", "Functional analysis", "all_human_mouse_dge_hallmarks_mean_process.rds"))
+saveRDS(dge_hallmarks_process_genes, here("tables", "Functional analysis", "all_human_mouse_dge_hallmarks_process_genes.rds"))
 ```
 
 ###  GSEA
@@ -597,7 +597,7 @@ gsea_results <- gsea_output$gsea %>%
 gsea_results %>% dplyr::count(pathogen, organism, timepoint)
 
 #Save
-saveRDS(gsea_results, here("tables", "all_human_mouse_gsea_hallmarks_results.rds"))
+saveRDS(gsea_results, here("tables", "Functional analysis", "all_human_mouse_gsea_hallmarks_results.rds"))
 ```
 
 BTM matching and wide pivot
@@ -669,8 +669,8 @@ dge_hallmarks_gsea_mean_wide %>%
   dplyr::count(pathogen, timepoint_comparison)
 
 #Save
-saveRDS(dge_hallmarks_gsea_mean_wide, here("tables", "all_human_mouse_dge_hallmarks_gsea_mean_wide.rds"))
-saveRDS(gsea_hallmarks_results_all_matched, here("tables", "all_human_mouse_gsea_hallmarks_results_all_matched.rds"))
+saveRDS(dge_hallmarks_gsea_mean_wide, here("tables", "Functional analysis", "all_human_mouse_dge_hallmarks_gsea_mean_wide.rds"))
+saveRDS(gsea_hallmarks_results_all_matched, here("tables", "Functional analysis", "all_human_mouse_gsea_hallmarks_results_all_matched.rds"))
 ```
 
 ### Distribution plots (one per condition)

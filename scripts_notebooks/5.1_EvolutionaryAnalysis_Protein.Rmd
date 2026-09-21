@@ -32,21 +32,21 @@ cross-species transcriptional concordance.
 
 # Import BTM core enrichment results
 gsea_btm_results_core_joined =
-  readRDS(file = here("tables", "all_human_mouse_gsea_btm_results_core_joined.rds")) %>%
+  readRDS(file = here("tables", "Functional analysis", "all_human_mouse_gsea_btm_results_core_joined.rds")) %>%
   distinct()
 
 #Import modules and LEGs
 dge_btm_process_module_diff_and_legs = 
-  readRDS(file = here("tables", "all_human_mouse_gsea_btm_legs.rds"))
+  readRDS(file = here("tables", "Functional analysis", "all_human_mouse_gsea_btm_legs.rds"))
 
 # Import BTM gene-level correlation data
-dge_btm_process_genes_diff_bygene_clean_filtered =  readRDS(file = here("tables", "dge_btm_process_genes_diff_bygene_clean_filtered.rds"))
+dge_btm_process_genes_diff_bygene_clean_filtered =  readRDS(file = here("tables", "Functional analysis", "dge_btm_process_genes_diff_bygene_clean_filtered.rds"))
 
 # Import homolog alignment data
-all_alignments = read_csv(here("tables", "human_to_mouse_alignment_mart_export.txt"))
+all_alignments = read_csv(here("tables", "Gene and Protein sequences", "human_to_mouse_alignment_mart_export.txt"))
 
 # Import BTM gene annotations
-btm_annotation_genes = read_csv(file = here("tables", "btm_annotation_genes.csv"))
+btm_annotation_genes = read_csv(file = here("tables", "Gene sets", "btm_annotation_genes.csv"))
 
 # Annotate genes with sequence identity and BTM membership
 # Build alignment-annotated dataset for core enrichment gene
@@ -66,7 +66,7 @@ alignments_human2mouse_all = all_alignments %>%
   ungroup()
 
 alignments_human2mouse_all %>% 
-  saveRDS(file = here("tables", "alignments_human2mouse_all.rds"))
+  saveRDS(file = here("tables", "Gene and Protein sequences", "alignments_human2mouse_all.rds"))
 
 # Filter to only BTM core enrichment genes and append process membership
 alignments_human2mouse = alignments_human2mouse_all %>% 
@@ -107,14 +107,14 @@ gene_info_human_clean_dge <- gene_info_human %>%
 
 #Save
 gene_info_human_clean_dge %>% 
-  saveRDS(here("tables", "human_mouse_gene_info_dge_clean.rds"))
+  saveRDS(here("tables", "Gene and Protein sequences", "human_mouse_gene_info_dge_clean.rds"))
 ```
 
 
 ```{r fig.height=3, fig.width=8, message=FALSE, warning=FALSE}
 #Import
 gene_info_human_clean_dge =
-  readRDS(here("tables", "human_mouse_gene_info_dge_clean.rds"))
+  readRDS(here("tables", "Gene and Protein sequences", "human_mouse_gene_info_dge_clean.rds"))
 
 #Plot
 alignments_human2mouse_legs_identity_log2fc_plot = gene_info_human_clean_dge %>% 
@@ -1175,7 +1175,7 @@ alignments_human2mouse_all_global_df_nshared = alignments_human2mouse_all_global
 
 # Save the combined sharing and conservation table to disk
 alignments_human2mouse_all_global_df_nshared %>% 
-  saveRDS(file = here("tables", "alignments_human2mouse_all_global_df_nshared.rds"))
+  saveRDS(file = here("tables", "Gene and Protein sequences", "alignments_human2mouse_all_global_df_nshared.rds"))
 
 # 5. Final cleaned reference for identity distribution
 alignments_human2mouse_all_global_df_filtered = alignments_human2mouse_all_global_df %>% 
@@ -2256,8 +2256,8 @@ downstream biomaRt queries and protein sequence alignment.
 ```{r}
 # Import GSEA core results and BTM annotation table
 gsea_btm_results_core_joined =
-  readRDS(file = here("tables", "all_human_mouse_gsea_btm_results_core_joined.rds"))
-btm_annotation_genes = read_csv(file = here("tables", "btm_annotation_genes.csv"))
+  readRDS(file = here("tables", "Functional analysis", "all_human_mouse_gsea_btm_results_core_joined.rds"))
+btm_annotation_genes = read_csv(file = here("tables", "Gene sets", "btm_annotation_genes.csv"))
 
 # Extract top exemplar genes from the filtered dataset
 shared_genes_df = alignments_human2mouse_genes_filtered %>% 
@@ -2444,7 +2444,7 @@ genes_domain_mouse_human <- domains_identity_sequence_mouse %>%
 glimpse(genes_domain_mouse_human)
 
 genes_domain_mouse_human %>% 
-  saveRDS(file = here("tables", "all_human_mouse_gsea_leganalysis_biomart_annotation.rds"))
+  saveRDS(file = here("tables", "Functional analysis", "all_human_mouse_gsea_leganalysis_biomart_annotation.rds"))
 
 
 # listAttributes(mouse_mart) %>% View()
@@ -2470,7 +2470,7 @@ Alignment
 
 ```{r}
 genes_domain_mouse_human =
-  readRDS(file = here("tables", "all_human_mouse_gsea_leganalysis_biomart_annotation.rds")) %>% 
+  readRDS(file = here("tables", "Functional analysis", "all_human_mouse_gsea_leganalysis_biomart_annotation.rds")) %>% 
   distinct()
 
 selected_gene = "CD2"
@@ -2975,10 +2975,10 @@ library(pwalign)
 library(ape)
 
 # Gene expression
-dge_btm_process_genes_diff_bygene_clean_filtered =  readRDS(file = here("tables", "dge_btm_process_genes_diff_bygene_clean_filtered.rds"))
+dge_btm_process_genes_diff_bygene_clean_filtered =  readRDS(file = here("tables", "Functional analysis", "dge_btm_process_genes_diff_bygene_clean_filtered.rds"))
 
 gene_info_human_clean_dge = 
-  readRDS(here("tables", "human_mouse_gene_info_dge_clean.rds"))
+  readRDS(here("tables", "Gene and Protein sequences", "human_mouse_gene_info_dge_clean.rds"))
 
 # ---- 3. Connect to Ensembl BioMart ----
 message("Connecting to Ensembl BioMart...")
@@ -3128,7 +3128,7 @@ human_cds_clean <- human_cds_raw %>%
   select(ensembl_gene_id, human_cds = coding)
 
 # Save
-saveRDS(human_cds_clean, file = here::here("tables", "human_cds_clean.rds"))
+saveRDS(human_cds_clean, file = here::here("tables", "Gene and Protein sequences", "human_cds_clean.rds"))
 ```
 
 
@@ -3183,7 +3183,7 @@ mouse_cds_clean <- mouse_cds_raw %>%
   select(mmusculus_homolog_ensembl_gene = ensembl_gene_id, mouse_cds = coding)
 
 # Save
-saveRDS(mouse_cds_clean, file = here::here("tables", "mouse_cds_clean.rds"))
+saveRDS(mouse_cds_clean, file = here::here("tables", "Gene and Protein sequences", "mouse_cds_clean.rds"))
 
 # Send completion notification
 notify(
@@ -3195,8 +3195,8 @@ notify(
 
 ```{r}
 #Import
-mouse_cds_clean = readRDS(file = here::here("tables", "mouse_cds_clean.rds"))
-human_cds_clean = readRDS(file = here::here("tables", "human_cds_clean.rds"))
+mouse_cds_clean = readRDS(file = here::here("tables", "Gene and Protein sequences", "mouse_cds_clean.rds"))
+human_cds_clean = readRDS(file = here::here("tables", "Gene and Protein sequences", "human_cds_clean.rds"))
 
 # -Calculate distance ----
 mouse_human_cds_clean <- ortholog_map %>%
@@ -3226,7 +3226,7 @@ human_mouse_cds_distance <- mouse_human_cds_distance_matrix %>%
 print(head(human_mouse_cds_distance))
 
 #Save
-saveRDS(human_mouse_cds_distance, file = here::here("tables", "human_mouse_cds_distance.rds"))
+saveRDS(human_mouse_cds_distance, file = here::here("tables", "Gene and Protein sequences", "human_mouse_cds_distance.rds"))
 notify(title = "Alignment done", msg = "Check it out!")
 
 ```
@@ -3238,10 +3238,10 @@ notify(title = "Alignment done", msg = "Check it out!")
 ```{r fig.height=3, fig.width=3}
 #Import
 # Gene expression
-dge_btm_process_genes_diff_bygene_clean_filtered =  readRDS(file = here("tables", "dge_btm_process_genes_diff_bygene_clean_filtered.rds"))
+dge_btm_process_genes_diff_bygene_clean_filtered =  readRDS(file = here("tables", "Functional analysis", "dge_btm_process_genes_diff_bygene_clean_filtered.rds"))
 
 human_mouse_cds_distance = 
-  readRDS(file = here::here("tables", "human_mouse_cds_distance.rds"))
+  readRDS(file = here::here("tables", "Gene and Protein sequences", "human_mouse_cds_distance.rds"))
 
 #Merge
 human_mouse_cds_distance_dge = 

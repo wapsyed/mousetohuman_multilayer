@@ -21,20 +21,20 @@ source(here("scripts_notebooks", "required.R"))
 #Import datasets ==============
 #DEGs (matched)
 all_degs_human_mouse =
-  readRDS(here("tables", "all_human_mouse_dge_limma_degs_matched.rds"))
+  readRDS(here("tables", "Differential gene expression", "all_human_mouse_dge_limma_degs_matched.rds"))
 #DEGs (unmatched)
 all_degs_human_mouse_unmatched =
-  readRDS(here("tables", "all_human_mouse_dge_limma_degs.rds"))
+  readRDS(here("tables", "Differential gene expression", "all_human_mouse_dge_limma_degs.rds"))
 #DEGs (matched with controls)
 all_degs_human_mouse_matched_bionull =
-  readRDS(file = here("tables", "all_human_mouse_dge_limma_degs_matched_control.rds"))
+  readRDS(file = here("tables", "Differential gene expression", "all_human_mouse_dge_limma_degs_matched_control.rds"))
 
 #Check
 all_degs_human_mouse %>% 
   dplyr::count(timepoint, organism, treatment, pathogen) 
 
 #Functional modules
-btm_annotation_genes = read_csv(file = here("tables", "btm_annotation_genes.csv"))
+btm_annotation_genes = read_csv(file = here("tables", "Gene sets", "btm_annotation_genes.csv"))
 
 # Different timepoints, same species
 
@@ -103,7 +103,7 @@ human_mouse_log2fc_avg_wide_all =
                                     T ~ NA)) 
 
 #### Create Biological null distribution
-biological_null_degs = readRDS(file = here("tables", "duchenne_mouse_dge_limma_degs.rds")) %>% 
+biological_null_degs = readRDS(file = here("tables", "Differential gene expression", "duchenne_mouse_dge_limma_degs.rds")) %>% 
   select(-comparison) %>% 
   rename(mean_log2fc = mean_l2fc, 
          p_adj = adj_p_val, 
@@ -250,7 +250,7 @@ human_mouse_log2fc_avg_wide_degs_all_immune_nonimmune %>%
 
 # #Save
 human_mouse_log2fc_avg_wide_degs_all_immune_nonimmune %>%
-  saveRDS(here("tables", "human_mouse_log2fc_avg_wide_degs_all_immune_nonimmune.rds"))
+  saveRDS(here("tables", "Differential gene expression", "human_mouse_log2fc_avg_wide_degs_all_immune_nonimmune.rds"))
 
 ```
 
@@ -262,7 +262,7 @@ human_mouse_log2fc_avg_wide_degs_all_immune_nonimmune %>%
 ```{r fig.height=3, fig.width=12, message=FALSE, warning=FALSE}
 #Import
 human_mouse_log2fc_avg_wide_degs_all_immune_nonimmune = 
-  readRDS(here("tables", "human_mouse_log2fc_avg_wide_degs_all_immune_nonimmune.rds"))
+  readRDS(here("tables", "Differential gene expression", "human_mouse_log2fc_avg_wide_degs_all_immune_nonimmune.rds"))
 #### Difference in means vs. status
 log2fc_wide_allconditions_control =  
   
@@ -785,7 +785,7 @@ log2fc_wide_allconditions %>%
 
 ### Volcano plot
 ```{r fig.height=16, fig.width=16}
-all_degs_human_mouse = readRDS(file = here("tables", "all_human_mouse_dge_limma_degs.rds"))
+all_degs_human_mouse = readRDS(file = here("tables", "Differential gene expression", "all_human_mouse_dge_limma_degs.rds"))
 
 #Volcano plot -------
 volcano_data <- all_degs_human_mouse %>% 
@@ -854,11 +854,11 @@ volcano_plot
 
 ```{r}
 #Import datasets
-all_degs_human_mouse = readRDS(here("tables", "all_human_mouse_dge_limma_degs_matched.rds"))
+all_degs_human_mouse = readRDS(here("tables", "Differential gene expression", "all_human_mouse_dge_limma_degs_matched.rds"))
 
-all_degs_human_mouse_unmatched = readRDS(here("tables", "all_human_mouse_dge_limma_degs.rds"))
+all_degs_human_mouse_unmatched = readRDS(here("tables", "Differential gene expression", "all_human_mouse_dge_limma_degs.rds"))
 
-btm_annotation_genes = read_csv(file = here("tables", "btm_annotation_genes.csv"))
+btm_annotation_genes = read_csv(file = here("tables", "Gene sets", "btm_annotation_genes.csv"))
 ```
 
 
@@ -1585,20 +1585,20 @@ Vertical
 #Import datasets ==============
 #DEGs (matched)
 all_degs_human_mouse =
-  readRDS(here("tables", "all_human_mouse_dge_limma_degs_matched.rds"))
+  readRDS(here("tables", "Differential gene expression", "all_human_mouse_dge_limma_degs_matched.rds"))
 #DEGs (unmatched)
 all_degs_human_mouse_unmatched =
-  readRDS(here("tables", "all_human_mouse_dge_limma_degs.rds"))
+  readRDS(here("tables", "Differential gene expression", "all_human_mouse_dge_limma_degs.rds"))
 
 #Check
 all_degs_human_mouse %>% 
   dplyr::count(timepoint, organism, treatment, pathogen) 
 
 #Functional modules
-btm_annotation_genes = read_csv(file = here("tables", "btm_annotation_genes.csv"))
+btm_annotation_genes = read_csv(file = here("tables", "Gene sets", "btm_annotation_genes.csv"))
 
 human_mouse_log2fc_avg_wide_degs_all_immune_nonimmune =
-  readRDS(here("tables", "human_mouse_log2fc_avg_wide_degs_all_immune_nonimmune.rds"))
+  readRDS(here("tables", "Differential gene expression", "human_mouse_log2fc_avg_wide_degs_all_immune_nonimmune.rds"))
 
 ```
 
@@ -1694,7 +1694,7 @@ correlation_filtered_inter_weighted %>%
 
 #Save
 correlation_filtered_inter_weighted %>% 
-  saveRDS(file = here("tables", "all_human_mouse_correlation_filtered_inter_weighted.rds"))
+  saveRDS(file = here("tables", "Differential gene expression", "all_human_mouse_correlation_filtered_inter_weighted.rds"))
 
 #Summary
 degs_immune_nonimmune_summary = human_mouse_log2fc_avg_wide_degs_all_immune_nonimmune %>%
@@ -1719,7 +1719,7 @@ correlation_filtered_inter_weighted_filtered = correlation_filtered_inter_weight
 
 #Save
 correlation_filtered_inter_weighted_filtered %>% 
-  saveRDS(file = here("tables", "all_human_mouse_correlation_filtered_inter_weighted_filtered.rds"))
+  saveRDS(file = here("tables", "Differential gene expression", "all_human_mouse_correlation_filtered_inter_weighted_filtered.rds"))
 
 
 #Annotate facets  ==============
@@ -1749,7 +1749,7 @@ human_mouse_log2fc_avg_wide_labels = human_mouse_log2fc_avg_wide_interspecies_bi
 
 #Save
 human_mouse_log2fc_avg_wide_labels %>% 
-  saveRDS(file = here("tables", "all_human_mouse_log2fc_avg_wide_labels.rds"))
+  saveRDS(file = here("tables", "Differential gene expression", "all_human_mouse_log2fc_avg_wide_labels.rds"))
 
 
 
@@ -1768,11 +1768,11 @@ human_mouse_log2fc_avg_wide_labels %>%
 ```{r fig.height=10, fig.width=11}
 #Import correlation
 correlation_filtered_inter_weighted = 
-  readRDS(file = here("tables", "all_human_mouse_correlation_filtered_inter_weighted.rds"))
+  readRDS(file = here("tables", "Differential gene expression", "all_human_mouse_correlation_filtered_inter_weighted.rds"))
 correlation_filtered_inter_weighted_filtered =
-  readRDS(file = here("tables", "all_human_mouse_correlation_filtered_inter_weighted_filtered.rds"))
+  readRDS(file = here("tables", "Differential gene expression", "all_human_mouse_correlation_filtered_inter_weighted_filtered.rds"))
 human_mouse_log2fc_avg_wide_labels = 
-  readRDS(file = here("tables", "all_human_mouse_log2fc_avg_wide_labels.rds"))
+  readRDS(file = here("tables", "Differential gene expression", "all_human_mouse_log2fc_avg_wide_labels.rds"))
 
 
 # Plot Matrices
@@ -2745,8 +2745,8 @@ human_mouse_se %>%
 
 ```{r}
 #Import
-btm_annotation_genes = read_csv(file = here("tables", "btm_annotation_genes.csv"))
-all_human_mouse_metadata = readRDS(here("tables", "all_human_mouse_metadata.rds"))
+btm_annotation_genes = read_csv(file = here("tables", "Gene sets", "btm_annotation_genes.csv"))
+all_human_mouse_metadata = readRDS(here("tables", "processed_data", "all_human_mouse_metadata.rds"))
 
 
 #Filter conditions with too many human samples to reduce computation time
@@ -2791,7 +2791,7 @@ log2fc_samples_annotated %>%
 
 #DEGs
 all_degs_human_mouse = 
-  readRDS(file = here("tables", "all_human_mouse_dge_limma_degs_matched.rds"))
+  readRDS(file = here("tables", "Differential gene expression", "all_human_mouse_dge_limma_degs_matched.rds"))
 
 all_degs_human_mouse %>% 
   dplyr::count(pathogen, organism, timepoint)
@@ -2974,9 +2974,9 @@ saveRDS(correlation_summary_filtered, file = here("tables", paste0(filename, "_g
 Horizontal
 ```{r fig.height=3, fig.width=16}
 #Import
-correlation_summary_filtered_DEGs = readRDS(file = here("tables","all_human_mouse_DEGs_gene_sets_correlation_summary.rds")) %>% 
+correlation_summary_filtered_DEGs = readRDS(file = here("tables", "Differential gene expression", "all_human_mouse_DEGs_gene_sets_correlation_summary.rds")) %>% 
   mutate(filter = "DEGs")
-correlation_summary_filtered_all = readRDS(file = here("tables","all_human_mouse_gene_sets_correlation_summary.rds")) %>% 
+correlation_summary_filtered_all = readRDS(file = here("tables", "Functional analysis", "all_human_mouse_gene_sets_correlation_summary.rds")) %>% 
   mutate(filter = "No filter")
 
 correlation_summaries =  
@@ -3067,9 +3067,9 @@ correlation_long_all_mouse_human_timepoints_summary_plot %>%
 Vertical
 ```{r fig.height=6, fig.width=10}
 #Import
-correlation_summary_filtered_DEGs = readRDS(file = here("tables","all_human_mouse_DEGs_gene_sets_correlation_summary.rds")) %>% 
+correlation_summary_filtered_DEGs = readRDS(file = here("tables", "Differential gene expression", "all_human_mouse_DEGs_gene_sets_correlation_summary.rds")) %>% 
   mutate(filter = "DEGs")
-correlation_summary_filtered_all = readRDS(file = here("tables","all_human_mouse_gene_sets_correlation_summary.rds")) %>% 
+correlation_summary_filtered_all = readRDS(file = here("tables", "Functional analysis", "all_human_mouse_gene_sets_correlation_summary.rds")) %>% 
   mutate(filter = "No filter")
 
 correlation_summaries =  
@@ -3765,7 +3765,7 @@ gene_list_df_heatmap_plot %>%
 ##### ORA: Hallmarks
 ```{r}
 
-msigdbr_grouped = read_csv(file = here("tables", "msigdb_hallmarks_grouped_genes.csv"))
+msigdbr_grouped = read_csv(file = here("tables", "Gene sets", "msigdb_hallmarks_grouped_genes.csv"))
 
 #Discretize by quartile
 ora_df_input = gene_list_df_heatmap %>% 

@@ -46,7 +46,7 @@ gene_annotated_layers <- readRDS(here("tables", "human_mouse_statsmodelling_gene
   distinct(hgnc_symbol, .keep_all = TRUE)
 
 # Per-gene expression statistics across conditions and BTM processes
-dge_btm_process_genes_diff_bygene_clean_filtered <- readRDS(here("tables", "dge_btm_process_genes_diff_bygene_clean_filtered.rds"))
+dge_btm_process_genes_diff_bygene_clean_filtered <- readRDS(here("tables", "Functional analysis", "dge_btm_process_genes_diff_bygene_clean_filtered.rds"))
 ```
 
 ## Feature dictionary

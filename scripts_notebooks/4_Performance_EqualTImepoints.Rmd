@@ -19,12 +19,12 @@ source(here("scripts_notebooks", "required.R"))
 OLD
 ```{r}
 #Import ============
-btm_annotation_genes = read_csv(file = here("tables", "btm_annotation_genes.csv"))
+btm_annotation_genes = read_csv(file = here("tables", "Gene sets", "btm_annotation_genes.csv"))
 #Metadata
-all_human_mouse_metadata = readRDS(here("tables", "all_human_mouse_metadata.rds"))
+all_human_mouse_metadata = readRDS(here("tables", "processed_data", "all_human_mouse_metadata.rds"))
 #DEGs table
 all_degs_human_mouse =
-  readRDS(file = here("tables", "all_human_mouse_dge_limma_degs_matched.rds")) %>%
+  readRDS(file = here("tables", "Differential gene expression", "all_human_mouse_dge_limma_degs_matched.rds")) %>%
   mutate(timepoint = if_else(pathogen %in% c("Burn", "Trauma") & timepoint %in% c("2h", "Early hours"), "Early hours", timepoint))
 
 #Duplicate infection timepoints in human to match the mouse
@@ -1416,10 +1416,10 @@ pr_auc_lineplot_DEGs %>%
 ```{r}
 #Import ========================
 #Unite BTM means
-dge_btm_mean_process_saureus = readRDS(file = here("tables", paste0("saureus_infection_human_mouse_dge_btm_mean_process.rds")))
-dge_btm_mean_process_ecoli = readRDS(file = here("tables", paste0("ecoli_infection_human_mouse_dge_btm_mean_process.rds")))
-dge_btm_mean_process_fluad = readRDS(file = here("tables", paste0("influenza_fluad_human_mouse_dge_btm_mean_process.rds")))
-dge_btm_mean_process_engerix  = readRDS(file = here("tables", paste0("hepatitisb_engerixb_human_mouse_dge_btm_mean_process.rds")))
+dge_btm_mean_process_saureus = readRDS(file = here("tables", paste0("saureus_human_mouse_dge_btm_mean_process.rds")))
+dge_btm_mean_process_ecoli = readRDS(file = here("tables", paste0("ecoli_human_mouse_dge_btm_mean_process.rds")))
+dge_btm_mean_process_fluad = readRDS(file = here("tables", paste0("influenza_human_mouse_dge_btm_mean_process.rds")))
+dge_btm_mean_process_engerix  = readRDS(file = here("tables", paste0("hepatitisb_human_mouse_dge_btm_mean_process.rds")))
 dge_btm_mean_process_trauma  = readRDS(file = here("tables", paste0("trauma_human_mouse_dge_btm_mean_process.rds")))
 dge_btm_mean_process_burn  = readRDS(file = here("tables", paste0("burn_human_mouse_dge_btm_mean_process.rds")))
 
@@ -1456,7 +1456,7 @@ dge_btm_mean_process = dge_btm_mean_process_all
 
 #Import metadata
 #Metadata 
-all_human_mouse_metadata = readRDS(here("tables", "all_human_mouse_metadata.rds")) %>% 
+all_human_mouse_metadata = readRDS(here("tables", "processed_data", "all_human_mouse_metadata.rds")) %>% 
   filter(!(timepoint %in% c("0h", "Day 0")))
 
 all_human_mouse_metadata_matched = bind_rows(
@@ -1995,10 +1995,10 @@ auc_lineplot %>%
 ### NES
 ```{r}
 #Unite BTM means and NES
-gsea_btm_results_saureus = readRDS(here("tables", paste0("saureus_infection_human_mouse_gsea_btm_results.rds")))
-gsea_btm_results_ecoli = readRDS(here("tables", paste0("ecoli_infection_human_mouse_gsea_btm_results.rds")))
-gsea_btm_results_fluad = readRDS(here("tables", paste0("influenza_fluad_human_mouse_gsea_btm_results.rds")))
-gsea_btm_results_engerix = readRDS(here("tables", paste0("hepatitisb_engerixb_human_mouse_gsea_btm_results.rds")))
+gsea_btm_results_saureus = readRDS(here("tables", paste0("saureus_human_mouse_gsea_btm_results.rds")))
+gsea_btm_results_ecoli = readRDS(here("tables", paste0("ecoli_human_mouse_gsea_btm_results.rds")))
+gsea_btm_results_fluad = readRDS(here("tables", paste0("influenza_human_mouse_gsea_btm_results.rds")))
+gsea_btm_results_engerix = readRDS(here("tables", paste0("hepatitisb_human_mouse_gsea_btm_results.rds")))
 gsea_btm_results_burn = readRDS(here("tables", paste0("burn_human_mouse_gsea_btm_results.rds")))
 gsea_btm_results_trauma = readRDS(here("tables", paste0("trauma_human_mouse_gsea_btm_results.rds")))
 
@@ -2032,7 +2032,7 @@ dge_btm_mean_process = gsea_btm_results_all
 
 #Import metadata
 #Metadata 
-all_human_mouse_metadata = readRDS(here("tables", "all_human_mouse_metadata.rds")) %>% 
+all_human_mouse_metadata = readRDS(here("tables", "processed_data", "all_human_mouse_metadata.rds")) %>% 
   filter(!(timepoint %in% c("0h", "Day 0")))
 
 all_human_mouse_metadata_matched = bind_rows(
@@ -2593,10 +2593,10 @@ ranking_validation = classified_df_probs_up %>%
 ```{r}
 #Import ========================
 #Unite BTM means
-dge_hallmarks_mean_process_saureus = readRDS(file = here("tables", paste0("saureus_infection_human_mouse_dge_hallmarks_mean_process.rds")))
-dge_hallmarks_mean_process_ecoli = readRDS(file = here("tables", paste0("ecoli_infection_human_mouse_dge_hallmarks_mean_process.rds")))
-dge_hallmarks_mean_process_fluad = readRDS(file = here("tables", paste0("influenza_fluad_human_mouse_dge_hallmarks_mean_process.rds")))
-dge_hallmarks_mean_process_engerix  = readRDS(file = here("tables", paste0("hepatitisb_engerixb_human_mouse_dge_hallmarks_mean_process.rds")))
+dge_hallmarks_mean_process_saureus = readRDS(file = here("tables", paste0("saureus_human_mouse_dge_hallmarks_mean_process.rds")))
+dge_hallmarks_mean_process_ecoli = readRDS(file = here("tables", paste0("ecoli_human_mouse_dge_hallmarks_mean_process.rds")))
+dge_hallmarks_mean_process_fluad = readRDS(file = here("tables", paste0("influenza_human_mouse_dge_hallmarks_mean_process.rds")))
+dge_hallmarks_mean_process_engerix  = readRDS(file = here("tables", paste0("hepatitisb_human_mouse_dge_hallmarks_mean_process.rds")))
 dge_hallmarks_mean_process_trauma  = readRDS(file = here("tables", paste0("trauma_human_mouse_dge_hallmarks_mean_process.rds")))
 dge_hallmarks_mean_process_burn  = readRDS(file = here("tables", paste0("burn_human_mouse_dge_hallmarks_mean_process.rds")))
 
@@ -2633,7 +2633,7 @@ dge_hallmarks_mean_process = dge_hallmarks_mean_process_all
 
 #Import metadata
 #Metadata 
-all_human_mouse_metadata = readRDS(here("tables", "all_human_mouse_metadata.rds")) %>% 
+all_human_mouse_metadata = readRDS(here("tables", "processed_data", "all_human_mouse_metadata.rds")) %>% 
   filter(!(timepoint %in% c("0h", "Day 0")))
 
 all_human_mouse_metadata_matched = bind_rows(
@@ -3133,10 +3133,10 @@ auc_lineplot %>%
 
 ```{r}
 #Unite Hallmarks means and NES
-gsea_hallmarks_results_saureus = readRDS(here("tables", paste0("saureus_infection_human_mouse_gsea_hallmarks_results.rds")))
-gsea_hallmarks_results_ecoli = readRDS(here("tables", paste0("ecoli_infection_human_mouse_gsea_hallmarks_results.rds")))
-gsea_hallmarks_results_fluad = readRDS(here("tables", paste0("influenza_fluad_human_mouse_gsea_hallmarks_results.rds")))
-gsea_hallmarks_results_engerix = readRDS(here("tables", paste0("hepatitisb_engerixb_human_mouse_gsea_hallmarks_results.rds")))
+gsea_hallmarks_results_saureus = readRDS(here("tables", paste0("saureus_human_mouse_gsea_hallmarks_results.rds")))
+gsea_hallmarks_results_ecoli = readRDS(here("tables", paste0("ecoli_human_mouse_gsea_hallmarks_results.rds")))
+gsea_hallmarks_results_fluad = readRDS(here("tables", paste0("influenza_human_mouse_gsea_hallmarks_results.rds")))
+gsea_hallmarks_results_engerix = readRDS(here("tables", paste0("hepatitisb_human_mouse_gsea_hallmarks_results.rds")))
 gsea_hallmarks_results_burn = readRDS(here("tables", paste0("burn_human_mouse_gsea_hallmarks_results.rds")))
 gsea_hallmarks_results_trauma = readRDS(here("tables", paste0("trauma_human_mouse_gsea_hallmarks_results.rds")))
 
@@ -3170,7 +3170,7 @@ dge_hallmarks_mean_process = gsea_hallmarks_results_all
 
 #Import metadata
 #Metadata 
-all_human_mouse_metadata = readRDS(here("tables", "all_human_mouse_metadata.rds")) %>% 
+all_human_mouse_metadata = readRDS(here("tables", "processed_data", "all_human_mouse_metadata.rds")) %>% 
   filter(!(timepoint %in% c("0h", "Day 0")))
 
 all_human_mouse_metadata_matched = bind_rows(
@@ -4227,7 +4227,7 @@ classified_df %>%
 
 ```{r}
 #Import
-classified_df = read_rds(here("FIT_Mouse2man", "genes_l2fc_fit_mouse_human_classified_cutoffs.rds")) %>% 
+classified_df = readRDS(here("FIT_Mouse2man", "genes_l2fc_fit_mouse_human_classified_cutoffs.rds")) %>% 
   rename(padj_deg = pval_adj)
 
 #Get only DEGs in humans

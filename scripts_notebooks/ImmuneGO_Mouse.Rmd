@@ -8,7 +8,7 @@
 ```{r}
 #Import
 btm_annotation_table <- read_excel(here("VaxGO", "btm_annotation_table.xls"))
-btm_annotation = read.table(file = here("VaxGO",  "BTM functional groups V3.txt"), sep="\t", header=TRUE) %>% 
+btm_annotation = read.table(file = here("tables", "Gene sets", "BTM functional groups V3.txt"), sep="\t", header=TRUE) %>% 
   clean_names() %>% 
   rename(id = name) %>% 
   filter(group != "")
@@ -25,7 +25,7 @@ btm_annotation_table_long <- btm_annotation_table_annotated %>%
   rename(symbol = module_member_genes)
   
 
-write.csv(btm_annotation_table_long, file = here("VaxGO", "btm_annotation_table_long.csv"))
+write.csv(btm_annotation_table_long, file = here("tables", "Gene sets", "btm_annotation_table_long.csv"))
 
 #Calculate Set size
 btm_annotation_nested <- btm_annotation_table_long %>%
@@ -41,7 +41,7 @@ btm_annotation_genes <- btm_annotation_nested %>%
   rename(process= module_title)
 
 #Salvar
-write.csv(btm_annotation_genes, file = here("tables", "btm_annotation_genes.csv"))
+write.csv(btm_annotation_genes, file = here("tables", "Gene sets", "btm_annotation_genes.csv"))
 
 #Convert to unique values table
 btm_annotation_unique = btm_annotation_genes %>% 
@@ -53,7 +53,7 @@ btm_annotation_unique = btm_annotation_unique %>%
   filter(genes_nested != "NA")
 
 #salvar
-write.csv(btm_annotation_unique, file = here("tables","btm_annotation_unique.csv")
+write.csv(btm_annotation_unique, file = here("tables", "Gene sets", "btm_annotation_unique.csv")
 
 #Display
 head(btm_annotation_unique)
@@ -324,9 +324,9 @@ There are 943 processes retrieved, but only 18 are directly annotated using Huma
 ```{r}
 #Merge annotations with Human ImmuneGO
 
-ImmuneGO_BTM_grouped_genesets_specific = read_csv(here("VaxGO", "ImmuneGO_BTM_grouped_genesets_specific.csv"))
+ImmuneGO_BTM_grouped_genesets_specific = read_csv(here("tables", "Gene sets", "ImmuneGO_BTM_grouped_genesets_specific.csv"))
 
-ImmuneGO_Annotated_GO_specific_original <- read_csv(here("VaxGO", "ImmuneGO_Annotated_GO_specific_originalGOs.csv"))
+ImmuneGO_Annotated_GO_specific_original <- read_csv(here("tables", "Gene sets", "ImmuneGO_Annotated_GO_specific_originalGOs.csv"))
 
 ## There are 943 processes
 mm_immunego_annotation = mm_immunego_go.bp %>% 
@@ -349,7 +349,7 @@ mm_immunego_annotation = mm_immunego_go.bp %>%
 mm_immunego_annotation %>% 
   saveRDS(here("VaxGO", "mm_immunego_annotation.rds"))
 mm_immunego_annotation %>% 
-  write_excel_csv(here("VaxGO", "mm_immunego_annotation.csv"))
+  write_excel_csv(here("tables", "Gene sets", "mm_immunego_annotation.csv"))
 ```
 
 
@@ -357,7 +357,7 @@ mm_immunego_annotation %>%
 ### Stats
 There are only 18 immune processes matched by name, and 925 unmatched.
 ```{r}
-mm_immunego_annotation = read_csv(here("VaxGO", "mm_immunego_annotation.csv"))
+mm_immunego_annotation = read_csv(here("tables", "Gene sets", "mm_immunego_annotation.csv"))
 
 #How many are not in?
 ## 925
@@ -480,7 +480,7 @@ mm_immunego_annotated = mm_immunego_go.bp %>%
 
 ```{r}
 library(readxl)
-ImmuneGO_Mouse_Manual <- read_excel(here("VaxGO", "ImmuneGO_Mouse.xlsx"))
+ImmuneGO_Mouse_Manual <- read_excel(here("tables", "Gene sets", "ImmuneGO_Mouse.xlsx"))
 ```
 
 #### Approach 2

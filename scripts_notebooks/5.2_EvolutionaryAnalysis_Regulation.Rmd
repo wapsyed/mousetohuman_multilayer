@@ -30,26 +30,26 @@ source(here("scripts_notebooks", "required.R"))
 ```{r fig.height=5, fig.width=12}
 # Import BTM core enrichment results
 gsea_btm_results_core_joined =
-  readRDS(file = here("tables", "all_human_mouse_gsea_btm_results_core_joined.rds")) %>%
+  readRDS(file = here("tables", "Functional analysis", "all_human_mouse_gsea_btm_results_core_joined.rds")) %>%
   distinct()
 
 #Import modules and LEGs
 dge_btm_process_module_diff_and_legs = 
-  readRDS(file = here("tables", "all_human_mouse_gsea_btm_legs.rds"))
+  readRDS(file = here("tables", "Functional analysis", "all_human_mouse_gsea_btm_legs.rds"))
 
 #Save
 dge_btm_process_genes_diff_bygene_clean_filtered = 
-  readRDS(file = here("tables", "dge_btm_process_genes_diff_bygene_clean_filtered.rds"))
+  readRDS(file = here("tables", "Functional analysis", "dge_btm_process_genes_diff_bygene_clean_filtered.rds"))
 
 # Import BTM gene-level correlation data
 dge_btm_process_genes_diff_bygene =
-  readRDS(here("tables", "human_mouse_log2fc_avg_wide_degs_all_immune_nonimmune.rds"))
+  readRDS(here("tables", "Differential gene expression", "human_mouse_log2fc_avg_wide_degs_all_immune_nonimmune.rds"))
 
 # Import homolog alignment data
-all_alignments = read_csv(here("tables", "human_to_mouse_alignment_mart_export.txt"))
+all_alignments = read_csv(here("tables", "Gene and Protein sequences", "human_to_mouse_alignment_mart_export.txt"))
 
 # Import BTM gene annotations
-btm_annotation_genes = read_csv(file = here("tables", "btm_annotation_genes.csv"))
+btm_annotation_genes = read_csv(file = here("tables", "Gene sets", "btm_annotation_genes.csv"))
 
 ```
 
@@ -64,7 +64,7 @@ btm_annotation_genes = read_csv(file = here("tables", "btm_annotation_genes.csv"
 ```{r import-data}
 
 #Import gene info with log2fc stats
-gene_info_human_log2fc_stats = readRDS(file = here("tables", "gene_info_human_log2fc_stats.rds"))
+gene_info_human_log2fc_stats = readRDS(file = here("tables", "Gene and Protein sequences", "gene_info_human_log2fc_stats.rds"))
 #ENCODE ===============
 #In contrast to the Human dataset, there are no CTCF-bound CREs in the main, full CRE mouse dataset. So, we imported CREs separately and merged them.
 
@@ -294,7 +294,7 @@ cres_annotated <- homologous_cres %>%
 cres_annotated
 
 #Save
-cres_annotated %>% saveRDS(file = here("tables", "cres_homologous_annotated.rds"))
+cres_annotated %>% saveRDS(file = here("tables", "Regulation", "cres_homologous_annotated.rds"))
 
 
 ```
@@ -302,7 +302,7 @@ cres_annotated %>% saveRDS(file = here("tables", "cres_homologous_annotated.rds"
 #### How many CREs per gene?
 ```{r fig.height=5, fig.width=10}
 #Import annotated CREs
-cres_annotated = readRDS(file = here("tables", "cres_homologous_annotated.rds"))
+cres_annotated = readRDS(file = here("tables", "Regulation", "cres_homologous_annotated.rds"))
 
 #=======================================
 #Compare classes of CREs between species
@@ -408,7 +408,7 @@ cres_type_homology_comparison
 
 #Save 
 cres_type_homology_comparison %>% 
-  saveRDS(file = here("tables", "cres_type_homology_comparison.rds"))
+  saveRDS(file = here("tables", "Regulation", "cres_type_homology_comparison.rds"))
 
 ```
 
@@ -485,7 +485,7 @@ cres_type_homology_comparison_wide <- dplyr::bind_rows(
 cres_type_homology_comparison_wide 
 
 cres_type_homology_comparison_wide %>% 
-  saveRDS(file = here("tables", "cres_type_homology_comparison_wide.rds"))
+  saveRDS(file = here("tables", "Regulation", "cres_type_homology_comparison_wide.rds"))
 ```
 
 
@@ -494,7 +494,7 @@ cres_type_homology_comparison_wide %>%
 ```{r classify-match-type, fig.height=6, fig.width=8}
 #Import
 cres_type_homology_comparison =  
-  readRDS(file = here("tables", "cres_type_homology_comparison.rds"))
+  readRDS(file = here("tables", "Regulation", "cres_type_homology_comparison.rds"))
 
 # Calculate shared cCRE type and ctcf proportions across species ======
 cres_type_matrix_pct <- cres_type_homology_comparison %>%
@@ -634,10 +634,10 @@ cres_type_homology_comparison %>%
 #### Annotate with gene expression and LEGs
 #Import
 cres_type_homology_comparison =  
-  readRDS(file = here("tables", "cres_type_homology_comparison.rds"))
+  readRDS(file = here("tables", "Regulation", "cres_type_homology_comparison.rds"))
 
 # Gene expression
-dge_btm_process_genes_diff_bygene_clean_filtered =  readRDS(file = here("tables", "dge_btm_process_genes_diff_bygene_clean_filtered.rds"))
+dge_btm_process_genes_diff_bygene_clean_filtered =  readRDS(file = here("tables", "Functional analysis", "dge_btm_process_genes_diff_bygene_clean_filtered.rds"))
 
 # Inner join with cross-species differential expression statistics =============
 cres_type_homology_comparison_dge_legs_stats <- 
@@ -668,7 +668,7 @@ cres_type_homology_comparison_dge_legs_stats %>% dplyr::count(status)
 
 #Save
 cres_type_homology_comparison_dge_legs_stats %>% 
-  saveRDS(file = here("tables", "cres_type_homology_comparison_dge_legs_stats.rds"))
+  saveRDS(file = here("tables", "Regulation", "cres_type_homology_comparison_dge_legs_stats.rds"))
 
 ```
 
@@ -690,7 +690,7 @@ cres_type_homology_comparison_dge_legs_stats %>%
 
 #Import
 cres_type_homology_comparison_dge_legs_stats = 
-  readRDS(file = here("tables", "cres_type_homology_comparison_dge_legs_stats.rds"))
+  readRDS(file = here("tables", "Regulation", "cres_type_homology_comparison_dge_legs_stats.rds"))
 
 
 
@@ -1948,7 +1948,7 @@ https://pubmed.ncbi.nlm.nih.gov/29180706/#&gid=article-figures&pid=figure-2-uid-
 ###############
 
 # Import gene expression correlation
-gene_info_human_log2fc_stats = readRDS(file = here("tables", "gene_info_human_log2fc_stats.rds"))
+gene_info_human_log2fc_stats = readRDS(file = here("tables", "Gene and Protein sequences", "gene_info_human_log2fc_stats.rds"))
 ############## 
 # Query biomaRt to map human Ensembl IDs to HGNC and MGI symbols
 library(biomaRt)
@@ -2101,7 +2101,7 @@ cres_to_align_homologous_identity <- cres_to_align_homologous_clean %>%
 
 #Save results
 cres_to_align_homologous_identity %>% 
-  saveRDS(file = here("tables", "cres_homologous_1to1_annotated_aligned.rds"))
+  saveRDS(file = here("tables", "Regulation", "cres_homologous_1to1_annotated_aligned.rds"))
 
 #Summarize alignment results
 summary(cres_to_align$cre_identity_pct)
@@ -2173,7 +2173,7 @@ Factors (TFs) regulating specific genes in both Humans and Mice
 #Import ChEA3 ===============================
 
 # Clean and parse the ChEA3 transcription factor–target gene matrix
-gene_attribute_chea <- read_tsv(here("tables", "gene_attribute_matrix.txt"))
+gene_attribute_chea <- read_tsv(here("tables", "Regulation", "gene_attribute_matrix.txt"))
 
 # Transform the wide ChEA matrix into long format, keeping only positive scores
 gene_attribute_chea_clean <- gene_attribute_chea %>%
@@ -2215,12 +2215,12 @@ gene_attribute_tf_count <- gene_attribute_chea_clean %>%
 
 # Save the cross-species TF-target count for downstream analysis
 saveRDS(gene_attribute_tf_count,
-        file = here("tables", "regulation_gene_tf_count.rds"))
+        file = here("tables", "Regulation", "regulation_gene_tf_count.rds"))
 
 
 # Summarise table =====================
 # Reload the TF-count data and gene DGE stats
-gene_attribute_tf_count <- readRDS(file = here("tables", "regulation_gene_tf_count.rds"))
+gene_attribute_tf_count <- readRDS(file = here("tables", "Regulation", "regulation_gene_tf_count.rds"))
 
 #Get percentages
 tf_percentages <- gene_attribute_tf_count %>%
@@ -2261,7 +2261,7 @@ print(gene_tf_shared_unique)
 
 #Save
 gene_tf_shared_unique %>% 
-  saveRDS(file = here("tables", "gene_tf_shared_unique.rds"))
+  saveRDS(file = here("tables", "Regulation", "gene_tf_shared_unique.rds"))
 
 # Join the TF regulation table with the gene alignment quadrants
 gene_attribute_tf_count_log2fc_stats <- gene_tf_shared_unique %>%
@@ -2280,9 +2280,9 @@ equal TF counts between species.
 #Import
 #### Annotate with gene expression and LEGs
 #TFs
-gene_attribute_tf_count <- readRDS(file = here("tables", "regulation_gene_tf_count.rds"))
-gene_tf_shared_unique = readRDS(file = here("tables", "gene_tf_shared_unique.rds"))
-dge_btm_process_genes_diff_bygene_clean_filtered =  readRDS(file = here("tables", "dge_btm_process_genes_diff_bygene_clean_filtered.rds"))
+gene_attribute_tf_count <- readRDS(file = here("tables", "Regulation", "regulation_gene_tf_count.rds"))
+gene_tf_shared_unique = readRDS(file = here("tables", "Regulation", "gene_tf_shared_unique.rds"))
+dge_btm_process_genes_diff_bygene_clean_filtered =  readRDS(file = here("tables", "Functional analysis", "dge_btm_process_genes_diff_bygene_clean_filtered.rds"))
   
   
   # Inner join with cross-species differential expression statistics =============

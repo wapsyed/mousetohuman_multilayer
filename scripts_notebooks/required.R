@@ -317,17 +317,6 @@ immune_order = c("SIGNAL TRANSDUCTION",
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 # 4. Aesthetics (theme_vaxgo) ----
 # Project-wide ggplot2 theme applied to all plots. It modifies theme_minimal()
 # by removing grid lines, adding axis lines and ticks, and fixing text sizes
@@ -466,6 +455,35 @@ get_sequences <- function(genes, mart, symbol_attr) {
     values = genes,
     mart = mart
   )
+}
+
+# Collapse a Sankey layer (source -> target) into one data frame ----
+# Counts the flows between two metadata columns, recording the layer step, the
+# joined GSE ids, and a layer label. The optional na_source / na_target
+# arguments relabel missing values before the layer is returned.
+sankey_layer <- function(data, from, to, step_from, step_to,
+                         na_source = NULL, na_target = NULL) {
+  out <- data %>%
+    dplyr::select(source = {{ from }}, target = {{ to }}, gse_id) %>%
+    dplyr::group_by(source, target) %>%
+    dplyr::summarise(
+      value = dplyr::n(),
+      step_from = step_from,
+      step_to = step_to,
+      gse_ids = paste0(gse_id, collapse = ";"),
+      layer = paste0(rlang::as_label(rlang::enquo(from)), " to ",
+                     rlang::as_label(rlang::enquo(to))),
+      .groups = "drop"
+    )
+
+  if (!is.null(na_source)) {
+    out <- dplyr::mutate(out, source = dplyr::if_else(is.na(source), na_source, source))
+  }
+  if (!is.null(na_target)) {
+    out <- dplyr::mutate(out, target = dplyr::if_else(is.na(target), na_target, target))
+  }
+
+  out
 }
 
 
@@ -896,6 +914,7 @@ gseGO_all <- function(df, OrgDb = "org.Hs.eg.db", keyType = "SYMBOL", ontology =
 
 # Classification performance for GENES and DEGs ----
 classification_performance_compute_genes_degs = function(df = genes_df_input,
+                                                         degs_genes_human= degs_genes_human,
                                               pval_filter = 0.05) {
   
   #Compute probabilities
