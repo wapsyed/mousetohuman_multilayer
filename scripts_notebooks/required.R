@@ -1,10 +1,29 @@
-#Required
-##Packages --------
+# required.R — central project file ----
+#
+# Single source of truth for the Mouse2Human multilayer project. It loads the
+# required packages and defines the shared colour palettes, the ggplot2 theme,
+# and every helper function used across the analysis notebooks. Each notebook
+# starts by sourcing this file: source(here("scripts_notebooks", "required.R")).
+#
+# Table of contents ----
+#  1. Setup and packages
+#  2. renv reference
+#  3. Palettes and colours
+#  4. Aesthetics (theme_vaxgo)
+#  5. Utility functions
+#  6. Correlation functions
+#  7. Enrichment functions
+#  8. Classification performance
+#  9. Evolutionary analysis (codon)
 
-# 1. Setup: Ensure pacman is available
+
+# 1. Setup and packages ----
+
+# Ensure pacman is available (uncomment to install it once) ----
 # if (!require("pacman")) install.packages("pacman")
 
-# 2. Define your package collections
+# Define the package collections ----
+# CRAN packages first, then Bioconductor packages; both are combined below.
 cran_pkgs <- c(
   "tidyverse", "rentrez", "yardstick", "shadowtext", "here", "glue", "ggsci", 
   "NGLVieweR", "janitor", "readr", "maditr", "ggmsa", "ggdist", "ggridges", 
@@ -25,8 +44,8 @@ bioc_pkgs <- c(
   "limma", "fgsea"
 )
 
-# 3. Safe, Non-Destructive Loading Pipeline
-# Combining lists to load sequentially via base R
+# Safe, non-destructive loading pipeline ----
+# Combine the collections and load them sequentially with base R.
 all_packages <- c(cran_pkgs, "notifier", bioc_pkgs)
 
 # Set `options(vaxgo.skip_package_loading = TRUE)` before sourcing this file to
@@ -47,15 +66,24 @@ if (!isTRUE(getOption("vaxgo.skip_package_loading"))) {
       ))
     }
   }
+
+  # Install ggsankey (GitHub-only) once if missing, then load it ----
+  if (!requireNamespace("ggsankey", quietly = TRUE)) {
+    devtools::install_github("davidsjoberg/ggsankey")
+  }
+  library(ggsankey)
 }
 
+# Optional GitHub-only packages, install manually when needed ----
 # github_pkgs <- c("RRHO2/RRHO2", "YuLab-SMU/ggmsa")
-#Download FIT 
+# Download the FIT reference database (only needed for the FIT analyses) ----
 # pak::pak('shenorrLabTRDF/FIT.mouse2man')
 
 
 
-######### RENV
+# 2. renv reference ----
+# The project uses renv to lock its R environment. The commands below are kept
+# for reference only; run them from the console when the lockfile needs syncing.
 # # Synchronize your physical project directories with your lockfile
 # renv::restore()
 
@@ -67,7 +95,10 @@ if (!isTRUE(getOption("vaxgo.skip_package_loading"))) {
 
 
 
-#Colors --------
+# 3. Palettes and colours ----
+# Central colour definitions shared by every figure: generic palettes plus
+# named colour maps for organisms, comparisons, timepoints, vaccines, and
+# gene-set categories. Keeping them here guarantees visual consistency.
 
 colors_all <- list(
   #Blues
@@ -270,8 +301,10 @@ immune_order = c("SIGNAL TRANSDUCTION",
 
 
 
-# Aesthetics -----
-#Custom theme
+# 4. Aesthetics (theme_vaxgo) ----
+# Project-wide ggplot2 theme applied to all plots. It modifies theme_minimal()
+# by removing grid lines, adding axis lines and ticks, and fixing text sizes
+# so every figure in the project shares the same look.
 theme_vaxgo <- function() {
   ggplot2::theme_minimal() +
     ggplot2::theme(
@@ -319,30 +352,11 @@ theme_vaxgo <- function() {
 
 
 
-#Functions ------
+# Helper functions ----
 
-#Function for correlation
-# safe_cor_test <- function(x, y, method) {
-#   # Remove NAs and infinite values first
-#   ok <- is.finite(x) & is.finite(y)
-#   x <- x[ok]
-#   y <- y[ok]
-#   
-#   # cor.test requires n >= 3 to run without error
-#   if (length(x) < 3 || sd(x) == 0 || sd(y) == 0) {
-#     return(list(estimate = NA_real_, p.value = NA_real_))
-#   } else {
-#     tryCatch({
-#       ct <- cor.test(x, y, method = method)
-#       return(list(estimate = unname(ct$estimate), p.value = ct$p.value))
-#     }, error = function(e) {
-#       return(list(estimate = NA_real_, p.value = NA_real_))
-#     })
-#   }
-# }
+# 5. Utility functions ----
 
-
-# Function for overlapping -------
+# Return shared and non-shared genes between two conditions ----
 overlap_genes <- function(cond1, cond2, data) {
   genes_cond1 <- data$genes[data$process == cond1]
   genes_cond2 <- data$genes[data$process == cond2]
@@ -374,99 +388,7 @@ overlap_genes <- function(cond1, cond2, data) {
   return(shared_genes)
 }
 
-#Run GSEA for a given contrast
-autoGSEA <- function(df, TERM2GENE, geneset_name) {
-  
-  gsea_results <- list()
-  
-  conditions <- df$condition %>% unique() %>% as.character()
-  
-  for (condition_i in conditions) {
-    
-    degs_condition <- df %>%
-      filter(condition == condition_i) %>%
-      select(genes, rank) %>%
-      distinct() %>%
-      arrange(desc(rank)) %>% 
-      deframe()   
-    
-    auto_gsea <- tryCatch({
-      
-      GSEA(
-        geneList = degs_condition,
-        TERM2GENE = TERM2GENE,
-        minGSSize = 1,
-        maxGSSize = 1000,
-        pvalueCutoff = 1,
-        pAdjustMethod = "BH"
-      ) %>%
-        as.data.frame() %>%
-        arrange(qvalue) %>%
-        mutate(
-          condition = condition_i,
-          gsea_enrichment = geneset_name
-        )
-      
-    }, error = function(e) NULL)
-    
-    if (!is.null(auto_gsea)) {
-      key <- paste(condition_i, geneset_name, sep = "_")
-      gsea_results[[key]] <- auto_gsea
-    }
-  }
-  
-  return(list(gsea = bind_rows(gsea_results)))
-}
-
-#Function for GSEA (Gene Ontology database)
-gseGO_all <- function(df, OrgDb = "org.Hs.eg.db", keyType = "SYMBOL", ontology = "BP") {
-  all_conditions <- df %>%
-    distinct(condition) %>%
-    pull(condition)
-  
-  gsea_results <- lapply(all_conditions, function(cond) {
-    message("Running for condition: ", cond)
-    
-    ranked_df <- df %>%
-      filter(condition == cond) %>%
-      arrange(value)
-    
-    gene_list <- ranked_df %>%
-      arrange(-value) %>%
-      pull(value, name = genes)
-    
-    gsea_result <- tryCatch({
-      gseGO(
-        geneList = gene_list,
-        ont = ontology,
-        keyType = keyType,
-        pvalueCutoff = 1,
-        verbose = TRUE,
-        OrgDb = OrgDb,
-        pAdjustMethod = "BH"
-      ) %>%
-        as.data.frame() %>%
-        arrange(qvalue) %>%
-        mutate(
-          condition = cond,
-          geneset = "Gene ontology, BP"
-        ) %>%
-        clean_names()
-    }, error = function(e) {
-      warning("Error in GSEA for condition: ", cond)
-      return(NULL)
-    })
-    
-    return(gsea_result)
-  })
-  
-  bind_rows(gsea_results)
-}
-
-
-
-
-# Function for clustering by day
+# Order conditions within each day by hierarchical clustering of their presence ----
 cluster_by_day <- function(df, day_column = "day", condition_column = "condition") {
   
   days <- levels(df[[day_column]])
@@ -507,7 +429,25 @@ cluster_by_day <- function(df, day_column = "day", condition_column = "condition
 }
 
 
-#Weighted correlation ====
+
+
+# Retrieve cDNA sequences and transcript lengths from biomaRt ----
+get_sequences <- function(genes, mart, symbol_attr) {
+  getBM(
+    attributes = c(symbol_attr, "cdna", "transcript_length"), 
+    filters = symbol_attr,
+    values = genes,
+    mart = mart
+  )
+}
+
+
+# 6. Correlation functions ----
+# Compute weighted and unweighted correlations between human and mouse effect
+# sizes, grouped by pathogen and timepoint, with FDR-adjusted significance
+# labels for plotting. Also provides a small safe wrapper around cor.test().
+
+# Weighted Spearman correlation on ranks between human and mouse effect sizes ----
 calculate_weighted_correlation_spearman <- function(data,
                                            x_col = mean_log2fc_Human,
                                            y_col = mean_log2fc_Mouse,
@@ -609,6 +549,7 @@ calculate_weighted_correlation_spearman <- function(data,
     )
 }
 
+# Weighted Pearson correlation between human and mouse effect sizes ----
 calculate_weighted_correlation_pearson <- function(data,
                                            x_col = mean_log2fc_Human,
                                            y_col = mean_log2fc_Mouse,
@@ -713,7 +654,7 @@ calculate_weighted_correlation_pearson <- function(data,
     )
 }
 
-#Simple pearson correlation
+# Unweighted Pearson correlation between human and mouse effect sizes ----
 calculate_correlation_pearson <- function(data,
                                           x_col = mean_log2fc_Human,
                                           y_col = mean_log2fc_Mouse,
@@ -808,7 +749,7 @@ calculate_correlation_pearson <- function(data,
     )
 }
 
-#Safe correlation 
+# Safe wrapper around cor.test() with n and variance guards ----
 safe_cor_test <- function(x, y, method) {
   # Remove NAs and infinite values first
   ok <- is.finite(x) & is.finite(y)
@@ -827,21 +768,106 @@ safe_cor_test <- function(x, y, method) {
     })
   }
 }
+# 7. Enrichment functions ----
 
+# Run GSEA for each condition against a custom gene set ----
+autoGSEA <- function(df, TERM2GENE, geneset_name) {
+  
+  gsea_results <- list()
+  
+  conditions <- df$condition %>% unique() %>% as.character()
+  
+  for (condition_i in conditions) {
+    
+    degs_condition <- df %>%
+      filter(condition == condition_i) %>%
+      select(genes, rank) %>%
+      distinct() %>%
+      arrange(desc(rank)) %>% 
+      deframe()   
+    
+    auto_gsea <- tryCatch({
+      
+      GSEA(
+        geneList = degs_condition,
+        TERM2GENE = TERM2GENE,
+        minGSSize = 1,
+        maxGSSize = 1000,
+        pvalueCutoff = 1,
+        pAdjustMethod = "BH"
+      ) %>%
+        as.data.frame() %>%
+        arrange(qvalue) %>%
+        mutate(
+          condition = condition_i,
+          gsea_enrichment = geneset_name
+        )
+      
+    }, error = function(e) NULL)
+    
+    if (!is.null(auto_gsea)) {
+      key <- paste(condition_i, geneset_name, sep = "_")
+      gsea_results[[key]] <- auto_gsea
+    }
+  }
+  
+  return(list(gsea = bind_rows(gsea_results)))
+}
 
-# Function to retrieve sequences
-get_sequences <- function(genes, mart, symbol_attr) {
-  getBM(
-    attributes = c(symbol_attr, "cdna", "transcript_length"), 
-    filters = symbol_attr,
-    values = genes,
-    mart = mart
-  )
+# Gene Ontology enrichment (GSEA) for every condition in a data frame ----
+gseGO_all <- function(df, OrgDb = "org.Hs.eg.db", keyType = "SYMBOL", ontology = "BP") {
+  all_conditions <- df %>%
+    distinct(condition) %>%
+    pull(condition)
+  
+  gsea_results <- lapply(all_conditions, function(cond) {
+    message("Running for condition: ", cond)
+    
+    ranked_df <- df %>%
+      filter(condition == cond) %>%
+      arrange(value)
+    
+    gene_list <- ranked_df %>%
+      arrange(-value) %>%
+      pull(value, name = genes)
+    
+    gsea_result <- tryCatch({
+      gseGO(
+        geneList = gene_list,
+        ont = ontology,
+        keyType = keyType,
+        pvalueCutoff = 1,
+        verbose = TRUE,
+        OrgDb = OrgDb,
+        pAdjustMethod = "BH"
+      ) %>%
+        as.data.frame() %>%
+        arrange(qvalue) %>%
+        mutate(
+          condition = cond,
+          geneset = "Gene ontology, BP"
+        ) %>%
+        clean_names()
+    }, error = function(e) {
+      warning("Error in GSEA for condition: ", cond)
+      return(NULL)
+    })
+    
+    return(gsea_result)
+  })
+  
+  bind_rows(gsea_results)
 }
 
 
-# CLASSIFICATION PERFORMANCE
-# Compute classification performance for GENES and DEGs ==============
+
+
+# 8. Classification performance ----
+# Evaluate how well mouse (and other candidate models) classify human
+# differential expression. Truth labels are taken from the human DEGs, then
+# ROC/AUC and PR/PR-AUC are computed at gene level and at DEG level.
+
+# Classification performance for GENES and DEGs ----
 classification_performance_compute_genes_degs = function(df = genes_df_input,
                                               pval_filter = 0.05) {
   
@@ -1309,7 +1335,7 @@ classification_performance_compute_genes_degs = function(df = genes_df_input,
 
 
 
-# Compute classification performance MODULES ==============
+# Classification performance at the module (BTM) level ----
 
 classification_performance_compute_modules = function(df = btms_df_input,
                                                             effect_var = mean_log2fc) {
@@ -1587,9 +1613,9 @@ classification_performance_compute_modules = function(df = btms_df_input,
 
 
 
-# Codon Alignment ----
+# 9. Evolutionary analysis (codon) ----
 
-# Molecular distance
+# Calculate pairwise molecular distance between human and mouse CDS ----
 calculate_pairwise_dna_distance <- function(human_cds, mouse_cds) {
   # Clean sequence inputs (remove whitespace/newlines and convert to uppercase)
   human_cds <- toupper(gsub("\\s+", "", human_cds))
