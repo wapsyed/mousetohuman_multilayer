@@ -45,7 +45,6 @@ The computational pipeline is structured into 10 modular R Markdown notebooks de
 6.  **`3.3_Comparing_Human_Mouse_Functional_Analyses.Rmd`** — Evaluates higher-order functional conservation. Generates module-level NES and mean log₂FC cross-species correlations over time (**Figure 4a**), quantifies shared vs. species-specific leading-edge genes (LEGs) (**Figure 5a**), and plots rank conservation for core modules such as "immune activation - generic cluster" (**Figure 5b**).
 7.  **`4_Performance_EqualTImepoints.Rmd` & `4_Performance_DifferentTimepoints.rmd`** — Assesses murine predictive power for human module regulation. Generates ROC curves and computes Area Under the Curve (AUC) (**Figure 4b**) for matched (equal) timepoints and cross-temporal (different) timepoints, benchmarked against biological controls (e.g., Duchenne Muscular Dystrophy, DMD) and permutation null distributions.
 8.  **`5.1_EvolutionaryAnalysis_Protein.Rmd` & `5.2_EvolutionaryAnalysis_Regulation.Rmd`** — Dissects evolutionary determinants. Retrieves Ensembl BioMart coding sequences (CDS) and amino acid identity %, computes codon-level pairwise alignment and **Kimura 2-Parameter (K80) genetic distances**, and integrates ENCODE candidate Cis-Regulatory Elements (cCREs: PLS, pELS, dELS, and CTCF-bound sites) across GRCh38 and mm10 to assess promoter conservation.
-9.  **`6_Statistical_Modelling.Rmd`** — Builds multi-modal machine learning workflows using `tidymodels` (Random Forest via `ranger`, Elastic Net) combining coding sequence distance (`dist_k80`), amino acid identity, transcription factor networks, and promoter cCRE structures to model the genomic determinants of translatability.
 10. **`Modelling/6_Statistical_Modelling.Rmd`** — Consolidated modelling pipeline that predicts the **human** response gene by gene. Uses two nested feature layers (**DGE Baseline → Full + BTM**), two universes (all human DEGs for *rank transfer* and *direction*; mouse LEGs for *shared-LEG classification*), and **leave-one-condition-out (LOCO)** cross-validation. Benchmarks four algorithms — linear/logistic regression, **lasso**, **random forest** and a **neural network** — and exports the best model per task plus four out-of-fold scores (`score_shared`, `score_rank`, `score_direction`, `score_translational`). See [Statistical modelling](#statistical-modelling-v2) below.
 
 ------------------------------------------------------------------------
@@ -186,19 +185,7 @@ Each notebook sources `scripts_notebooks/required.R`, initializing the shared wo
 | **6** | `6_Statistical_Modelling.Rmd` | `human_mouse_statsmodelling_parameters_values.rds` | `tidymodels` Random Forest & Elastic Net models, VIP feature importance |
 | **6 (v2)** | `Modelling/6_Statistical_Modelling.Rmd` | `human_mouse_statsmodelling_gene_annotated_layers.rds`, `dge_btm_process_genes_diff_bygene_clean_filtered.rds` | `Modelling/Models/rf_model_*.rds`, LOCO metrics, `score_table_v2.rds`, Fig. 7 |
 
-------------------------------------------------------------------------
 
-## Minimal Worked Example
-
-The standalone script [`example/example_btm_correlation.R`](example/example_btm_correlation.R) reproduces the cross-species BTM correlation scatter plot using pre-computed tables in `< 2 minutes`:
-
-``` r
-source(here::here("example", "example_btm_correlation.R"))
-```
-
-Outputs are saved directly to `Figures/example_btm_correlation_day7.png`.
-
-------------------------------------------------------------------------
 
 ## Statistical modelling {#statistical-modelling-v2}
 
@@ -248,10 +235,9 @@ Every gene is scored by a model trained without its pathogen:
 - `score_direction` — probability of concordant direction.
 - `score_translational` — `score_rank x score_direction`.
 
-Resources to help you apply the models:
+### Resources to help you apply the models:
 
 - **Notebook (recommended):** <https://github.com/wapsyed/mousetohuman_predict> — a step-by-step R Markdown notebook covering the full flow from DGE input to GSEA, model prediction and score visualisation.
-- **Guide:** the companion file `example_apply_model.md` (in the `academics_ai_personal` repository) documents the input requirements, the score definitions and the cutoffs.
 
 ------------------------------------------------------------------------
 
