@@ -1,11 +1,14 @@
 # From mice to humans: A multi-omic predictive framework for translational immunology
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![R version](https://img.shields.io/badge/R-%3E%3D4.5.2-276DC3?logo=r&logoColor=white)](https://cran.r-project.org/) [![renv](https://img.shields.io/badge/reproducibility-renv-blue)](https://rstudio.github.io/renv/) [![Journal](https://img.shields.io/badge/Genes%20%26%20Immunity-Under%20Review-orange)](https://www.nature.com/gi/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![R version](https://img.shields.io/badge/R-%3E%3D4.5.2-276DC3?logo=r&logoColor=white)](https://cran.r-project.org/) [![renv](https://img.shields.io/badge/reproducibility-renv-blue)](https://rstudio.github.io/renv/) [![Journal](https://img.shields.io/badge/Genes%20%26%20Immunity-Under%20Review-orange)](https://www.nature.com/gi/) [![Project site](https://img.shields.io/badge/Project%20site-GitHub%20Pages-4361ee?logo=githubpages&logoColor=white)](https://wapsyed.github.io/mousetohuman_multilayer/)
 
 > **Associated manuscript:**\
 > *From mice to humans: A multi-omic predictive framework for translational immunology*\
 > Wasim Aluísio Prates-Syed, Aline A. Lira, Nelson Cortes, Jaqueline D.Q. Silva, Bárbara Hamaguchi, Evelyn Carvalho, Adriana Castillo-Chávez, Ricardo Durães-Carvalho, Otavio Cabral-Marques, Ester Cerdeira Sabino, José Eduardo Krieger, Thomas Hagan, Gustavo Cabral-Miranda.\
 > *Submitted to Genes and Immunity — currently under review.*
+
+> **🌐 Project site:** [**wapsyed.github.io/mousetohuman_multilayer**](https://wapsyed.github.io/mousetohuman_multilayer/)\
+> Overview · Methodology · **Modelling** · Code planning (notebook map) — all in one page.
 
 ------------------------------------------------------------------------
 

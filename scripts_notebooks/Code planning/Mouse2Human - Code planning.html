@@ -71,7 +71,8 @@
     #t-33:checked ~ .tabs label[for="t-33"],
     #t-4:checked ~ .tabs label[for="t-4"],
     #t-51:checked ~ .tabs label[for="t-51"],
-    #t-52:checked ~ .tabs label[for="t-52"] {
+    #t-52:checked ~ .tabs label[for="t-52"],
+    #t-6:checked ~ .tabs label[for="t-6"] {
       background: var(--banner); color: var(--banner-ink); border-color: var(--banner);
     }
     #t-overview:checked ~ .tabs label[for="t-overview"] b,
@@ -84,7 +85,8 @@
     #t-33:checked ~ .tabs label[for="t-33"] b,
     #t-4:checked ~ .tabs label[for="t-4"] b,
     #t-51:checked ~ .tabs label[for="t-51"] b,
-    #t-52:checked ~ .tabs label[for="t-52"] b { color: var(--banner-ink); }
+    #t-52:checked ~ .tabs label[for="t-52"] b,
+    #t-6:checked ~ .tabs label[for="t-6"] b { color: var(--banner-ink); }
 
     .panel { display: none; }
     #t-overview:checked ~ .panels .p-overview,
@@ -97,7 +99,8 @@
     #t-33:checked ~ .panels .p-33,
     #t-4:checked ~ .panels .p-4,
     #t-51:checked ~ .panels .p-51,
-    #t-52:checked ~ .panels .p-52 { display: block; }
+    #t-52:checked ~ .panels .p-52,
+    #t-6:checked ~ .panels .p-6 { display: block; }
 
     /* ── Section banner ── */
     .banner {
@@ -177,6 +180,7 @@
     <input type="radio" name="doc" id="t-4">
     <input type="radio" name="doc" id="t-51">
     <input type="radio" name="doc" id="t-52">
+    <input type="radio" name="doc" id="t-6">
 
     <nav class="tabs">
       <label for="t-overview"><b>Overview</b></label>
@@ -190,6 +194,7 @@
       <label for="t-4"><b>4</b> · Performance</label>
       <label for="t-51"><b>5.1</b> · Protein</label>
       <label for="t-52"><b>5.2</b> · Regulation</label>
+      <label for="t-6"><b>6</b> · Modelling</label>
     </nav>
 
     <div class="panels">
@@ -661,6 +666,66 @@
             <ul>
               <li>Import, merge, and summarise data</li>
               <li>Plot total TFs by species</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== 6 · MODELLING ===================== -->
+      <section class="panel p-6">
+        <div class="banner">6 · Statistical modelling — mouse-to-human transfer</div>
+        <p class="notelink">Notebooks: <a href="../Modelling/6_Statistical_Modelling.Rmd">Modelling/6_Statistical_Modelling.Rmd</a> · <a href="../Modelling/6_Statistical_Modelling_optionB.Rmd">6_Statistical_Modelling_optionB.Rmd</a></p>
+
+        <div class="pills">
+          <span class="pill">Feature layers</span><span class="arrow">→</span>
+          <span class="pill alt">LOCO folds</span><span class="arrow">→</span>
+          <span class="pill">4 algorithms</span><span class="arrow">→</span>
+          <span class="pill alt">Out-of-fold scores</span>
+        </div>
+        <div class="cards">
+          <div class="card">
+            <h3>Universes &amp; targets</h3>
+            <ul>
+              <li><b>Universe 1</b> — all human DEGs (<code>p_adj_human &lt;= 0.05</code>)
+                <ul><li>Convergence · rank transfer · direction</li></ul>
+              </li>
+              <li><b>Universe 2</b> — mouse LEGs (Shared vs Mouse only)
+                <ul><li>Shared-LEG classification, ranks within LEGs</li></ul>
+              </li>
+              <li><b>Absolute rank</b> — percentile (0–100) of <code>|log2FC| × -log10(adj. P)</code></li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Feature layers</h3>
+            <ul>
+              <li><b>DGE Baseline</b> — mouse log2FC, 1/SE, mouse rank</li>
+              <li><b>Mouse + layers</b> — adds sequence evolution, TFs, cCREs, BTM</li>
+              <li><b>Full + BTM</b> — framing A (predictive) vs B (explanatory)</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Algorithms (LOCO)</h3>
+            <ul>
+              <li>Linear / logistic regression</li>
+              <li>Lasso (<code>glmnet</code>)</li>
+              <li>Random forest (<code>ranger</code>)</li>
+              <li>Neural network (<code>nnet</code>)</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Best out-of-fold results</h3>
+            <ul>
+              <li><b>Rank transfer</b> — RF <code>R² = 0.234</code></li>
+              <li><b>Direction</b> — RF <code>ROC-AUC = 0.849</code></li>
+              <li><b>Shared LEGs</b> — Lasso <code>0.617</code> / <code>0.627</code></li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Outputs</h3>
+            <ul>
+              <li><code>score_shared</code> · <code>score_rank</code></li>
+              <li><code>score_direction</code> · <code>score_translational</code></li>
+              <li><code>Modelling/Models</code> · <code>Tables</code> · <code>Figures</code></li>
             </ul>
           </div>
         </div>
