@@ -31,7 +31,7 @@ body {
 /* ── site nav ── */
 .site-nav { background: var(--banner); color: var(--banner-ink); padding: 0.75rem 0; }
 .site-nav .inner { max-width: 960px; margin: 0 auto; padding: 0 2rem; display: flex; flex-wrap: wrap; gap: 1.25rem; align-items: baseline; }
-.site-nav .brand { font-family: var(--font-serif); font-size: 1.05rem; color: var(--banner-ink); margin-right: auto; }
+.site-nav .brand { font-family: var(--font-serif); font-size: 1.05rem; color: var(--banner-ink); margin-right: auto; letter-spacing: 0; text-transform: none; }
 .site-nav a { color: rgba(255,255,255,0.82); border-bottom: none; text-decoration: none; font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; }
 .site-nav a:hover { color: #ffffff; }
 .site-nav a.active { color: #ffffff; border-bottom: 1px solid rgba(255,255,255,0.5); }
@@ -75,3 +75,14 @@ li { margin: 0.25rem 0; }
 
 /* ── footer ── */
 .foot { max-width: 960px; margin: 0 auto; padding: 1.25rem 2rem 3rem; border-top: 1px solid var(--rule); font-family: var(--font-mono); font-size: 0.7rem; color: var(--soft); display: flex; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
+
+/* ── landing hub ── */
+.eyebrow { font-family: var(--font-mono); font-size: 0.68rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--soft); margin-bottom: 0.5rem; }
+.lede { color: var(--muted); max-width: 72ch; margin-bottom: 2rem; }
+.cards { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.card { display: block; background: var(--card); border: 1px solid var(--rule); border-radius: 8px; padding: 1.25rem; text-decoration: none; color: var(--ink); border-bottom: 1px solid var(--rule); }
+.card:hover { border-color: var(--accent); }
+.card .tag { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--soft); display: block; margin-bottom: 0.6rem; }
+.card h3 { margin: 0 0 0.4rem; font-family: var(--font-sans); font-weight: 600; font-size: 1.02rem; border: 0; padding: 0; }
+.card p { margin: 0; color: var(--muted); font-size: 0.85rem; }
+
