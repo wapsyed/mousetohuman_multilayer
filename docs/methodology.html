@@ -104,9 +104,11 @@
 <main class="content">
 <h1 id="complete-study-methodology">Complete Study Methodology</h1>
 <h2
-id="animals-vax-atlas-comparative-immunogenomics-of-human-mouse-vaccine-and-infection-responses">Animals
-Vax Atlas: Comparative Immunogenomics of Human-Mouse Vaccine and
-Infection Responses</h2>
+id="from-mice-to-humans-a-multi-omic-predictive-framework-for-translational-immunology">From
+mice to humans: A multi-omic predictive framework for translational
+immunology</h2>
+<p><em>Companion methods document to the manuscript submitted to
+<strong>Genes and Immunity</strong> (currently under review).</em></p>
 <hr />
 <h2 id="i-introduction--research-framework">I. INTRODUCTION &amp;
 RESEARCH FRAMEWORK</h2>
@@ -125,16 +127,28 @@ structures—specifically functional pathways, Blood Transcription Modules
 (BTMs), and coordinated gene networks—are evolutionarily conserved
 across species, retaining high predictive fidelity even when individual
 gene effect sizes diverge.</li>
-<li><strong>Key Findings:</strong>
+<li><strong>Key Findings (as reported in the manuscript):</strong>
 <ol type="1">
-<li>Shifting from gene-centric to pathway-level metrics substantially
-elevates cross-species concordance.</li>
-<li>Translational fidelity scales monotonically with stimulus intensity:
-systemic injuries and acute bacterial infections show robust
-conservation, while milder vaccination stimuli exhibit greater
-species-specific divergence.</li>
-<li>Expression divergence between orthologs is driven by divergent
-<em>cis</em>-regulatory promoter architecture rather than protein-coding
+<li><strong>Functional modules were more conserved between species than
+individual orthologous genes</strong>, and module-level correlations
+exceeded gene-level correlations in every condition.</li>
+<li><strong>Translational accuracy depended on stimulus
+intensity:</strong> acute infections and injuries engaged conserved
+signatures with higher concordance, while single-dose
+inactivated/subunit vaccination diverged.</li>
+<li><strong>Adding evolutionary and regulatory layers improved
+prediction.</strong> Mouse rank and direction did not predict human
+responses on their own; adding sequence evolution, TF features, CRE
+architecture, CTCF status and BTM membership raised the random forest to
+<span class="math inline">\(R^2 = 0.23\)</span> for human rank transfer
+and ROC-AUC <span class="math inline">\(= 0.85\)</span> for directional
+concordance. A lasso-penalised logistic model was marginally better for
+shared-LEG classification (ROC-AUC <span
+class="math inline">\(0.617\)</span> predictive / <span
+class="math inline">\(0.627\)</span> explanatory).</li>
+<li><strong>Expression divergence between orthologs was associated with
+divergent <em>cis</em>-regulatory architecture</strong>
+(promoter/enhancer turnover and TF sharing) rather than protein-coding
 sequence identity or codon evolution.</li>
 </ol></li>
 </ul>
@@ -144,21 +158,26 @@ sequence identity or codon evolution.</li>
 transcriptomic profiling of matched perturbations across humans
 (<em>Homo sapiens</em>) and laboratory mice (<em>Mus
 musculus</em>).</li>
-<li><strong>Perturbations Analyzed:</strong> Six matched immune and
-injury conditions spanning viral-antigen vaccination, Gram-positive
-bacteremia, Gram-negative sepsis, and major sterile tissue trauma.</li>
+<li><strong>Perturbations Analyzed:</strong> Inactivated and subunit
+vaccination (influenza, hepatitis B), acute bacterial infection (<em>S.
+aureus</em>, <em>E. coli</em>) and sterile injury (burns,
+trauma-hemorrhage).</li>
+<li><strong>Biological Negative Control:</strong> Duchenne's muscular
+dystrophy (DMD; <em>mdx</em> mouse, peak pathological timepoint Day 28),
+used to benchmark the specificity of the cross-species comparison.</li>
 <li><strong>Data Repositories:</strong> Publicly available
 transcriptomic cohorts retrieved from the NCBI Gene Expression Omnibus
 (GEO) and NCBI BioProject databases.</li>
 <li><strong>Analytical Trajectory:</strong> Automated data curation
 <span class="math inline">\(\to\)</span> multi-level quality control
 <span class="math inline">\(\to\)</span> platform-specific normalization
-<span class="math inline">\(\to\)</span> maximum variance probe
-collapsing <span class="math inline">\(\to\)</span> linear modeling
-(limma DGE) <span class="math inline">\(\to\)</span> pathway enrichment
-(fgsea) <span class="math inline">\(\to\)</span> macroevolutionary
-divergence modeling <span class="math inline">\(\to\)</span> predictive
-classification (ROC/AUC) <span class="math inline">\(\to\)</span>
+<span class="math inline">\(\to\)</span> probe collapsing &amp; 1:1
+ortholog mapping <span class="math inline">\(\to\)</span> linear
+modeling (limma DGE) <span class="math inline">\(\to\)</span> functional
+enrichment (BTMs / GSEA) <span class="math inline">\(\to\)</span>
+macroevolutionary divergence modeling <span
+class="math inline">\(\to\)</span> predictive classification
+(ROC/PR/AUC) <span class="math inline">\(\to\)</span>
 structural/regulatory evolutionary genomics <span
 class="math inline">\(\to\)</span> multi-modal statistical modeling
 (<code>tidymodels</code>).</li>
@@ -169,33 +188,100 @@ STUDY COHORTS</h2>
 <h3 id="iia-public-repository-search-strategy">II.A Public Repository
 Search Strategy</h3>
 <ol type="1">
-<li><strong>BioProject Systematic Curation:</strong> NCBI BioProject was
-queried for functional genomics studies matching keywords
-(<code>"vaccine"</code>, <code>"vaccination"</code>,
-<code>"immunization"</code>, <code>"immune response"</code>,
-<code>"infection"</code>), restricted to <em>Homo sapiens</em> (Taxonomy
-ID 9606) and <em>Mus musculus</em> (Taxonomy ID 10090).</li>
-<li><strong>Inclusion Criteria:</strong>
-<ul>
-<li>Longitudinal, time-course experimental designs incorporating
-pre-treatment baseline (Day 0) and post-challenge timepoints.</li>
-<li>Peripheral blood sampling (whole blood or isolated peripheral blood
-mononuclear cells [PBMCs]).</li>
-<li>Minimum sample size of <span class="math inline">\(\ge 3\)</span>
-biological replicates per timepoint/group.</li>
-<li>Fully accessible raw or normalized microarray expression matrices
-and complete sample metadata.</li>
-</ul></li>
-<li><strong>Exclusion Criteria:</strong>
-<ul>
-<li>Oncology, tumor immunology, chronic autoimmune pathogenesis, or
-drug-toxicity screens (filtered via regex:
-<code>!str_detect(title, "cancer|tumor|autoimmune|drug")</code>).</li>
-<li>Single-cell RNA-seq studies without bulk equivalent resolution.</li>
-<li>Incomplete timepoint or phenotypic annotation.</li>
-</ul></li>
+<li><strong>BioProject / GEO query:</strong> vaccine-related terms
+(<code>"vaccine"</code>, <code>"vaccinated"</code>,
+<code>"vaccination"</code>, <code>"vaccines"</code>) combined with the
+filters <code>"transcriptome gene expression"</code>,
+<code>"material transcriptome"</code>, <code>"capture_whole"</code> and
+<code>"org mammals"</code>, while <strong>excluding</strong> <em>Homo
+sapiens</em> to focus on non-human mammalian studies.</li>
+<li><strong>Organism restriction:</strong> a subsequent query isolated
+studies specifically related to <em>Mus musculus</em> using the organism
+filter, <strong>excluding</strong> records associated with tumors,
+cancer and autoimmune diseases.</li>
+<li><strong>Assay restriction:</strong> only datasets labelled
+<code>"Expression profiling by array"</code> or
+<code>"Expression profiling by high throughput sequencing"</code> were
+retained.</li>
+<li><strong>Manual annotation:</strong> only studies involving
+<strong>vaccines against human pathogens</strong> were included.
+BioProject records were merged with GEO entries using PRJNA accession
+IDs, and each entry was split to assign unique identifiers based on the
+<strong>vaccine used, sample source and RNA-sequencing
+protocol</strong>. Datasets containing only partial methodological
+information, or focused solely on BCR/TCR repertoire data, were
+excluded.</li>
+<li><strong>Annotation fields:</strong> records were annotated with
+<code>GEOquery</code> and manually curated against the BioProject record
+and the corresponding publication, capturing sample source, target
+condition and antigen, vaccine type and adjuvant, time points, doses,
+administration route, RNA assay method, and availability on the
+<strong>13Vax / COVID-19Vax atlases</strong> or the <strong>MSigDB Vax
+collection</strong>. Where information conflicted with the publication,
+<strong>the GEO record was prioritised</strong> (e.g., immunization
+route, sample tissue source).</li>
 </ol>
-<h3 id="iib-dataset-cohort-matrix">II.B Dataset Cohort Matrix</h3>
+<blockquote>
+<p>Of 201 mouse immunization datasets retrieved from GEO, only two
+microarray datasets matched the human vaccination data in our atlases by
+tissue, antigen, vaccine type, target condition, time points and
+adjuvants. <strong>GSE120661</strong> (influenza + hepatitis B) was
+carried forward; <strong>GSE182858</strong> (influenza vaccination in
+"dirty" mice) could not be directly compared with the human cohort owing
+to divergent sampling schedules (3 hours before/after immunisation vs.
+days 1, 3 and 7) and was not used.</p>
+</blockquote>
+<h3 id="iib-clinical-metadata-harmonization">II.B Clinical Metadata
+Harmonization</h3>
+<ul>
+<li><strong>Time alignment:</strong> for human injury datasets, time
+elapsed since injury (originally in hours) was converted to days.</li>
+<li><strong>Discretization:</strong> samples were binned into
+categorical timepoints aligned to the mouse sample-collection
+schedule:</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Bin</th>
+<th style="text-align: left;">Label</th>
+<th style="text-align: left;">Bin</th>
+<th style="text-align: left;">Label</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">&lt; 1 day</td>
+<td style="text-align: left;">Early Hours</td>
+<td style="text-align: left;">10–18 days</td>
+<td style="text-align: left;">Day 14</td>
+</tr>
+<tr>
+<td style="text-align: left;">1–2 days</td>
+<td style="text-align: left;">Day 1</td>
+<td style="text-align: left;">18–25 days</td>
+<td style="text-align: left;">Day 21</td>
+</tr>
+<tr>
+<td style="text-align: left;">2–5 days</td>
+<td style="text-align: left;">Day 3</td>
+<td style="text-align: left;">&gt; 25 days</td>
+<td style="text-align: left;">Late</td>
+</tr>
+<tr>
+<td style="text-align: left;">5–10 days</td>
+<td style="text-align: left;">Day 7</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Grouping:</strong> samples were stratified into
+<strong>"Trauma"</strong> or <strong>"Burn"</strong> and
+<strong>"Control"</strong> groups based on subject identifiers.</li>
+</ul>
+<h3 id="iic-dataset-cohort-matrix">II.C Dataset Cohort Matrix</h3>
 <table>
 <thead>
 <tr>
@@ -203,9 +289,8 @@ drug-toxicity screens (filtered via regex:
 <th style="text-align: left;">Condition / Agent</th>
 <th style="text-align: left;">Organism</th>
 <th style="text-align: left;">GEO Accession</th>
-<th style="text-align: left;">Platform ID</th>
-<th style="text-align: left;">Array Technology</th>
 <th style="text-align: left;">Tissue Source</th>
+<th style="text-align: left;">Platform</th>
 </tr>
 </thead>
 <tbody>
@@ -214,433 +299,609 @@ drug-toxicity screens (filtered via regex:
 <td style="text-align: left;">Influenza (Fluad: TIV + MF59)</td>
 <td style="text-align: left;">Mouse</td>
 <td style="text-align: left;">GSE120661</td>
-<td style="text-align: left;">GPL21103</td>
-<td style="text-align: left;">Agilent-074309 8×60K</td>
-<td style="text-align: left;">Whole Blood</td>
+<td style="text-align: left;">PBMCs</td>
+<td style="text-align: left;">Microarray</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Vaccination</strong></td>
+<td style="text-align: left;">Influenza (Agrippal, unadjuvanted)</td>
+<td style="text-align: left;">Mouse</td>
+<td style="text-align: left;">GSE120661</td>
+<td style="text-align: left;">PBMCs</td>
+<td style="text-align: left;">Microarray</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Vaccination</strong></td>
+<td style="text-align: left;">Hepatitis B (Engerix-B + alum)</td>
+<td style="text-align: left;">Mouse</td>
+<td style="text-align: left;">GSE120661</td>
+<td style="text-align: left;">PBMCs</td>
+<td style="text-align: left;">Microarray</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Vaccination</strong></td>
+<td style="text-align: left;">Hepatitis B (Engerix-B, unadjuvanted)</td>
+<td style="text-align: left;">Mouse</td>
+<td style="text-align: left;">GSE120661</td>
+<td style="text-align: left;">PBMCs</td>
+<td style="text-align: left;">Microarray</td>
 </tr>
 <tr>
 <td style="text-align: left;"><strong>Vaccination</strong></td>
 <td style="text-align: left;">Influenza (Fluad: TIV + MF59)</td>
 <td style="text-align: left;">Human</td>
 <td style="text-align: left;">GSE124689</td>
-<td style="text-align: left;">GPL10558</td>
-<td style="text-align: left;">Illumina HumanHT-12 v4.0</td>
-<td style="text-align: left;">Whole Blood</td>
-</tr>
-<tr>
-<td style="text-align: left;"><strong>Vaccination</strong></td>
-<td style="text-align: left;">Hepatitis B (Engerix-B)</td>
-<td style="text-align: left;">Mouse</td>
-<td style="text-align: left;">GSE120661</td>
-<td style="text-align: left;">GPL21103</td>
-<td style="text-align: left;">Agilent-074309 8×60K</td>
-<td style="text-align: left;">Whole Blood</td>
+<td style="text-align: left;">PBMCs</td>
+<td style="text-align: left;">Illumina HT-12 v4</td>
 </tr>
 <tr>
 <td style="text-align: left;"><strong>Vaccination</strong></td>
 <td style="text-align: left;">Hepatitis B (Engerix-B)</td>
 <td style="text-align: left;">Human</td>
 <td style="text-align: left;">GSE124533</td>
-<td style="text-align: left;">GPL10558</td>
-<td style="text-align: left;">Illumina HumanHT-12 v4.0</td>
-<td style="text-align: left;">Whole Blood</td>
+<td style="text-align: left;">Whole blood</td>
+<td style="text-align: left;">Illumina HT-12 v4</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Acute Infection</strong></td>
+<td style="text-align: left;"><em>S. aureus</em> bacteremia</td>
+<td style="text-align: left;">Mouse</td>
+<td style="text-align: left;">GSE19668</td>
+<td style="text-align: left;">Whole blood</td>
+<td style="text-align: left;">Microarray</td>
 </tr>
 <tr>
 <td style="text-align: left;"><strong>Acute Infection</strong></td>
 <td style="text-align: left;"><em>S. aureus</em> bacteremia</td>
 <td style="text-align: left;">Human</td>
-<td style="text-align: left;">GSE19668</td>
-<td style="text-align: left;">GPL6244</td>
-<td style="text-align: left;">Affymetrix Human Gene 1.0 ST</td>
-<td style="text-align: left;">Whole Blood</td>
-</tr>
-<tr>
-<td style="text-align: left;"><strong>Acute Infection</strong></td>
-<td style="text-align: left;"><em>S. aureus</em> systemic challenge</td>
-<td style="text-align: left;">Mouse</td>
-<td style="text-align: left;">GSE120661</td>
-<td style="text-align: left;">GPL21103</td>
-<td style="text-align: left;">Agilent-074309 8×60K</td>
-<td style="text-align: left;">Whole Blood</td>
+<td style="text-align: left;">GSE33341</td>
+<td style="text-align: left;">Whole blood</td>
+<td style="text-align: left;">Microarray</td>
 </tr>
 <tr>
 <td style="text-align: left;"><strong>Acute Infection</strong></td>
 <td style="text-align: left;"><em>E. coli</em> sepsis</td>
-<td style="text-align: left;">Human</td>
+<td style="text-align: left;">Mouse / Human</td>
 <td style="text-align: left;">GSE33341</td>
-<td style="text-align: left;">GPL6244</td>
-<td style="text-align: left;">Affymetrix Human Gene 1.0 ST</td>
-<td style="text-align: left;">Whole Blood</td>
-</tr>
-<tr>
-<td style="text-align: left;"><strong>Acute Infection</strong></td>
-<td style="text-align: left;"><em>E. coli</em>
-endotoxemia/challenge</td>
-<td style="text-align: left;">Mouse</td>
-<td style="text-align: left;">GSE120661</td>
-<td style="text-align: left;">GPL21103</td>
-<td style="text-align: left;">Agilent-074309 8×60K</td>
-<td style="text-align: left;">Whole Blood</td>
-</tr>
-<tr>
-<td style="text-align: left;"><strong>Sterile Injury</strong></td>
-<td style="text-align: left;">Severe Burn Injury</td>
-<td style="text-align: left;">Human</td>
-<td style="text-align: left;">Clinical cohort</td>
-<td style="text-align: left;">Custom Array</td>
+<td style="text-align: left;">Whole blood</td>
 <td style="text-align: left;">Microarray</td>
-<td style="text-align: left;">Whole Blood</td>
 </tr>
 <tr>
 <td style="text-align: left;"><strong>Sterile Injury</strong></td>
-<td style="text-align: left;">Severe Burn Injury</td>
+<td style="text-align: left;">Severe Burn</td>
 <td style="text-align: left;">Mouse</td>
-<td style="text-align: left;">GSE182858</td>
-<td style="text-align: left;">GPL6887</td>
-<td style="text-align: left;">Illumina MouseWG-6 v2.0</td>
-<td style="text-align: left;">Whole Blood</td>
+<td style="text-align: left;">GSE7404</td>
+<td style="text-align: left;">Blood</td>
+<td style="text-align: left;">Microarray</td>
 </tr>
 <tr>
 <td style="text-align: left;"><strong>Sterile Injury</strong></td>
-<td style="text-align: left;">Severe Blunt Trauma</td>
+<td style="text-align: left;">Severe Burn</td>
+<td style="text-align: left;">Human</td>
+<td style="text-align: left;">GSE37069</td>
+<td style="text-align: left;">Whole blood</td>
+<td style="text-align: left;">Microarray</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Sterile Injury</strong></td>
+<td style="text-align: left;">Trauma-hemorrhage</td>
+<td style="text-align: left;">Mouse</td>
+<td style="text-align: left;">GSE7404</td>
+<td style="text-align: left;">Blood</td>
+<td style="text-align: left;">Microarray</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Sterile Injury</strong></td>
+<td style="text-align: left;">Severe Trauma</td>
 <td style="text-align: left;">Human</td>
 <td style="text-align: left;">GSE36809</td>
-<td style="text-align: left;">GPL6244</td>
-<td style="text-align: left;">Affymetrix Human Gene 1.0 ST</td>
-<td style="text-align: left;">Whole Blood</td>
+<td style="text-align: left;">Whole blood</td>
+<td style="text-align: left;">Affymetrix Gene 1.0 ST</td>
 </tr>
 <tr>
-<td style="text-align: left;"><strong>Injury + Vaccine</strong></td>
-<td style="text-align: left;">Burn + Quadrivalent Vaccine</td>
+<td style="text-align: left;"><strong>Negative control</strong></td>
+<td style="text-align: left;">Duchenne muscular dystrophy
+(<em>mdx</em>)</td>
 <td style="text-align: left;">Mouse</td>
+<td style="text-align: left;">GSE1025</td>
+<td style="text-align: left;">Muscle</td>
+<td style="text-align: left;">Affymetrix</td>
+</tr>
+</tbody>
+</table>
+<p>Mouse vaccination cohort metadata (from Supplementary Table 1):</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">GEO</th>
+<th style="text-align: left;">Time points</th>
+<th style="text-align: center;">Samples</th>
+<th style="text-align: center;">Doses</th>
+<th style="text-align: left;">Type</th>
+<th style="text-align: left;">Pathogen</th>
+<th style="text-align: left;">Vaccine</th>
+<th style="text-align: left;">Adjuvant</th>
+<th style="text-align: left;">Tissue</th>
+<th style="text-align: left;">Route</th>
+<th style="text-align: left;">Assay</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">GSE120661</td>
+<td style="text-align: left;">4, 8, 24, 48, 72, 168 h</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: left;">Subunit</td>
+<td style="text-align: left;">HBV</td>
+<td style="text-align: left;">Engerix-B</td>
+<td style="text-align: left;">Alum</td>
+<td style="text-align: left;">PBMCs</td>
+<td style="text-align: left;">IM</td>
+<td style="text-align: left;">Microarray</td>
+</tr>
+<tr>
+<td style="text-align: left;">GSE120661</td>
+<td style="text-align: left;">4, 8, 24, 48, 72, 168 h</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: left;">Subunit</td>
+<td style="text-align: left;">HBV</td>
+<td style="text-align: left;">Engerix-B</td>
+<td style="text-align: left;">None</td>
+<td style="text-align: left;">PBMCs</td>
+<td style="text-align: left;">IM</td>
+<td style="text-align: left;">Microarray</td>
+</tr>
+<tr>
+<td style="text-align: left;">GSE120661</td>
+<td style="text-align: left;">4, 8, 24, 48, 72, 168 h</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: left;">Inactivated</td>
+<td style="text-align: left;">Influenza</td>
+<td style="text-align: left;">Agrippal</td>
+<td style="text-align: left;">None</td>
+<td style="text-align: left;">PBMCs</td>
+<td style="text-align: left;">IM</td>
+<td style="text-align: left;">Microarray</td>
+</tr>
+<tr>
+<td style="text-align: left;">GSE120661</td>
+<td style="text-align: left;">4, 8, 24, 48, 72, 168 h</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: left;">Inactivated</td>
+<td style="text-align: left;">Influenza</td>
+<td style="text-align: left;">Fluad®</td>
+<td style="text-align: left;">MF59</td>
+<td style="text-align: left;">PBMCs</td>
+<td style="text-align: left;">IM</td>
+<td style="text-align: left;">Microarray</td>
+</tr>
+<tr>
 <td style="text-align: left;">GSE182858</td>
-<td style="text-align: left;">GPL6887</td>
-<td style="text-align: left;">Illumina MouseWG-6 v2.0</td>
-<td style="text-align: left;">Whole Blood</td>
+<td style="text-align: left;">−3, 0, 3 h</td>
+<td style="text-align: center;">13</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: left;">Inactivated</td>
+<td style="text-align: left;">Influenza</td>
+<td style="text-align: left;">Quadri 2019-2020</td>
+<td style="text-align: left;">None</td>
+<td style="text-align: left;">PBMCs</td>
+<td style="text-align: left;">IN</td>
+<td style="text-align: left;">Bulk <em>(not used)</em></td>
+</tr>
+<tr>
+<td style="text-align: left;">GSE182858</td>
+<td style="text-align: left;">−3, 0, 3 h</td>
+<td style="text-align: center;">13</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: left;">Inactivated</td>
+<td style="text-align: left;">Influenza</td>
+<td style="text-align: left;">Quadri 2019-2020</td>
+<td style="text-align: left;">Addavax</td>
+<td style="text-align: left;">PBMCs</td>
+<td style="text-align: left;">IN</td>
+<td style="text-align: left;">Bulk <em>(not used)</em></td>
+</tr>
+<tr>
+<td style="text-align: left;">GSE224584</td>
+<td style="text-align: left;">2 weeks</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: left;">Polysaccharide</td>
+<td style="text-align: left;"><em>N. meningitidis</em></td>
+<td style="text-align: left;">ACWY</td>
+<td style="text-align: left;">None</td>
+<td style="text-align: left;">Whole blood</td>
+<td style="text-align: left;">n/a</td>
+<td style="text-align: left;">Bulk</td>
 </tr>
 </tbody>
 </table>
 <hr />
 <h2 id="iii-quality-control--preprocessing">III. QUALITY CONTROL &amp;
 PREPROCESSING</h2>
-<h3 id="iiia-array-quality-metrics--outlier-detection">III.A Array
-Quality Metrics &amp; Outlier Detection</h3>
-<p>Prior to integration, all expression datasets were evaluated for
-technical fidelity via <code>1.1_QualityControl.Rmd</code>:</p>
-<ol type="1">
-<li><strong>ArrayQualityMetrics
-(<code>arrayQualitymetrics</code>):</strong> Assessed distance matrices,
-boxplots of signal intensities, and pooled RNA degradation
-gradients.</li>
-<li><strong>Relative Log Expression (RLE):</strong> <span
-class="math display">\[\text{RLE}_{gi} = \log_2(E_{gi}) -
-\operatorname{median}_{j}(\log_2(E_{gj}))\]</span> Samples exhibiting
-anomalous interquartile range (IQR) divergence or median shifts <span
-class="math inline">\(&gt;2.5\)</span> standard deviations from the
-cohort centroid were flagged and excluded.</li>
-<li><strong>Principal Component Analysis (PCA):</strong> Outliers
-exceeding 2 standard deviations across PC1 and PC2 were visually
-inspected and removed if technical confounding (e.g., severe
-hybridisation failure) was confirmed.</li>
-</ol>
-<h3 id="iiib-platform-specific-normalization">III.B Platform-Specific
+<h3 id="iiia-platform-specific-normalization">III.A Platform-Specific
 Normalization</h3>
-<p>Microarray intensity matrices were processed using
+<p>Expression matrices were log2-transformed and processed using
 technology-specific algorithms in
 <code>1_Download_Standardize_Datasets.Rmd</code>:</p>
 <ul>
-<li><strong>Affymetrix Oligonucleotide Arrays (Human Gene 1.0
-ST):</strong> Raw probe cell intensity files (.CEL) were preprocessed
+<li><strong>Affymetrix oligonucleotide arrays (Human Gene 1.0
+ST):</strong> raw probe cell intensity files (.CEL) were preprocessed
 with the <strong>Robust Multi-array Average (RMA)</strong> algorithm via
 <code>affy</code>/<code>oligo</code>, executing background correction,
-quantile normalization, and median-polish probe set summarization.</li>
-<li><strong>Illumina BeadChips &amp; Agilent Arrays:</strong> Expression
-matrices were <span class="math inline">\(\log_2\)</span>-transformed
-and subjected to <strong>between-array quantile normalization</strong>
-using <code>limma::normalizeBetweenArrays(method = "quantile")</code> to
+quantile normalization and median-polish probe-set summarization.</li>
+<li><strong>Illumina BeadChips &amp; Agilent arrays:</strong>
+between-array quantile normalization was applied
+(<code>limma::normalizeBetweenArrays(method = "quantile")</code>) to
 enforce identical empirical distributions across arrays while preserving
 relative biological rank orders.</li>
 </ul>
-<h3
-id="iiic-probe-to-gene-annotation--maximum-variance-collapsing">III.C
-Probe-to-Gene Annotation &amp; Maximum Variance Collapsing</h3>
-<p>To map platform-specific probe identifiers to standardized gene
-nomenclatures (HGNC symbols for human; MGI symbols for mouse),
-annotation tables were retrieved via Bioconductor platform packages
-(<code>illuminaHumanv4.db</code>,
-<code>hugene10sttranscriptcluster.db</code>, <code>biomaRt</code>).</p>
-<p><strong>Probe Collapsing Strategy:</strong> Microarray platforms
-frequently feature multiple independent probe sets interrogating the
-same gene locus. To prevent signal dampening or dilution caused by
-unweighted averaging across non-responsive or poorly hybridising probes,
-we employed a <strong>maximum variance probe selection
-strategy</strong>: <span class="math display">\[\text{Representative
-Probe}(g) = \arg\max_{p \in \mathcal{P}_g} \left( \operatorname{Var}_{s
-\in \mathcal{S}} \left( \log_2 I_{p,s} \right) \right)\]</span> where
-<span class="math inline">\(\mathcal{P}_g\)</span> is the set of all
-probes mapping to gene <span class="math inline">\(g\)</span>, and <span
-class="math inline">\(\mathcal{S}\)</span> is the set of all biological
-samples. For each gene, only the single probe displaying the greatest
-expression variance across the experiment was retained.</p>
+<h3 id="iiib-probe-to-gene-collapsing--ortholog-mapping">III.B
+Probe-to-Gene Collapsing &amp; Ortholog Mapping</h3>
+<ul>
+<li><strong>Probe collapsing:</strong> probes mapping to the
+<strong>same Entrez ID</strong> were collapsed by <strong>selecting the
+probe with the highest median expression</strong> (rather than
+averaging, which dampens signal across non-responsive probes).</li>
+<li><strong>Human reference selection:</strong> when several genes had
+different Entrez IDs mapping to the same ortholog, the Entrez ID with
+the <strong>highest median expression</strong> was used as the reference
+for that gene.</li>
+<li><strong>Orthology:</strong> to map orthologous genes, we used the
+<strong>protein-coding genes with one-to-one orthology to human genes
+provided by the MGI database</strong>. Genes with <strong>multiple
+orthologs were excluded</strong>. Annotation tables were retrieved via
+Bioconductor platform packages (<code>illuminaHumanv4.db</code>,
+<code>hugene10sttranscriptcluster.db</code>) and
+<code>biomaRt</code>.</li>
+<li><strong>Baseline contrast:</strong> collapsed genes (by Entrez ID)
+were used as model input together with their log2-fold changes derived
+from a baseline contrast against pre-vaccination samples (0 h / Day
+0).</li>
+</ul>
+<h3 id="iiic-quality-control--outlier-detection">III.C Quality Control
+&amp; Outlier Detection</h3>
+<p>Quality control was performed with <code>ArrayQualityMetrics</code>
+and <code>limma</code> diagnostic plots (Supplementary Information),
+complemented by visual diagnostics of the log2-transformed data:</p>
+<ol type="1">
+<li><strong>Distribution diagnostics:</strong> density plots, boxplots
+and scatterplots were generated to inspect normalization and
+between-sample comparability.</li>
+<li><strong>Principal Component Analysis (PCA):</strong> PCA was used to
+identify outliers and batch effects. A significant separation of a
+subset of human trauma samples was detected and those samples were
+<strong>excluded</strong>, as the associated metadata did not identify
+the cause by any covariate (hypothesised to reflect unreported trauma
+severity).</li>
+<li><strong>Relative Log Expression (RLE):</strong> as an additional
+automated metric across datasets in <code>1.1_QualityControl.Rmd</code>:
+<span class="math display">\[\text{RLE}_{gi} = \log_2(E_{gi}) -
+\operatorname{median}_{j}(\log_2(E_{gj}))\]</span> Samples exhibiting
+anomalous IQR divergence or median shifts were flagged and removed when
+technical confounding was confirmed.</li>
+</ol>
 <hr />
-<h2 id="iv-differential-gene-expression--statistical-thresholds">IV.
-DIFFERENTIAL GENE EXPRESSION &amp; STATISTICAL THRESHOLDS</h2>
+<h2 id="iv-differential-gene-expression">IV. DIFFERENTIAL GENE
+EXPRESSION</h2>
 <h3 id="iva-linear-modeling-with-limma">IV.A Linear Modeling with
 Limma</h3>
 <p>Differential gene expression was modeled independently for each
 condition and species using linear models with Empirical Bayes variance
 moderation via <code>limma</code>:</p>
 <ol type="1">
-<li><strong>Model Formulation:</strong> For each condition, an
+<li><strong>Low-abundance filtering:</strong> low-abundance genes were
+removed, retaining only those with a <strong>log2-intensity higher than
+6 in at least five samples</strong> to reduce technical noise and
+improve statistical power.</li>
+<li><strong>Model formulation:</strong> for each condition, an
 unintercepted design matrix was constructed: <span
 class="math display">\[\mathbf{Y}_{g} = \mathbf{X}\boldsymbol{\beta}_g +
 \boldsymbol{\varepsilon}_g, \quad \boldsymbol{\varepsilon}_g \sim
 \mathcal{N}(0, \sigma_g^2 \mathbf{I})\]</span> where <span
 class="math inline">\(\mathbf{X}\)</span> represents experimental groups
-parameterized by organism, stimulus, and timepoint.</li>
-<li><strong>Contrasts:</strong> Post-treatment timepoints were
-contrasted directly against their matched pre-treatment Day 0 baseline
-(e.g., <span class="math inline">\(\text{Day 1} - \text{Day 0}\)</span>,
-<span class="math inline">\(\text{Day 3} - \text{Day 0}\)</span>, <span
+parameterized by organism, stimulus and timepoint.</li>
+<li><strong>Contrasts:</strong> post-treatment timepoints were
+contrasted directly against their matched pre-treatment baseline (e.g.,
+<span class="math inline">\(\text{Day 1} - \text{Day 0}\)</span>, <span
+class="math inline">\(\text{Day 3} - \text{Day 0}\)</span>, <span
 class="math inline">\(\text{Day 7} - \text{Day 0}\)</span>).</li>
-<li><strong>Variance Shrinkage (eBayes):</strong> Squeeze gene-wise
-sample variances toward a global intensity-dependent prior using
-<code>limma::eBayes(fit, trend = TRUE)</code>: <span
+<li><strong>Variance shrinkage (eBayes):</strong> gene-wise sample
+variances were squeezed toward a global intensity-dependent prior using
+<code>limma::eBayes(fit, trend = TRUE, robust = TRUE)</code>: <span
 class="math display">\[\tilde{s}_g^2 = \frac{d_0 s_0^2 + d_g s_g^2}{d_0
-+ d_g}\]</span> moderating the test statistics against small sample size
-instability.</li>
++ d_g}\]</span> The <code>trend</code> parameter accounts for the
+mean–variance relationship, while <code>robust</code> limits the
+influence of outlier genes.</li>
 </ol>
-<h3 id="ivb-statistical-significance-limits">IV.B Statistical
-Significance Limits</h3>
+<h3 id="ivb-covariates-batch-effects-and-sample-weights">IV.B
+Covariates, Batch Effects and Sample Weights</h3>
 <ul>
-<li><strong>DGE Threshold:</strong> Genes were classified as
-significantly differentially expressed genes (DEGs) if they satisfied:
-<span class="math display">\[\text{adj. } P\text{-value (BH FDR)} \le
-0.05\]</span> Effect size magnitude (<span
+<li><strong>Batch:</strong> for the <em>E. coli</em> mouse dataset,
+weight estimation was stratified by experimental batch
+(<code>var.group = batch</code>) to mitigate batch effects while
+preserving the biological signal of the infection.</li>
+<li><strong>Longitudinal designs:</strong> individuals were treated as
+<strong>random effects</strong>; for both longitudinal and case-control
+human datasets, covariates such as <strong>sex, ethnicity and
+age</strong> were included as fixed effects in the limma design
+matrix.</li>
+<li><strong>Heteroscedasticity:</strong> to account for
+heteroscedasticity across clinical and experimental samples,
+sample-quality weights were estimated with
+<code>limma::arrayWeights</code>, ensuring that high-variance samples
+had a reduced impact on the linear model.</li>
+</ul>
+<h3 id="ivc-limma-vs-standard-t-test-supplementary-fig-s2">IV.C Limma
+vs. Standard t-test (Supplementary Fig. S2)</h3>
+<p>To ensure robust detection of shared transcriptional signatures,
+limma was contrasted with conventional metrics used in prior studies
+(standard paired t-tests). By employing empirical Bayes variance
+shrinkage and adjusting for demographic covariates and batch effects,
+<strong>limma significantly outperformed the standard paired
+t-test</strong> in our datasets — the t-test approach failed to identify
+significant DEGs in the vaccinated mouse cohorts, which would have led
+to the erroneous conclusion of limited cross-species conservation. The
+comparison highlights the sensitivity of limma in paired clinical
+designs.</p>
+<h3 id="ivd-sample-size-balancing-by-downsampling--bootstrap">IV.D
+Sample-size Balancing by Downsampling &amp; Bootstrap</h3>
+<p>To account for sample-size imbalances between human and mouse
+studies, human samples were <strong>downsampled to 5</strong> with a
+<strong>bootstrap over 200 iterations</strong>, and the <strong>median
+value</strong> was used for the statistics derived from limma.</p>
+<h3 id="ive-significance-thresholds--diagnostics">IV.E Significance
+Thresholds &amp; Diagnostics</h3>
+<ul>
+<li><strong>DGE threshold:</strong> genes were classified as
+significantly differentially expressed (DEGs) if they satisfied: <span
+class="math display">\[\text{adj. } P\text{-value (BH FDR)} &lt;
+0.05\]</span> Effect-size magnitude (<span
 class="math inline">\(\log_2\text{FC}\)</span>) was preserved
-continuously without arbitrary threshold truncation to power downstream
+continuously without arbitrary threshold truncation, to power downstream
 rank-based pathway analyses.</li>
-<li><strong>GSEA Significance Threshold:</strong> When evaluating
-functional modules via <code>fgsea</code>, the standard False Discovery
-Rate limit was established at: <span class="math display">\[\text{padj}
-\le 0.25\]</span> This <span class="math inline">\(\le 0.25\)</span> FDR
-threshold is standard for GSEA, capturing broader coordinated pathway
-trends (especially relevant for weaker stimuli like vaccination).</li>
+<li><strong>GSEA threshold:</strong> when evaluating functional modules,
+the standard False Discovery Rate limit was established at: <span
+class="math display">\[\text{padj} \le 0.25\]</span> capturing broader
+coordinated pathway trends (especially relevant for weaker stimuli such
+as vaccination).</li>
+<li><strong>p-value diagnostics:</strong> raw p-value distributions were
+inspected across all comparisons. Most conditions showed the expected
+enrichment of low p-values (<span class="math inline">\(p &lt;
+0.05\)</span>). In conditions where adjusted p-values yielded fewer
+significant genes (e.g., some murine injury models), raw p-value
+histograms lacked the expected peak at zero or showed a conservative
+upward trend, indicating lower statistical power or high intra-group
+variability. The murine <strong>Burn and Trauma</strong> datasets
+exhibited near-uniform adjusted p-value distributions, reflecting the
+high inter-individual biological variance inherent to cross-sectional
+studies compared with the longitudinal designs used in the other
+cohorts.</li>
 </ul>
 <hr />
-<h2 id="v-functional-pathway-enrichment-btms--hallmarks">V. FUNCTIONAL
-PATHWAY ENRICHMENT (BTMs &amp; HALLMARKS)</h2>
+<h2 id="v-functional-pathway-enrichment-btms">V. FUNCTIONAL PATHWAY
+ENRICHMENT (BTMs)</h2>
 <h3 id="va-blood-transcription-modules-btms">V.A Blood Transcription
 Modules (BTMs)</h3>
-<p>The primary analytical unit for immune response evaluation comprised
-346 Blood Transcription Modules (Li et al., <em>Nat Immunol</em> 2014),
-capturing specific leukocyte subsets (T cells, B cells, NK cells,
-monocytes, neutrophils, dendritic cells) and intrinsic functional states
-(interferon response, inflammatory chemokines, cell cycle). Modules are
-grouped hierarchically into 16 broader physiological domains.</p>
-<h3 id="vb-fast-gene-set-enrichment-analysis-fgsea">V.B Fast Gene Set
-Enrichment Analysis (fgsea)</h3>
-<p>For each contrast, orthologous genes were ranked by their moderated
-<span class="math inline">\(t\)</span>-statistic (<span
-class="math inline">\(t_g\)</span>): <span
-class="math display">\[\text{Rank}(g) = t_g\]</span> Enrichment scores
-(<span class="math inline">\(ES\)</span>) across BTMs and MSigDB
-Hallmarks (50 gene sets) were computed using
-<code>fgsea::fgsea()</code>, testing for non-random distribution of
-module members within the ranked transcriptome via an adaptive
-multi-level split Monte Carlo permutation scheme (1,000 to 10,000
-permutations). Enrichment scores were normalized for gene set size
-(<span class="math inline">\(NES\)</span>).</p>
+<p>The primary analytical unit for immune-response evaluation comprised
+<strong>346 Blood Transcription Modules</strong> (Li et al., <em>Nat
+Immunol</em> 2014), capturing specific leukocyte subsets (T cells, B
+cells, NK cells, monocytes, neutrophils, dendritic cells) and intrinsic
+functional states (interferon response, inflammatory chemokines, cell
+cycle). Modules are grouped hierarchically into 16 broader physiological
+domains. The BTM dataset was retrieved from a previous publication.</p>
+<h3 id="vb-pre-ranked-gene-set-enrichment-analysis">V.B Pre-ranked Gene
+Set Enrichment Analysis</h3>
+<p>For each contrast, orthologous genes were <strong>pre-ranked</strong>
+by the product of effect size and statistical significance: <span
+class="math display">\[\text{Rank}(g) = \log_2\text{FC}_g \times
+\left(-\log_{10}(\text{adjusted } P_g)\right)\]</span> Gene set
+enrichment analysis (GSEA) was performed with
+<strong><code>clusterProfiler</code></strong>, testing for the
+non-random distribution of module members within the ranked
+transcriptome. Enrichment scores were normalized for gene-set size
+(<span class="math inline">\(NES\)</span>). Module-level cross-species
+enrichment concordance was then evaluated using <strong>Pearson
+correlation coefficients (<span class="math inline">\(r\)</span>) on the
+NES</strong>, and MSigDB Hallmark gene sets were used in parallel as an
+independent functional reference.</p>
 <hr />
-<h2
-id="vi-unified-cross-species-comparative-analyses--figure-43-architecture">VI.
-UNIFIED CROSS-SPECIES COMPARATIVE ANALYSES &amp; FIGURE 43
-ARCHITECTURE</h2>
+<h2 id="vi-cross-species-comparative-analyses">VI. CROSS-SPECIES
+COMPARATIVE ANALYSES</h2>
 <p>Notebooks <code>3.1_DGE_analyses.Rmd</code>,
-<code>3.2_Compute_GSEA.Rmd</code>, and
-<code>3.3_Functional_Analyses.Rmd</code> consolidate all 6 conditions
-into unified comparative frameworks.</p>
-<h3
-id="via-macroevolutionary-expression-divergence--inverse-variance-weighting">VI.A
-Macroevolutionary Expression Divergence &amp; Inverse-Variance
-Weighting</h3>
+<code>3.2_Compute_GSEA.Rmd</code> and
+<code>3.3_Functional_Analyses.Rmd</code> consolidate all conditions into
+unified comparative frameworks (manuscript <strong>Figs.
+4–5</strong>).</p>
+<h3 id="via-correlation-tests-gene-and-module-level">VI.A Correlation
+Tests (Gene and Module Level)</h3>
+<ul>
+<li><strong>Gene-level:</strong> cross-species comparisons were
+evaluated using <strong>weighted Spearman rank correlations (<span
+class="math inline">\(\rho\)</span>)</strong>, with weights defined as
+the <strong>inverse standard error (<span
+class="math inline">\(1/SE\)</span>)</strong> of the murine effect-size
+estimates.</li>
+<li><strong>Module-level:</strong> module enrichment concordance was
+evaluated with <strong>Pearson correlation (<span
+class="math inline">\(r\)</span>)</strong> weighted by <strong><span
+class="math inline">\(-\log_{10}(\text{adjusted } P)\)</span></strong>
+from GSEA.</li>
+<li><strong>Stratified filtering:</strong> to evaluate the effect of
+statistical stringency on translatability, correlations were computed
+and compared across nested module subsets:
+<ol type="1">
+<li><strong>All enriched modules</strong> (unfiltered).</li>
+<li><strong>Mouse-significant modules</strong> (<span
+class="math inline">\(\text{padj} \le 0.25\)</span> in the mouse
+model).</li>
+<li><strong>Dual-significant modules</strong> (<span
+class="math inline">\(\text{padj} \le 0.25\)</span> concordantly in both
+human and mouse).</li>
+</ol></li>
+<li><strong>Visualization:</strong> intra- and inter-species correlation
+matrices over time (Supplementary Fig. S4), and gene-level scatter plots
+of log2FC per condition with DEGs highlighted (Supplementary Fig. S5;
+L2FC distributions in Supplementary Fig. S3).</li>
+</ul>
+<h3 id="vib-effect-size-divergence--inverse-variance-weighting">VI.B
+Effect-Size Divergence &amp; Inverse-Variance Weighting</h3>
 <p>For each 1:1 orthologous gene pair across matched experimental
 conditions:</p>
 <ol type="1">
-<li><strong>Directional Effect Size Divergence:</strong> <span
+<li><strong>Directional effect-size divergence:</strong> <span
 class="math display">\[\Delta \log_2\text{FC} =
 \log_2\text{FC}_{\text{Human}} -
 \log_2\text{FC}_{\text{Mouse}}\]</span></li>
-<li><strong>Coefficient of Variation (CV):</strong> <span
+<li><strong>Coefficient of variation (CV):</strong> <span
 class="math display">\[CV = \frac{SD}{|\text{mean }
 \log_2\text{FC}|}\]</span></li>
-<li><strong>Inverse-Variance Statistical Weighting:</strong> To ensure
+<li><strong>Inverse-variance statistical weighting:</strong> to ensure
 that downstream cross-species correlation and distance evaluations were
-not biased by noisy low-expression probes, joint standard error-based
+not biased by noisy low-expression probes, joint standard-error-based
 inverse weights were formulated: <span class="math display">\[W_{SE} =
 \frac{1}{SE_{\text{Human}}^2 + SE_{\text{Mouse}}^2}\]</span> where <span
 class="math inline">\(SE\)</span> represents the standard error from the
-linear model fit.</li>
+linear-model fit.</li>
 </ol>
-<h3 id="vib-figure-43-detailed-panel-methodologies">VI.B Figure 43:
-Detailed Panel Methodologies</h3>
-<h4 id="figure-43a--functional-module-nes-correlation-dynamics">Figure
-43a | Functional Module NES Correlation Dynamics</h4>
+<h3 id="vic-leading-edge-gene-leg-conservation-fig-5">VI.C Leading-Edge
+Gene (LEG) Conservation (Fig. 5)</h3>
 <ul>
-<li><strong>Objective:</strong> Quantify the temporal concordance of
-higher-order immune programs across human and murine systems.</li>
-<li><strong>Computation:</strong> For each condition and timepoint pair,
-the vector of module Normalized Enrichment Scores (<span
-class="math inline">\(NES\)</span>) was extracted for humans (<span
-class="math inline">\(\mathbf{NES}_H\)</span>) and mice (<span
-class="math inline">\(\mathbf{NES}_M\)</span>).</li>
-<li><strong>Correlation Metric:</strong> Spearman rank correlation
-(<span class="math inline">\(\rho\)</span>) and Pearson linear
-correlation (<span class="math inline">\(r\)</span>) were computed
-between species across functional modules over time.</li>
-<li><strong>Stratified Filtering:</strong> To evaluate the effect of
-statistical stringency on translatability, correlations were computed
-and compared across three nested module subsets:
-<ol type="1">
-<li><strong>All Enriched Modules:</strong> Unfiltered module sets.</li>
-<li><strong>Mouse-Significant Modules:</strong> Modules meeting <span
-class="math inline">\(\text{padj} \le 0.25\)</span> in the mouse
-model.</li>
-<li><strong>Dual-Significant Modules:</strong> Modules meeting <span
-class="math inline">\(\text{padj} \le 0.25\)</span> concordantly in both
-human and mouse cohorts.</li>
-</ol></li>
-</ul>
-<h4
-id="figure-43b--predictive-classification-performance-roc--auc">Figure
-43b | Predictive Classification Performance (ROC &amp; AUC)</h4>
-<ul>
-<li><strong>Objective:</strong> Determine whether murine pathway
-signatures can accurately predict the regulatory status of human
-biological modules.</li>
-<li><strong>Classification Task:</strong> Murine effect metrics (<span
-class="math inline">\(NES\)</span> or mean <span
-class="math inline">\(\log_2\text{FC}\)</span>) were deployed as
-continuous decision scores to classify human modules as significantly
-up- or down-regulated.</li>
-<li><strong>Timepoint Regimes:</strong>
-<ul>
-<li><strong>Equal Timepoints:</strong> Matched chronological intervals
-(e.g., Human Day 1 vs. Mouse Day 1).</li>
-<li><strong>Different Timepoints:</strong> Cross-temporal evaluations
-accommodating species differences in kinetic velocity (e.g., murine Day
-1 modeling human Day 3 or Day 7).</li>
-</ul></li>
-<li><strong>Validation Controls:</strong> Murine model performance was
-benchmarked against:
-<ul>
-<li><strong>Permutation Controls:</strong> Null distributions generated
-by randomly shuffling module labels (<span class="math inline">\(N =
-1,000\)</span> iterations).</li>
-<li><strong>Biological Controls:</strong> Unrelated baseline
-pathological cohorts (e.g., Duchenne Muscular Dystrophy, DMD) to
-establish empirical specificity baselines.</li>
-</ul></li>
-<li><strong>Performance Metrics:</strong> Receiver Operating
-Characteristic (ROC) curves and Area Under the Curve (AUC) were
-generated using <code>pROC</code> and <code>yardstick</code>.</li>
-</ul>
-<h4 id="figure-43c--leading-edge-gene-leg-conservation">Figure 43c |
-Leading-Edge Gene (LEG) Conservation</h4>
-<ul>
-<li><strong>Objective:</strong> Dissect whether module-level
-conservation is driven by identical core genes or alternative pathway
-components.</li>
-<li><strong>Extraction:</strong> For each enriched BTM (<span
-class="math inline">\(\text{padj} \le 0.25\)</span>), the Leading-Edge
-Genes (LEGs)—genes accounting for the core enrichment signal prior to
-the peak running enrichment score—were extracted for both species.</li>
-<li><strong>Categorization:</strong> Genes within each module were
-partitioned into:
-<ol type="1">
-<li><strong>Shared LEGs:</strong> Present in the leading edge of both
-human and mouse.</li>
-<li><strong>Human-Specific LEGs:</strong> Driving enrichment exclusively
-in humans.</li>
-<li><strong>Mouse-Specific LEGs:</strong> Driving enrichment exclusively
-in mice.</li>
-<li><strong>Non-LEGs:</strong> Module members not contributing to the
-core leading-edge signal.</li>
-</ol></li>
-<li><strong>Visualization:</strong> Proportions and counts are
+<li><strong>Extraction:</strong> for each enriched BTM (<span
+class="math inline">\(\text{padj} \le 0.25\)</span>), the
+<strong>Leading-Edge Genes (LEGs)</strong> — genes accounting for the
+core enrichment signal prior to the peak running enrichment score — were
+extracted for both species.</li>
+<li><strong>Categorization:</strong> genes within each module were
+partitioned into <strong>Shared LEGs</strong> (leading edge in both
+species), <strong>Human-specific LEGs</strong>, <strong>Mouse-specific
+LEGs</strong> and <strong>Non-LEGs</strong>.</li>
+<li><strong>Key observations:</strong> shared LEGs accounted for
+<strong>67.5–79 %</strong> of mouse LEGs in statistically significant
+enriched modules. Shared LEGs showed higher expression and a
+<strong>lower <span class="math inline">\(1/SE\)</span></strong> than
+Not-Shared LEGs (Wilcoxon–Mann–Whitney, adjusted <span
+class="math inline">\(P &lt; 2.22\times10^{-16}\)</span> and <span
+class="math inline">\(P &lt; 0.00058\)</span>, respectively), although
+<span class="math inline">\(1/SE\)</span> did not differ significantly
+in burn and trauma (<span class="math inline">\(P = 0.62\)</span> and
+<span class="math inline">\(0.39\)</span>).</li>
+<li><strong>Visualization:</strong> proportions and counts are
 visualized via stacked and faceted barplots across conditions.</li>
 </ul>
-<h4
-id="figure-43d--gene-rank-conservation-in-core-immune-modules">Figure
-43d | Gene Rank Conservation in Core Immune Modules</h4>
+<h3 id="vid-gene-rank-conservation-in-core-immune-modules">VI.D Gene
+Rank Conservation in Core Immune Modules</h3>
 <ul>
-<li><strong>Objective:</strong> Evaluate the conservation of
+<li><strong>Objective:</strong> evaluate the conservation of
 intra-module gene prioritization between human and mouse.</li>
-<li><strong>Focal Module:</strong> Illustrated using the <em>"immune
-activation - generic cluster"</em> (BTM M37.0; 347 genes), representing
-innate inflammatory, Toll-like receptor, and chemokine signaling
+<li><strong>Focal module:</strong> illustrated using the <em>"immune
+activation — generic cluster"</em> (BTM M37.0; 347 genes), representing
+innate inflammatory, Toll-like receptor and chemokine signaling
 programs.</li>
-<li><strong>Composite Rank Metric:</strong> For each gene <span
+<li><strong>Composite rank metric:</strong> for each gene <span
 class="math inline">\(g\)</span>, a rank score combining effect size and
 statistical significance was formulated: <span
 class="math display">\[\text{Rank Score}_g = \log_2(\text{FC}_g) \times
-\left( -\log_{10}(P\text{-value}_g) \right)\]</span></li>
-<li><strong>Ranking Vector:</strong> All orthologous module genes were
+\left(-\log_{10}(P\text{-value}_g)\right)\]</span></li>
+<li><strong>Ranking vector:</strong> all orthologous module genes were
 ranked in descending order separately within human (<span
 class="math inline">\(\text{Rank}_H\)</span>) and mouse (<span
-class="math inline">\(\text{Rank}_M\)</span>). Spearman rank correlation
+class="math inline">\(\text{Rank}_M\)</span>); Spearman rank correlation
 was calculated between the two vectors.</li>
-<li><strong>Visual Mapping:</strong> A parallel-axis rank trajectory
+<li><strong>Visual mapping:</strong> a parallel-axis rank trajectory
 plot connects gene positions between human (left axis, H) and mouse
-(right axis, M):
+(right axis, M) — shared LEGs, human-specific LEGs, mouse-specific LEGs
+and non-LEGs are distinguished by line colour.</li>
+</ul>
+<hr />
+<h2 id="vii-model-evaluation-roc--pr-framework">VII. MODEL EVALUATION
+(ROC / PR FRAMEWORK)</h2>
+<h3 id="viia-one-sided-p-values">VII.A One-Sided p-values</h3>
+<p>Because limma produces <strong>two-sided</strong> p-values,
+<strong>one-sided</strong> p-values were recalculated from the moderated
+<span class="math inline">\(t\)</span>-statistics — using the
+<strong>upper tail for upregulated genes</strong> (<span
+class="math inline">\(\log_2\text{FC} &gt; 0\)</span>) and the
+<strong>lower tail for downregulated genes</strong> (<span
+class="math inline">\(\log_2\text{FC} &lt; 0\)</span>). The resulting
+one-sided p-values were subsequently adjusted for multiple hypothesis
+testing using the <strong>Benjamini–Hochberg</strong> false discovery
+rate correction.</p>
+<h3 id="viib-reference-truth--control-models">VII.B Reference Truth
+&amp; Control Models</h3>
+<p>Model performance was evaluated using <strong>receiver operating
+characteristic (ROC)</strong> analysis to assess the ability to classify
+up- and down-regulated genes. The corresponding <strong>human dataset
+was used as the reference "truth"</strong>, while predictions from the
+mouse model were compared against it. Two control models were
+generated:</p>
 <ul>
-<li><strong>Blue Lines:</strong> Shared LEGs (conserved core
-drivers).</li>
-<li><strong>Black Lines:</strong> Human-specific LEGs.</li>
-<li><strong>Dark Gray Lines:</strong> Mouse-specific LEGs.</li>
-<li><strong>Light Gray Lines:</strong> Non-LEGs (background module
-members).</li>
-</ul></li>
+<li>a <strong>"perfect" model</strong>, which exactly replicated the
+human truth labels; and</li>
+<li>a <strong>"negative control" model</strong>, based on the
+<strong>DMD</strong> (<em>mdx</em>) gene expression table.</li>
+</ul>
+<h3 id="viic-scoring-and-metrics">VII.C Scoring and Metrics</h3>
+<ul>
+<li>For each gene and timepoint, <strong>prediction
+probabilities</strong> were defined as <span class="math inline">\((1 -
+\text{adjusted one-sided } P)\)</span>, and <strong>ROC and
+precision–recall (PR) curves</strong> were constructed.</li>
+<li>The <strong>area under the curve (AUC)</strong> was then computed to
+measure predictive performance (<code>pROC</code>,
+<code>yardstick</code>).</li>
+<li>The <strong>same framework was applied to functional
+modules</strong>, using the NES and the <span
+class="math inline">\(-\log_{10}(\text{adjusted } P)\)</span> derived
+from GSEA. This ROC-based framework evaluates <strong>module-level
+transfer</strong> (manuscript Fig. 4b), and AUCs for acute infections
+and injuries were markedly higher than the near-random DMD baseline
+(Fig. 4c).</li>
 </ul>
 <hr />
 <h2
-id="vii-evolutionary-genomics-protein-coding-vs-cis-regulatory-architecture">VII.
+id="viii-evolutionary-genomics-protein-coding-vs-cis-regulatory-architecture">VIII.
 EVOLUTIONARY GENOMICS: PROTEIN CODING VS. CIS-REGULATORY
 ARCHITECTURE</h2>
 <p>Notebooks <code>5.1_EvolutionaryAnalysis_Protein.Rmd</code> and
 <code>5.2_EvolutionaryAnalysis_Regulation.Rmd</code> assess whether
 transcriptomic divergence is governed by structural coding evolution or
-regulatory rewiring.</p>
+regulatory rewiring (manuscript <strong>Fig. 6a–e</strong>).</p>
 <h3
-id="viia-coding-sequence-cds-acquisition--longest-isoform-selection">VII.A
+id="viiia-coding-sequence-cds-acquisition--longest-isoform-selection">VIII.A
 Coding Sequence (CDS) Acquisition &amp; Longest Isoform Selection</h3>
 <ol type="1">
-<li><strong>Source:</strong> High-confidence 1:1 orthologous gene pairs
-were identified via Ensembl BioMart (<code>hsapiens_gene_ensembl</code>
-and <code>mmusculus_gene_ensembl</code>) using
-<code>biomaRt</code>.</li>
-<li><strong>Partitioned Retrieval:</strong> Due to query volume and
+<li><strong>Source:</strong> coding sequences (CDS) and amino-acid
+sequences for human–mouse protein-coding genes with <strong>confidence
+score = 1</strong> were obtained from Ensembl via <code>biomaRt</code>,
+retaining Ensembl protein identity values.</li>
+<li><strong>Partitioned retrieval:</strong> due to query volume and
 server timeout constraints, mouse CDS records were programmatically
 split into 3 balanced partitions (<code>target_map_mouse_part1</code>,
 <code>part2</code>, <code>part3</code>) and queried in chunks of 100
 genes.</li>
-<li><strong>Isoform Resolution (Longest Canonical CDS):</strong> Because
+<li><strong>Isoform resolution (longest canonical CDS):</strong> because
 alternative splicing produces multiple transcripts per Ensembl Gene ID,
-a filtering step retained only the longest coding sequence: <span
-class="math display">\[\text{Canonical CDS}_g = \arg\max_{t \in
-\mathcal{T}_g} \left( \operatorname{nchar}(\text{coding}_{g,t})
-\right)\]</span> Records with <code>"Sequence unavailable"</code> or
-non-coding annotations were purged.</li>
+a filtering step retained only the <strong>longest coding
+sequence</strong>: <span class="math display">\[\text{Canonical CDS}_g =
+\arg\max_{t \in \mathcal{T}_g} \left(
+\operatorname{nchar}(\text{coding}_{g,t}) \right)\]</span> Records with
+<code>"Sequence unavailable"</code> or non-coding annotations were
+purged.</li>
 </ol>
 <h3
-id="viib-pairwise-nucleotide-global-alignment--distance-computation">VII.B
+id="viiib-pairwise-nucleotide-global-alignment--distance-computation">VIII.B
 Pairwise Nucleotide Global Alignment &amp; Distance Computation</h3>
 <ol type="1">
-<li><strong>Sequence Sanitization:</strong> Leading/trailing whitespace
+<li><strong>Sequence sanitization:</strong> leading/trailing whitespace
 and newline delimiters were stripped, and nucleotide sequences were
 converted to uppercase.</li>
-<li><strong>Global Needleman-Wunsch Alignment:</strong> Pairwise global
-alignment was performed using
+<li><strong>Global Needleman–Wunsch alignment:</strong> pairwise global
+alignment was performed with
 <code>pwalign::pairwiseAlignment(type = "global")</code> between human
 and mouse CDS strings:
 <div class="sourceCode" id="cb1"><pre
@@ -649,138 +910,134 @@ class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  Biostrings<span class="sc">::</span><span class="fu">DNAString</span>(mouse_cds),</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">type =</span> <span class="st">&quot;global&quot;</span></span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div></li>
-<li><strong>Conversion to Alignment Object:</strong> Aligned pattern and
-subject strings—preserving gap characters (<code>'-'</code>)—were
-converted to character matrices and converted into <code>DNAbin</code>
-objects via <code>ape::as.alignment()</code> and
-<code>ape::as.DNAbin()</code>.</li>
-<li><strong>Kimura 2-Parameter (K80) Distance Calculation:</strong>
-Molecular evolutionary distances were computed using
-<code>ape::dist.dna(bin_dna, model = "K80")</code>. The Kimura K80 model
+<li><strong>Conversion to alignment object:</strong> aligned pattern and
+subject strings — preserving gap characters (<code>'-'</code>) — were
+converted to character matrices and to <code>DNAbin</code> objects via
+<code>ape::as.alignment()</code> and <code>ape::as.DNAbin()</code>.</li>
+<li><strong>Kimura 2-parameter (K80) distance:</strong> molecular
+evolutionary distances were computed with
+<code>ape::dist.dna(bin_dna, model = "K80")</code>. The K80 model
 corrects for multiple hits and differential rates between transitions
 (<span class="math inline">\(P\)</span>) and transversions (<span
 class="math inline">\(Q\)</span>): <span
 class="math display">\[d_{\text{K80}} = -\frac{1}{2}\ln(1 - 2P - Q) -
-\frac{1}{4}\ln(1 - 2Q)\]</span> Jukes-Cantor (JC69) distances were
+\frac{1}{4}\ln(1 - 2Q)\]</span> Jukes–Cantor (JC69) distances were
 computed in parallel as a sensitivity control.</li>
-<li><strong>Protein Sequence Identity:</strong> Amino acid sequence
+<li><strong>Protein sequence identity:</strong> amino-acid sequence
 identity percentages (<code>identity_human2mouse</code> and
 <code>identity_mouse2human</code>) were extracted from Ensembl BioMart
 homology tables.</li>
 </ol>
-<h3 id="viic-cis-regulatory-element-ccre-architecture-from-encode">VII.C
+<h3
+id="viiic-cis-regulatory-element-ccre-architecture-from-encode">VIII.C
 Cis-Regulatory Element (cCRE) Architecture from ENCODE</h3>
-<p>To interrogate promoter and enhancer rewiring, Candidate
-Cis-Regulatory Elements (cCREs) were integrated from the ENCODE
-project:</p>
+<p>Candidate cis-regulatory elements (cCREs) were integrated from the
+<strong>ENCODE project via the SCREEN portal</strong>:</p>
 <ul>
-<li><strong>Human Reference:</strong> GRCh38 cCRE catalogue.</li>
-<li><strong>Mouse Reference:</strong> mm10 cCRE catalogue.</li>
-<li><strong>Functional Classes Analyzed:</strong>
+<li><strong>References:</strong> the complete <strong>human
+(GRCh38)</strong> and <strong>mouse (mm10)</strong> cCRE catalogues,
+together with <strong>homologous cCREs</strong>, were downloaded.</li>
+<li><strong>Functional classes analyzed:</strong> human cCREs
+categorized as <strong>PLS</strong> (promoter-like signatures),
+<strong>pELS</strong> (proximal enhancer-like signatures) or
+<strong>dELS</strong> (distal enhancer-like signatures), then classified
+by whether they were <strong>CTCF-bound or CTCF-non-bound</strong>.</li>
+<li><strong>Assignment and comparison:</strong> cCREs were
+<strong>assigned to their associated human genes</strong> and
+subsequently compared to the <strong>annotated murine cCREs</strong>.
+The total number of cCREs that <strong>matched between species in terms
+of type (PLS, pELS, dELS) and CTCF binding status</strong> was
+calculated, determining the corresponding percentage for each
+category.</li>
+</ul>
+<h3
+id="viiid-statistical-relationships-with-expression-divergence-fig-6ae">VIII.D
+Statistical Relationships with Expression Divergence (Fig. 6a–e)</h3>
+<p>Continuous relationships between sequence/regulatory features
+(sequence identity, Kimura distance, TF counts, CRE multiplicities) and
+expression divergence (<span
+class="math inline">\(|\Delta\log_2\text{FC}|\)</span>) were fitted
+using <strong>ordinary least-squares (OLS) linear models</strong> and
+formally tested using monotonic <strong>Spearman rank correlation
+coefficients</strong>, to account for non-normality and
+heteroscedasticity:</p>
 <ul>
-<li><strong>PLS:</strong> Promoter-Like Signatures (high DNase, high
-H3K4me3, centered within 200 bp of TSS).</li>
-<li><strong>pELS / dELS:</strong> Proximal and Distal Enhancer-Like
-Signatures (high DNase, high H3K27ac).</li>
-<li><strong>CTCF-bound:</strong> Elements demonstrating high CTCF
-occupancy (chromatin architectural boundaries).</li>
-</ul></li>
-<li><strong>Homology Mapping:</strong> cCREs were assigned to target
-orthologs based on genomic distance to the primary Transcription Start
-Site (TSS) (<span class="math inline">\(\pm 2\text{ kb}\)</span> for
-promoters, <span class="math inline">\(\pm 50\text{ kb}\)</span> for
-enhancers). Regulatory conservation scores were calculated based on
-reciprocal element presence and transcription factor binding site
-conservation.</li>
+<li><strong>(6a)</strong> greater protein identity correlated
+negatively, whereas greater Kimura distance correlated positively, with
+expression divergence.</li>
+<li><strong>(6b)</strong> transcription-factor counts and the percentage
+of TFs shared between mouse and human correlated negatively with <span
+class="math inline">\(|\Delta\log_2\text{FC}|\)</span>.</li>
+<li><strong>(6c)</strong> CRE abundance correlated positively with
+divergence for pELS and dELS, while PLS showed no significant
+relationship.</li>
+<li><strong>(6d)</strong> the percentage of matching elements between
+species (conserved vs. turned-over) showed class-specific
+associations.</li>
+<li><strong>(6e)</strong> CRE counts by class and CTCF binding status
+showed stronger effects for CTCF-bound pELS and comparable positive
+effects for dELS, while PLS maintained weak or non-significant
+trends.</li>
 </ul>
 <hr />
-<h2 id="viii-multi-modal-statistical-modeling-tidymodels">VIII.
-MULTI-MODAL STATISTICAL MODELING (<code>tidymodels</code>)</h2>
-<p>Two complementary scripts perform statistical modelling:</p>
-<ul>
-<li><code>Modelling/6_Statistical_Modelling.Rmd</code> — the original,
-exploratory script (feature matrix + Random Forest / Elastic Net with
-in-sample metrics).</li>
-<li><code>Modelling/6_Statistical_Modelling.Rmd</code> — the
-consolidated <strong>mouse-to-human transfer</strong> pipeline used for
-the manuscript (Figure 7). It predicts the <strong>human</strong>
-response gene by gene using <strong>leave-one-pathogen-out
-(LOCO)</strong> cross-validation.</li>
-</ul>
-<h3
-id="viiia-original-exploratory-script-6_statistical_modellingrmd">VIII.A
-Original Exploratory Script
-(<code>6_Statistical_Modelling.Rmd</code>)</h3>
-<p>A master feature matrix
-(<code>human_mouse_statsmodelling_parameters_values.rds</code>) was
-assembled by merging:</p>
+<h2 id="ix-multilayer-machine-learning-modelling-tidymodels">IX.
+MULTILAYER MACHINE-LEARNING MODELLING (<code>tidymodels</code>)</h2>
+<p>The consolidated <strong>mouse-to-human transfer</strong> pipeline
+(<code>Modelling/6_Statistical_Modelling.Rmd</code>) integrates
+evolutionary, regulatory and transcriptomic metrics to predict the
+<strong>human</strong> response gene by gene (manuscript <strong>Fig.
+7</strong>).</p>
+<h3 id="ixa-feature-table-fig-7a">IX.A Feature Table (Fig. 7a)</h3>
+<p>A gene-wise feature table was assembled from:</p>
 <ol type="1">
-<li><strong>Structural Coding Evolution:</strong> Kimura K80 CDS
-distance (<code>dist_k80</code>), amino acid identity %.</li>
-<li><strong>Transcriptional Concordance:</strong> <span
-class="math inline">\(\Delta \log_2\text{FC}\)</span>, sampling
-stability <span class="math inline">\(SD\)</span>, linear model standard
-error <span class="math inline">\(SE\)</span>.</li>
-<li><strong>Cis-Regulatory Features:</strong> Promoter cCRE class
-presence (PLS, pELS, dELS, CTCF) in human and mouse, cCRE distance
-metrics.</li>
-<li><strong>Transcription Factor (TF) Networks:</strong> Shared vs.
-species-unique TF binding site counts within orthologous promoters.</li>
-<li><strong>Functional Domain Annotations:</strong> BTM module category,
-immune vs. non-immune designation.</li>
+<li><strong>Mouse differential-expression summary:</strong> mouse
+log2FC, <span class="math inline">\(1/SE\)</span>, mouse absolute rank
+(overall and within BTMs).</li>
+<li><strong>Structural coding evolution:</strong> protein identity
+(<code>identity_human2mouse</code>), CDS Kimura distance
+(<code>dist_k80</code>).</li>
+<li><strong>Cis-regulatory architecture:</strong> PLS/pELS/dELS counts
+and match percentages, CTCF-bound fractions.</li>
+<li><strong>Transcription-factor features:</strong> total human TFs
+(<code>n_tf_total</code>), mouse–human TF sharing
+(<code>pct_tf_shared</code>).</li>
+<li><strong>Functional annotation:</strong> BTM membership (immune vs.
+non-immune designation).</li>
 </ol>
-<p>Algorithms were Random Forest classifiers/regressors
-(<code>ranger</code>) and regularized Elastic Net regression
-(<code>glmnet</code>), evaluated by 10-fold cross-validation repeated 5
-times and ranked by permutation-based Variable Importance in Projection
-(<code>vip::vip()</code>).</p>
-<h3
-id="viiib-consolidated-transfer-pipeline-6_statistical_modellingrmd">VIII.B
-Consolidated Transfer Pipeline
-(<code>6_Statistical_Modelling.Rmd</code>)</h3>
-<h4 id="viiib1-feature-layers-two-nested-sets">VIII.B.1 Feature layers
-(two nested sets)</h4>
-<p>Instead of adding six independent layers, the v2 pipeline uses two
-nested feature sets, separating the transferable biological signal from
-the mouse magnitude:</p>
+<h3 id="ixb-feature-layers-two-nested-sets">IX.B Feature Layers (Two
+Nested Sets)</h3>
+<p>Instead of six independent layers, the pipeline uses two nested
+feature sets, separating the transferable biological signal from the
+mouse magnitude:</p>
 <ol type="1">
 <li><strong>DGE Baseline</strong> — mouse differential-expression
-summary: absolute rank (<code>rank_mouse</code>) for rank transfer;
-direction sign (<code>sign_mouse</code>) for directional concordance;
-<code>mean_log2fc_mouse</code>, BTM-only rank
-(<code>rank_mouse_btm</code>) and precision
-(<code>inverse_se_mouse</code>) for shared-LEG classification.</li>
-<li><strong>Full + BTM</strong> — adds the biological layers: sequence
-evolution (<code>dist_k80</code>, <code>identity_human2mouse</code>), TF
-features (<code>n_tf_total</code>, <code>pct_tf_shared</code>), cCRE
-architecture (PLS/pELS/dELS counts and match percentages, CTCF-bound
-fractions) and BTM membership.</li>
+summary only.</li>
+<li><strong>Full + BTM</strong> — adds the biological layers (sequence
+evolution, TF features, CRE architecture, CTCF status and BTM
+membership).</li>
 </ol>
-<p>For the classification task two framings are compared:</p>
+<p>For the classification task, two framings are compared:</p>
 <ul>
-<li><strong>A (predictive):</strong> retains the mouse magnitude
-(<code>mean_log2fc_mouse</code>, <code>rank_mouse_btm</code>).</li>
+<li><strong>A (predictive):</strong> retains the mouse magnitude.</li>
 <li><strong>B (explanatory):</strong> removes the mouse magnitude to
 test the biological layers alone.</li>
 </ul>
-<h4 id="viiib2-universes-targets-and-ranks">VIII.B.2 Universes, targets
-and ranks</h4>
+<h3 id="ixc-universes-targets-and-ranks">IX.C Universes, Targets and
+Ranks</h3>
 <p>Two gene universes are defined:</p>
 <ol type="1">
-<li><strong>All human DEGs</strong>
-(<code>p_adj_human &lt;= 0.05</code>) — rank transfer and
-direction.</li>
+<li><strong>All human DEGs</strong> (<span
+class="math inline">\(\text{p\_adj\_human} \le 0.05\)</span>) — rank
+transfer and direction.</li>
 <li><strong>Mouse LEGs</strong> (<code>Shared</code> or
 <code>Mouse only</code>, BTM scope) — shared-LEG classification.</li>
 </ol>
-<p>Each gene receives an <strong>absolute rank</strong> (0–100) from the
-percentile of <span class="math inline">\(|\text{Log}_2\text{FC}| \times
+<p>Each gene receives an <strong>absolute rank (0–100)</strong> from the
+percentile of <span class="math inline">\(|\log_2\text{FC}| \times
 -\log_{10}(\text{adjusted } P)\)</span> within its universe and
-condition:</p>
-<p><span class="math display">\[\text{rank} =
-\text{percent\_rank}\left(|\text{Log}_2\text{FC}| \times
--\log_{10}(\text{adj. } P)\right) \times 100\]</span></p>
-<p>Targets:</p>
+condition: <span class="math display">\[\text{rank} =
+\text{percent\_rank}\left(|\log_2\text{FC}| \times -\log_{10}(\text{adj.
+} P)\right) \times 100\]</span> Targets:</p>
 <ul>
 <li><strong>Rank transfer:</strong> <code>rank_human</code> (continuous,
 0–100).</li>
@@ -791,42 +1048,41 @@ condition:</p>
 <code>Mouse only</code> (binary).</li>
 </ul>
 <p>Derived metrics: <span class="math inline">\(\text{rank\_diff} =
-|\text{rank\_mouse} - \text{rank\_human}|\)</span> (convergence) and
-<span class="math inline">\(\text{dual\_rank} = \min(\text{rank\_mouse},
-\text{rank\_human})\)</span> (relevance).</p>
-<h4 id="viiib3-leave-one-pathogen-out-cross-validation">VIII.B.3
-Leave-one-pathogen-out cross-validation</h4>
+|\text{rank\_mouse} - \text{rank\_human}|\)</span>
+(<strong>convergence</strong>) and <span
+class="math inline">\(\text{dual\_rank} = \min(\text{rank\_mouse},
+\text{rank\_human})\)</span> (<strong>relevance</strong>).</p>
+<h3 id="ixd-leave-one-condition-out-cross-validation">IX.D
+Leave-One-Condition-Out Cross-Validation</h3>
 <p>To avoid optimistic bias, models are evaluated by
-<strong>leave-one-pathogen-out (LOCO)</strong> cross-validation over the
-four infection/injury folds (<em>S. aureus</em>, <em>E. coli</em>, Burn,
-Trauma). Every gene is predicted by a model trained without its
-pathogen; these out-of-fold predictions feed both the metrics and the
-exported scores.</p>
-<h4 id="viiib4-algorithms-benchmarked">VIII.B.4 Algorithms
-benchmarked</h4>
-<p>Four paradigms are compared under identical recipes
+<strong>leave-one-condition-out (LOCO)</strong> cross-validation over
+the four infection/injury folds (<em>S. aureus</em>, <em>E. coli</em>,
+Burn, Trauma), so that <strong>every gene is predicted by a model
+trained without its condition</strong>. These out-of-fold predictions
+feed both the metrics and the exported scores.</p>
+<h3 id="ixe-algorithms-benchmarked-fig-7b">IX.E Algorithms Benchmarked
+(Fig. 7b)</h3>
+<p>Four paradigms were compared under identical recipes
 (<code>step_dummy</code>, <code>step_zv</code>/<code>step_nzv</code>,
 <code>step_corr</code> for classification at threshold 0.9, and
-<code>step_normalize</code>):</p>
+<code>step_normalize</code>), all implemented in
+<code>tidymodels</code>:</p>
 <ol type="1">
 <li><strong>Linear/logistic regression</strong> (baseline).</li>
 <li><strong>Lasso</strong> (<code>glmnet</code>,
 <code>mixture = 1</code>, penalty = 0.01). Skipped automatically when
-fewer than two predictors remain (glmnet requires <span
-class="math inline">\(\ge 2\)</span>).</li>
+fewer than two predictors remain.</li>
 <li><strong>Random forest</strong> (<code>ranger</code>, 500 trees,
-<code>mtry = 8</code>, <code>min_n = 5</code>, Gini importance).</li>
+<code>mtry = 8</code>, <code>min_n = 5</code>).</li>
 <li><strong>Neural network</strong> (<code>nnet</code>, one hidden layer
 of 10 units, <code>epochs = 200</code>, weight decay 0.01).</li>
 </ol>
-<p>The <strong>random forest was the best algorithm for rank transfer
-and directional concordance</strong>; for shared-LEG classification the
-<strong>lasso was marginally better by ROC-AUC</strong>. The lasso
-improved only marginally over the unregularised linear model for
-shared-LEG classification and not at all for rank transfer or direction,
-indicating that the transferable signal for rank and direction is
-predominantly non-linear and multivariate.</p>
-<h4 id="viiib5-performance-metrics">VIII.B.5 Performance metrics</h4>
+<p>Feature importance was assessed by <strong>log-odds</strong>
+(logistic), <strong>standardized effects</strong> (linear),
+<strong>lasso coefficients</strong> (penalized) and <strong>Gini
+importance</strong> (random forest) — Supplementary Fig. S7.</p>
+<h3 id="ixf-performance-metrics-fig-7cd">IX.F Performance Metrics (Fig.
+7c,d)</h3>
 <ul>
 <li><strong>Classification (shared LEGs, direction):</strong> ROC-AUC
 and PR-AUC (<code>yardstick</code>).</li>
@@ -882,9 +1138,25 @@ layers)</td>
 </tr>
 </tbody>
 </table>
-<h4 id="viiib6-out-of-fold-scores">VIII.B.6 Out-of-fold scores</h4>
-<p>From the best model per task, four scores are exported (each gene
-scored by a model trained without its condition):</p>
+<p>The <strong>random forest was the best algorithm for human rank
+transfer and directional concordance</strong>, whereas the <strong>lasso
+was marginally better for shared-LEG classification by ROC-AUC</strong>.
+The lasso improved only marginally over the unregularized linear model
+for shared-LEG classification and not at all for rank transfer or
+direction, indicating that the transferable signal for rank and
+direction is predominantly <strong>non-linear and multivariate</strong>,
+while LEG sharing is largely captured by a <strong>linear,
+modular</strong> signal. Mouse-only features reduced every algorithm to
+near chance for direction, whereas adding the BTM context raised the
+random forest to <span class="math inline">\(R^2 = 0.23\)</span> for
+human rank and ROC-AUC <span class="math inline">\(= 0.85\)</span> for
+directional concordance.</p>
+<h3 id="ixg-translational-scores">IX.G Translational Scores</h3>
+<p>Scores were derived from the <strong>out-of-fold predictions of the
+best model per task</strong>, so that every gene is scored by a model
+trained without its condition. Two complementary axes are captured —
+<strong>observed cross-species agreement</strong> versus
+<strong>predicted human response magnitude</strong>:</p>
 <ul>
 <li><code>score_shared</code> — probability of being a shared LEG.</li>
 <li><code>score_rank</code> — predicted human absolute rank
@@ -895,33 +1167,91 @@ direction.</li>
 class="math inline">\(\text{score\_rank} \times
 \text{score\_direction}\)</span>.</li>
 </ul>
-<h4 id="viiib7-model-serialisation-and-application">VIII.B.7 Model
-serialisation and application</h4>
+<p>In addition, an <strong>observed prioritisation score</strong>
+multiplies cross-species convergence by the <strong>observed</strong>
+directional concordance and ranks genes measured in both species. The
+predictive <code>score_translational</code> instead multiplies the
+predicted human rank by the predicted concordance probability,
+forecasting the human response for new murine data.</p>
+<h3 id="ixh-model-serialisation-and-application">IX.H Model
+Serialisation and Application</h3>
 <p>The best workflows are reduced with <code>butcher()</code> and stored
 with <code>compress = "xz"</code> (<code>rf_model_*.rds</code>,
 <code>nn_model_*.rds</code> in <code>Modelling/Models/</code>) so they
 can be reloaded and applied to new mouse experiments with
-<code>predict()</code>.</p>
+<code>predict()</code>. To make the workflow reusable, a step-by-step R
+Markdown notebook applies the trained models to a new murine dataset
+(DGE input → GSEA → prediction → scores).</p>
 <hr />
-<h2 id="ix-computational-reproducibility--repositories">IX.
-COMPUTATIONAL REPRODUCIBILITY &amp; REPOSITORIES</h2>
-<h3 id="ixa-environment-management-via-renv">IX.A Environment Management
-via <code>renv</code></h3>
-<p>All analyses were executed under R version 4.5.2 (Bioconductor 3.22).
-Complete computational environments are pinned in
-<code>renv.lock</code>. The project environment can be restored via:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>renv<span class="sc">::</span><span class="fu">restore</span>()</span></code></pre></div>
-<h3 id="ixb-code-availability--reproducibility-scripts">IX.B Code
-Availability &amp; Reproducibility Scripts</h3>
+<h2 id="x-limitations--future-directions">X. LIMITATIONS &amp; FUTURE
+DIRECTIONS</h2>
 <ul>
-<li><strong>Primary GitHub Repository:</strong>
-<code>https://github.com/wapsyed/mousetohuman_multilayer</code></li>
-<li><strong>Applying the models:</strong> a step-by-step R Markdown
-notebook applies the trained models to a new mouse experiment (DGE input
-→ GSEA → prediction → scores).</li>
+<li><strong>Cohort size &amp; metadata:</strong> murine cohorts were
+small, constraining statistical power; the scarcity of datasets with
+sufficient metadata limited generalizability.</li>
+<li><strong>Genetic diversity:</strong> the analysis was restricted to
+two inbred strains (<strong>C57BL/6</strong> and
+<strong>CB6F1</strong>), narrowing the phenotypic heterogeneity
+captured. Because host genetics shapes translatability, low correlation
+in some modules may reflect <strong>strain–hypothesis mismatch</strong>
+(Th1-biased C57BL/6 vs. Th2-biased BALB/c) rather than species-level
+failure.</li>
+<li><strong>Biological/experimental mismatches:</strong> laboratory mice
+are immunologically naïve whereas humans carry complex exposure
+histories (evident in the Fluad® data); mouse vaccinations were
+<strong>single-dose</strong> whereas human inactivated/subunit vaccines
+typically use <strong>prime-boost</strong>, limiting comparison of
+adaptive trajectories; human burn/trauma datasets lacked standardized
+<strong>severity scores</strong>, precluding adjustment for this
+confounder.</li>
+<li><strong>Genomic resolution:</strong> analyses relied on
+Ensembl-annotated <strong>one-to-one orthologs</strong>. The ~50 %
+amino-acid identity baseline captures evolutionary relatedness but not
+domain-topology conservation, rewiring of protein–protein interactions,
+or the distinction between neutral and functionally impactful
+mutations.</li>
+<li><strong>Not yet included:</strong> regional constraint
+(<strong>PhastCons/phyloP</strong>), systematic
+<strong>transposable-element</strong> mapping, and expression of
+associated TFs. Confounders such as baseline expression, gene length, GC
+content, CRE sequence alignment and substitution-rate acceleration were
+not controlled.</li>
+<li><strong>Scope of the scores:</strong> scores were derived from
+<strong>blood-based BTMs</strong> and require testing in other tissues
+and gene sets (e.g., <strong>MSigDB</strong>, <strong>Gene
+Ontology</strong>).</li>
+<li><strong>Future work:</strong> test prime-boost and adjuvanted
+regimens for low-immunogenicity platforms, refine ortholog regulatory
+annotation, standardize clinical metadata, align strain with the
+hypothesis, and match timepoints by <strong>biological
+equivalence</strong> rather than chronological time.</li>
 </ul>
 <hr />
-<h2 id="x-references">X. REFERENCES</h2>
+<h2 id="xi-computational-reproducibility--data-availability">XI.
+COMPUTATIONAL REPRODUCIBILITY &amp; DATA AVAILABILITY</h2>
+<h3 id="xia-environment-management-via-renv">XI.A Environment Management
+via <code>renv</code></h3>
+<p>All analyses were executed under <strong>R version 4.5.2</strong>
+(Bioconductor 3.22). Complete computational environments are pinned in
+<code>renv.lock</code>. The project environment can be restored via:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>renv<span class="sc">::</span><span class="fu">restore</span>()</span></code></pre></div>
+<h3 id="xib-code--data-availability">XI.B Code &amp; Data
+Availability</h3>
+<ul>
+<li><strong>Primary repository (processing, modelling &amp; manuscript
+code):</strong>
+<code>https://github.com/wapsyed/mousetohuman_multilayer</code></li>
+<li><strong>Companion repository (step-by-step prediction notebook +
+extensible model-building framework):</strong>
+<code>https://github.com/wapsyed/mousetohuman_predict</code></li>
+<li>All source code, dataset-processing scripts and model-training
+pipelines are released under an <strong>MIT license</strong>, allowing
+the community to audit, adapt and continuously retrain the architecture
+with additional perturbation models, booster vaccine regimens and
+emerging multi-omic layers.</li>
+</ul>
+<hr />
+<h2 id="xii-references">XII. REFERENCES</h2>
 <ol type="1">
 <li><strong>BTMs:</strong> Li S, et al. Molecular signatures of antibody
 responses derived from a systems biology approach. <em>Nature
@@ -929,55 +1259,73 @@ Immunology</em>. 2014;15(2):195-204.</li>
 <li><strong>limma:</strong> Ritchie ME, et al. limma powers differential
 expression analyses for RNA-sequencing and microarray studies.
 <em>Nucleic Acids Research</em>. 2015;43(7):e47.</li>
-<li><strong>fgsea:</strong> Korotkevich, G., Sukhov, V., Budin, N.,
-Shpak, B., Artyomov, M. N., &amp; Sergushichev, A. (2021). Fast gene set
-enrichment analysis. <em>bioRxiv</em>, doi:10.1101/060012.</li>
-<li><strong>biomaRt:</strong> Durinck, S., Spellman, P. T., Birney, E.,
-&amp; Huber, W. (2009). Mapping identifiers for the integration of
-genomic datasets with the R/Bioconductor package biomaRt. <em>Nature
-Protocols</em>, 4(8), 1184-1191.</li>
-<li><strong>pwalign:</strong> Pagès, H. (2024). <em>pwalign: Efficient
-pairwise sequence alignments</em>. R Package Version 1.0.0.</li>
-<li><strong>ape:</strong> Paradis, E., &amp; Schliep, K. (2019). ape
-5.0: an environment for modern phylogenetics and evolutionary analyses
-in R. <em>Bioinformatics</em>, 35(3), 526-528.</li>
+<li><strong>clusterProfiler:</strong> Wu T, et al. clusterProfiler 4.0:
+A universal enrichment tool for interpreting omics data. <em>The
+Innovation</em>. 2021;2(3):100141.</li>
+<li><strong>fgsea:</strong> Korotkevich G, Sukhov V, Budin N, Shpak B,
+Artyomov MN, Sergushichev A. Fast gene set enrichment analysis.
+<em>bioRxiv</em>. 2021; doi:10.1101/060012.</li>
+<li><strong>biomaRt:</strong> Durinck S, Spellman PT, Birney E, Huber W.
+Mapping identifiers for the integration of genomic datasets with the
+R/Bioconductor package biomaRt. <em>Nature Protocols</em>.
+2009;4(8):1184-1191.</li>
+<li><strong>pwalign:</strong> Pagès H. <em>pwalign: Efficient pairwise
+sequence alignments</em>. R Package Version 1.0.0; 2024.</li>
+<li><strong>ape:</strong> Paradis E, Schliep K. ape 5.0: an environment
+for modern phylogenetics and evolutionary analyses in R.
+<em>Bioinformatics</em>. 2019;35(3):526-528.</li>
 <li><strong>ENCODE cCREs:</strong> The ENCODE Project Consortium.
-(2020). Expanded encyclopaedias of DNA elements in the human and mouse
-genomes. <em>Nature</em>, 583, 699–710.</li>
-<li><strong>tidymodels:</strong> Kuhn, M., &amp; Wickham, H. (2020).
-<em>Tidymodels: a collection of packages for modeling and machine
-learning using tidyverse principles</em>. <a
+Expanded encyclopaedias of DNA elements in the human and mouse genomes.
+<em>Nature</em>. 2020;583:699-710.</li>
+<li><strong>SCREEN portal:</strong> ENCODE Project Consortium. The
+ENCODE Portal and SCREEN cCRE registry. <a
+href="https://screen.wenglab.org">https://screen.wenglab.org</a></li>
+<li><strong>MSigDB:</strong> Liberzon A, et al. The Molecular Signatures
+Database (MSigDB) hallmark gene set collection. <em>Cell Systems</em>.
+2015;1(6):417-425.</li>
+<li><strong>MGI:</strong> Bult CJ, et al. Mouse Genome Informatics
+(MGI): the unified mouse genome database. <em>Nucleic Acids
+Research</em>. 2019;47(D1):D801-D806.</li>
+<li><strong>ArrayQualityMetrics:</strong> Kauffmann A, Gentleman R,
+Huber W. arrayQualityMetrics — a bioconductor package for quality
+assessment of microarray data. <em>Bioinformatics</em>.
+2009;25(3):415-416.</li>
+<li><strong>GEOquery:</strong> Davis S, Meltzer PS. GEOquery: a bridge
+between the Gene Expression Omnibus (GEO) and BioConductor.
+<em>Bioinformatics</em>. 2007;23(14):1846-1847.</li>
+<li><strong>tidymodels:</strong> Kuhn M, Wickham H. <em>Tidymodels: a
+collection of packages for modeling and machine learning using tidyverse
+principles</em>. 2020. <a
 href="https://www.tidymodels.org">https://www.tidymodels.org</a></li>
-<li><strong>ranger:</strong> Wright, M. N., &amp; Ziegler, A. (2017).
-ranger: A fast implementation of random forests for high dimensional
-data in C++ and R. <em>Journal of Statistical Software</em>, 77(1),
-1-17.</li>
-<li><strong>tidyverse:</strong> Wickham, H., Averick, M., Bryan, J.,
-Chang, W., McGowan, L. D., François, R., ... &amp; Yutani, H. (2019).
-Welcome to the tidyverse. <em>Journal of Open Source Software</em>,
-4(43), 1686.</li>
-<li><strong>ComplexHeatmap:</strong> Gu, Z., Eils, R., &amp; Schlesner,
-M. (2016). Complex heatmaps reveal patterns and correlations in
-multidimensional genomic data. <em>Bioinformatics</em>, 32(18),
-2847-2849.</li>
-<li><strong>pROC:</strong> Robin, X., Turck, N., Hainard, A., Tiberti,
-N., Lisacek, F., Sanchez, J. C., &amp; Müller, M. (2011). pROC: an
-open-source package for R and S+ to analyze and compare ROC curves.
-<em>BMC Bioinformatics</em>, 12(1), 77.</li>
-<li><strong>glmnet:</strong> Friedman, J., Hastie, T., &amp; Tibshirani,
-R. (2010). Regularization paths for generalized linear models via
-coordinate descent. <em>Journal of Statistical Software</em>, 33(1),
-1-22.</li>
-<li><strong>nnet:</strong> Venables, W. N., &amp; Ripley, B. D. (2002).
-<em>Modern Applied Statistics with S</em> (4th ed.). Springer. (R
-package <code>nnet</code>.)</li>
-<li><strong>butcher:</strong> Kuhn, M., &amp; Silge, J. (2024).
-<em>butcher: Model butchering for R</em>. R package. <a
-href="https://butcher.tidymodels.org">https://butcher.tidymodels.org</a></li>
-<li><strong>yardstick:</strong> Kuhn, M., Vaughan, D., &amp; Hvitfeldt,
-E. (2024). <em>yardstick: Tidy characterizations of model
-performance</em>. R package. <a
+<li><strong>ranger:</strong> Wright MN, Ziegler A. ranger: A fast
+implementation of random forests for high dimensional data in C++ and R.
+<em>Journal of Statistical Software</em>. 2017;77(1):1-17.</li>
+<li><strong>glmnet:</strong> Friedman J, Hastie T, Tibshirani R.
+Regularization paths for generalized linear models via coordinate
+descent. <em>Journal of Statistical Software</em>. 2010;33(1):1-22.</li>
+<li><strong>nnet:</strong> Venables WN, Ripley BD. <em>Modern Applied
+Statistics with S</em> (4th ed.). Springer; 2002. (R package
+<code>nnet</code>.)</li>
+<li><strong>pROC:</strong> Robin X, et al. pROC: an open-source package
+for R and S+ to analyze and compare ROC curves. <em>BMC
+Bioinformatics</em>. 2011;12(1):77.</li>
+<li><strong>yardstick:</strong> Kuhn M, Vaughan D, Hvitfeldt E.
+<em>yardstick: Tidy characterizations of model performance</em>. 2024.
+<a
 href="https://yardstick.tidymodels.org">https://yardstick.tidymodels.org</a></li>
+<li><strong>butcher:</strong> Kuhn M, Silge J. <em>butcher: Model
+butchering for R</em>. 2024. <a
+href="https://butcher.tidymodels.org">https://butcher.tidymodels.org</a></li>
+<li><strong>tidyverse:</strong> Wickham H, et al. Welcome to the
+tidyverse. <em>Journal of Open Source Software</em>.
+2019;4(43):1686.</li>
+<li><strong>ComplexHeatmap:</strong> Gu Z, Eils R, Schlesner M. Complex
+heatmaps reveal patterns and correlations in multidimensional genomic
+data. <em>Bioinformatics</em>. 2016;32(18):2847-2849.</li>
+<li><strong>FIT:</strong> Andres-Terre M, et al. Integrated,
+multi-cohort analysis identifies conserved transcriptional signatures
+across multiple respiratory viruses. <em>Immunity</em>.
+2015;43(6):1199-1211.</li>
 </ol>
 </main>
 <div class="foot"><span>Mouse2Human · multilayer</span><span>September 2026</span></div>
