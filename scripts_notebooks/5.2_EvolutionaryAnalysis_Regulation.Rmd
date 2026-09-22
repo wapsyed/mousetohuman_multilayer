@@ -11,17 +11,6 @@ output: html_document
 # Load core packages for the analysis session
 library(here)
 source(here("scripts_notebooks", "required.R"))
-
-
-# library(TxDb.Hsapiens.UCSC.hg38.knownGene)
-# library(TxDb.Mmusculus.UCSC.mm10.knownGene)
-# library(GenomeInfoDb)
-# library(GenomicRanges)
-# library(IRanges)
-# library(rtracklayer)
-# library(org.Hs.eg.db)
-# library(pwalign)
-# library(biomaRt)
 ```
 # Regulation
 
