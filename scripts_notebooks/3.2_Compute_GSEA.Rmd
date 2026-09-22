@@ -10,12 +10,6 @@ editor_options:
 # Setup
 
 ```{r}
-library(tidyverse)
-library(here)
-library(janitor)
-library(rstatix)
-library(glue)
-
 source(here("scripts_notebooks", "required.R"))
 ```
 
