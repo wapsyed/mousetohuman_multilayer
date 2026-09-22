@@ -277,29 +277,6 @@ colors = list(organism = c("FIT" = "#4361ee",
 
 
 
-colors_genesets = list(immune_colors = c("SIGNAL TRANSDUCTION" = "gray80",
-                                         "CELL CYCLE" = "gray50",
-                                         "ECM AND MIGRATION" = "gray25",
-                                         "ENERGY METABOLISM" = "black", 
-                                         "INNATE RESPONSE" = "#184e77",
-                                         "INFLAMMATORY/TLR/CHEMOKINES"  = "#3a86ff",
-                                         "INTERFERON/ANTIVIRAL SENSING" = "#669bbc",
-                                         "NEUTROPHILS" = "#219ebc",
-                                         "NK CELLS" = "#a2d2ff",
-                                         "IFN"= "#4361ee",
-                                         "MONOCYTES" = "#4cc9f0",
-                                         "DC ACTIVATION" = "#9f86c0",
-                                         "PLATELETS" = "#06d6a0",
-                                         "B CELLS" = "#e5383b",
-                                         "T CELLS" = "#E07A5F",
-                                         "PLASMA CELLS" = "#EFC000FF"),
-                       hallmarks_colors = c("Immune Response" = "#4cc9f0",
-                                            "Apoptosis and Hormonal Response" = "#06d6a0",
-                                            "Differentiation and Cell Structure" = "gray80",
-                                            "Metabolism"  = "#4361ee", 
-                                            "Proliferation and Repair" = "#001219",
-                                            "Signaling and Stress Response"   = "#0A9396")
-                       )
 
 
 immune_order = c("SIGNAL TRANSDUCTION",

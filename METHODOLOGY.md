@@ -59,7 +59,7 @@
 ## III. QUALITY CONTROL & PREPROCESSING
 
 ### III.A Array Quality Metrics & Outlier Detection
-Prior to integration, all expression datasets were evaluated for technical fidelity via `1_QualityControl.Rmd`:
+Prior to integration, all expression datasets were evaluated for technical fidelity via `1.1_QualityControl.Rmd`:
 1. **ArrayQualityMetrics (`arrayQualitymetrics`):** Assessed distance matrices, boxplots of signal intensities, and pooled RNA degradation gradients.
 2. **Relative Log Expression (RLE):** 
    $$\text{RLE}_{gi} = \log_2(E_{gi}) - \operatorname{median}_{j}(\log_2(E_{gj}))$$
@@ -67,7 +67,7 @@ Prior to integration, all expression datasets were evaluated for technical fidel
 3. **Principal Component Analysis (PCA):** Outliers exceeding 2 standard deviations across PC1 and PC2 were visually inspected and removed if technical confounding (e.g., severe hybridisation failure) was confirmed.
 
 ### III.B Platform-Specific Normalization
-Microarray intensity matrices were processed using technology-specific algorithms in `2_Preprocessing_and_DGE.Rmd`:
+Microarray intensity matrices were processed using technology-specific algorithms in `1_Download_Standardize_Datasets.Rmd`:
 - **Affymetrix Oligonucleotide Arrays (Human Gene 1.0 ST):** Raw probe cell intensity files (.CEL) were preprocessed with the **Robust Multi-array Average (RMA)** algorithm via `affy`/`oligo`, executing background correction, quantile normalization, and median-polish probe set summarization.
 - **Illumina BeadChips & Agilent Arrays:** Expression matrices were $\log_2$-transformed and subjected to **between-array quantile normalization** using `limma::normalizeBetweenArrays(method = "quantile")` to enforce identical empirical distributions across arrays while preserving relative biological rank orders.
 
@@ -116,7 +116,7 @@ Enrichment scores ($ES$) across BTMs and MSigDB Hallmarks (50 gene sets) were co
 
 ## VI. UNIFIED CROSS-SPECIES COMPARATIVE ANALYSES & FIGURE 43 ARCHITECTURE
 
-Notebooks `3.1_Comparing_Human_Mouse_DGE_analyses.Rmd`, `3.2_Comparing_Human_Mouse_GSEA.Rmd`, and `3.3_Comparing_Human_Mouse_Functional_Analyses.Rmd` consolidate all 6 conditions into unified comparative frameworks.
+Notebooks `3.1_DGE_analyses.Rmd`, `3.2_Compute_GSEA.Rmd`, and `3.3_Functional_Analyses.Rmd` consolidate all 6 conditions into unified comparative frameworks.
 
 ### VI.A Macroevolutionary Expression Divergence & Inverse-Variance Weighting
 For each 1:1 orthologous gene pair across matched experimental conditions:
@@ -218,8 +218,8 @@ To interrogate promoter and enhancer rewiring, Candidate Cis-Regulatory Elements
 
 Two complementary scripts perform statistical modelling:
 
-- `scripts_notebooks/6_Statistical_Modelling.Rmd` — the original, exploratory script (feature matrix + Random Forest / Elastic Net with in-sample metrics).
-- `Modelling/6_Statistical_Modelling_v2.Rmd` — the consolidated **mouse-to-human transfer** pipeline used for the manuscript (Figure 7). It predicts the **human** response gene by gene using **leave-one-pathogen-out (LOCO)** cross-validation.
+- `Modelling/6_Statistical_Modelling.Rmd` — the original, exploratory script (feature matrix + Random Forest / Elastic Net with in-sample metrics).
+- `Modelling/6_Statistical_Modelling.Rmd` — the consolidated **mouse-to-human transfer** pipeline used for the manuscript (Figure 7). It predicts the **human** response gene by gene using **leave-one-pathogen-out (LOCO)** cross-validation.
 
 ### VIII.A Original Exploratory Script (`6_Statistical_Modelling.Rmd`)
 
@@ -232,7 +232,7 @@ A master feature matrix (`human_mouse_statsmodelling_parameters_values.rds`) was
 
 Algorithms were Random Forest classifiers/regressors (`ranger`) and regularized Elastic Net regression (`glmnet`), evaluated by 10-fold cross-validation repeated 5 times and ranked by permutation-based Variable Importance in Projection (`vip::vip()`).
 
-### VIII.B Consolidated Transfer Pipeline (`6_Statistical_Modelling_v2.Rmd`)
+### VIII.B Consolidated Transfer Pipeline (`6_Statistical_Modelling.Rmd`)
 
 #### VIII.B.1 Feature layers (two nested sets)
 Instead of adding six independent layers, the v2 pipeline uses two nested feature sets, separating the transferable biological signal from the mouse magnitude:
@@ -292,7 +292,7 @@ From the best model per task, four scores are exported (each gene scored by a mo
 - `score_translational` — $\text{score\_rank} \times \text{score\_direction}$.
 
 #### VIII.B.7 Model serialisation and application
-The best workflows are reduced with `butcher()` and stored with `compress = "xz"` (`rf_model_*.rds`, `nn_model_*.rds` in `Modelling/Models/`) so they can be reloaded and applied to new mouse experiments with `predict()`. Two resources consume these artefacts directly: the **recommended step-by-step R Markdown notebook** (`Run your analysis here/RunYourAnalysis_MouseToHuman.Rmd`), which walks through DGE input, GSEA, prediction and score visualisation, and an **optional interactive flexdashboard / Shiny app** (`Run your analysis here/MouseToHuman_app.Rmd`) that provides the same workflow through a browser interface.
+The best workflows are reduced with `butcher()` and stored with `compress = "xz"` (`rf_model_*.rds`, `nn_model_*.rds` in `Modelling/Models/`) so they can be reloaded and applied to new mouse experiments with `predict()`.
 
 ---
 
@@ -305,9 +305,8 @@ renv::restore()
 ```
 
 ### IX.B Code Availability & Reproducibility Scripts
-- **Primary GitHub Repository:** `https://github.com/wapsyed/animals_vax_atlas`
-- **Minimal Worked Example:** `example/example_btm_correlation.R` demonstrates end-to-end BTM correlation computation from cached tables in $< 2$ minutes.
-- **Applying the models:** `Run your analysis here/RunYourAnalysis_MouseToHuman.Rmd` is a step-by-step R Markdown notebook that applies the trained models to a new mouse experiment (DGE input → GSEA → prediction → scores); an optional Shiny front-end (`Run your analysis here/MouseToHuman_app.Rmd`) is also provided.
+- **Primary GitHub Repository:** `https://github.com/wapsyed/mousetohuman_multilayer`
+- **Applying the models:** a step-by-step R Markdown notebook applies the trained models to a new mouse experiment (DGE input → GSEA → prediction → scores).
 
 ---
 

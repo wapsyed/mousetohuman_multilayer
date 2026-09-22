@@ -35,17 +35,20 @@ We show that while the expression patterns of individual orthologous genes corre
 
 ![Flowchart](diagram_animal.png)
 
-The computational pipeline is structured into 10 modular R Markdown notebooks designed to be executed sequentially:
+The computational pipeline is structured into modular R Markdown notebooks designed to be executed sequentially:
 
 1.  **`0_Data_Curation.Rmd`** — Programmatically scans and filters raw BioProject metadata from NCBI. Isolates time-course vaccination and infection studies, applying inclusion/exclusion criteria to remove oncology, autoimmune, or toxicology studies.
-2.  **`1_QualityControl.Rmd`** — Evaluates data fidelity using Array Quality Metrics (`arrayQualityMetrics`) and Relative Log Expression (RLE) distributions to identify sample-level outliers and technical variation.
-3.  **`2_Preprocessing_and_DGE.Rmd`** — Downloads ExpressionSets via `GEOquery`, normalizes array intensities (RMA for Affymetrix; Quantile normalization via `limma` for Illumina/Agilent), resolves probe redundancy by selecting the **probe with the maximum variance across samples**, and models differential expression with `limma` Empirical Bayes moderation (`adj. p-value <= 0.05`).
-4.  **`3.1_Comparing_Human_Mouse_DGE_analyses.Rmd`** — Executes cross-species gene-level comparative analyses. Computes macroevolutionary effect size delta ($\Delta \text{log}_2\text{FC} = \text{log}_2\text{FC}_H - \text{log}_2\text{FC}_M$), coefficient of variation (CV), sampling stability from downsampling, and inverse-variance statistical weights ($1 / (SE_H^2 + SE_M^2)$).
-5.  **`3.2_Comparing_Human_Mouse_GSEA.Rmd`** — Consolidates the multi-condition DGE data and runs unified pathway-level Gene Set Enrichment Analysis via `fgsea` on Blood Transcription Modules (BTMs) and MSigDB Hallmarks, using an exploratory threshold of $\text{padj} \le 0.25$, alongside single-sample GSEA (`GSVA/ssGSEA`).
-6.  **`3.3_Comparing_Human_Mouse_Functional_Analyses.Rmd`** — Evaluates higher-order functional conservation. Generates module-level NES and mean log₂FC cross-species correlations over time (**Figure 4a**), quantifies shared vs. species-specific leading-edge genes (LEGs) (**Figure 5a**), and plots rank conservation for core modules such as "immune activation - generic cluster" (**Figure 5b**).
-7.  **`4_Performance_EqualTImepoints.Rmd` & `4_Performance_DifferentTimepoints.rmd`** — Assesses murine predictive power for human module regulation. Generates ROC curves and computes Area Under the Curve (AUC) (**Figure 4b**) for matched (equal) timepoints and cross-temporal (different) timepoints, benchmarked against biological controls (e.g., Duchenne Muscular Dystrophy, DMD) and permutation null distributions.
-8.  **`5.1_EvolutionaryAnalysis_Protein.Rmd` & `5.2_EvolutionaryAnalysis_Regulation.Rmd`** — Dissects evolutionary determinants. Retrieves Ensembl BioMart coding sequences (CDS) and amino acid identity %, computes codon-level pairwise alignment and **Kimura 2-Parameter (K80) genetic distances**, and integrates ENCODE candidate Cis-Regulatory Elements (cCREs: PLS, pELS, dELS, and CTCF-bound sites) across GRCh38 and mm10 to assess promoter conservation.
+2.  **`1_Download_Standardize_Datasets.Rmd`** — Downloads ExpressionSets via `GEOquery`, normalizes array intensities (RMA for Affymetrix; quantile normalization via `limma` for Illumina/Agilent), resolves probe redundancy by selecting the **probe with the highest median expression across samples**, and annotates probes to orthologous human gene symbols.
+3.  **`1.1_QualityControl.Rmd`** — Evaluates data fidelity using Array Quality Metrics (`arrayQualityMetrics`) and Relative Log Expression (RLE) distributions to identify sample-level outliers and technical variation.
+4.  **`2_Differential_Gene_Expression.Rmd`** — Models differential expression per condition and species with `limma` Empirical Bayes moderation (`adj. p-value <= 0.05`) and a simple paired/unpaired t-test, then combines the human and mouse results.
+5.  **`3.1_DGE_analyses.Rmd`** — Executes cross-species gene-level comparative analyses. Computes macroevolutionary effect size delta ($\Delta \text{log}_2\text{FC} = \text{log}_2\text{FC}_H - \text{log}_2\text{FC}_M$), coefficient of variation (CV), sampling stability from downsampling, and inverse-variance statistical weights ($1 / (SE_H^2 + SE_M^2)$).
+6.  **`3.2_Compute_GSEA.Rmd`** — Consolidates the multi-condition DGE data and runs unified pathway-level Gene Set Enrichment Analysis via `fgsea` on Blood Transcription Modules (BTMs) and MSigDB Hallmarks, using an exploratory threshold of $\text{padj} \le 0.25$, alongside single-sample GSEA (`GSVA/ssGSEA`).
+7.  **`3.3_Functional_Analyses.Rmd`** — Evaluates higher-order functional conservation. Generates module-level NES and mean log₂FC cross-species correlations over time (**Figure 4a**), quantifies shared vs. species-specific leading-edge genes (LEGs) (**Figure 5a**), and plots rank conservation for core modules such as "immune activation - generic cluster" (**Figure 5b**).
+8.  **`4_Performance_DifferentTimepoints.rmd`** — Assesses murine predictive power for human module regulation. Generates ROC curves and computes Area Under the Curve (AUC) (**Figure 4b**) for cross-temporal (different) timepoints, benchmarked against biological controls (e.g., Duchenne Muscular Dystrophy, DMD) and permutation null distributions.
+9.  **`5.1_EvolutionaryAnalysis_Protein.Rmd`** & **`5.2_EvolutionaryAnalysis_Regulation.Rmd`** — Dissects evolutionary determinants. Retrieves Ensembl BioMart coding sequences (CDS) and amino acid identity %, computes codon-level pairwise alignment and **Kimura 2-Parameter (K80) genetic distances**, and integrates ENCODE candidate Cis-Regulatory Elements (cCREs: PLS, pELS, dELS, and CTCF-bound sites) across GRCh38 and mm10 to assess promoter conservation.
 10. **`Modelling/6_Statistical_Modelling.Rmd`** — Consolidated modelling pipeline that predicts the **human** response gene by gene. Uses two nested feature layers (**DGE Baseline → Full + BTM**), two universes (all human DEGs for *rank transfer* and *direction*; mouse LEGs for *shared-LEG classification*), and **leave-one-condition-out (LOCO)** cross-validation. Benchmarks four algorithms — linear/logistic regression, **lasso**, **random forest** and a **neural network** — and exports the best model per task plus four out-of-fold scores (`score_shared`, `score_rank`, `score_direction`, `score_translational`). See [Statistical modelling](#statistical-modelling-v2) below.
+
+Auxiliary notebooks: **`FIT_Exploration_Prediction.Rmd`** (Found In Translation benchmarking), **`ImmuneGO_Mouse.Rmd`** (mouse immune gene-set construction) and **`Tests.Rmd`** (exploratory tests).
 
 ------------------------------------------------------------------------
 
@@ -54,36 +57,41 @@ The computational pipeline is structured into 10 modular R Markdown notebooks de
 ``` text
 mousetohuman_multilayer/
 ├── scripts_notebooks/
-│   ├── required.R                           # Global libraries, theme_vaxgo, palettes, utility functions
-│   ├── 0_Data_Curation.Rmd                  # BioProject curation and filtering
-│   ├── 1_QualityControl.Rmd                 # ArrayQM and RLE quality control
-│   ├── 2_Preprocessing_and_DGE.Rmd          # GEO download, normalization, probe collapsing, limma DGE
-│   ├── 2_Preprocessing_and_DGE_Simplified.Rmd # Streamlined preprocessing and DGE pipeline
-│   ├── 3.1_Comparing_Human_Mouse_DGE_analyses.Rmd # Cross-species DGE comparison, noise & delta metrics
-│   ├── 3.2_Comparing_Human_Mouse_GSEA.Rmd   # fgsea & ssGSEA unified pipeline (BTMs, Hallmarks)
-│   ├── 3.3_Comparing_Human_Mouse_Functional_Analyses.Rmd # Functional correlations, LEGs, rank conservation (Fig 4a,c,d)
-│   ├── 4_Performance_EqualTImepoints.Rmd    # Equal-timepoint ROC/AUC classification (Fig 4b)
-│   ├── 4_Performance_DifferentTimepoints.rmd # Cross-temporal ROC/AUC benchmarking with controls
-│   ├── 5.1_EvolutionaryAnalysis_Protein.Rmd # Protein sequence identity and Kimura K80 CDS distance
-│   ├── 5.2_EvolutionaryAnalysis_Regulation.Rmd # ENCODE cCRE promoter/enhancer regulatory architecture
-│   ├── 6_Statistical_Modelling.Rmd          # tidymodels predictive modeling of translatability drivers
-│   └── FIT_training_datasets.Rmd            # Found In Translation (FIT) benchmarking
-├── Modelling/                               # Consolidated mouse-to-human transfer modelling (v2)
-│   ├── 6_Statistical_Modelling.Rmd       # LOCO modelling: DGE Baseline -> Full + BTM
-│   ├── Models/                              # Fitted workflows (rf_model_*.rds, nn_model_*.rds) and metrics
-│   ├── Tables/                              # LOCO metrics, observed-vs-predicted, priority lists
-│   └── Figures/                             # Fig. 7 (multilayer modelling), contributions, AUC bars
-├── tables/                                  # Intermediate and processed RDS/CSV data files
-│   ├── DataCuration/                        # BioProject search outputs and curation tables
-│   ├── Genomic/                             # ENCODE cCRE BED files (PLS, pELS, dELS, CTCF-bound)
-│   └── VaxGO/                               # Curated BTM, ImmuneGO, and Hallmark gene set definitions
-├── example/
-│   ├── example_btm_correlation.R            # Minimal reproducible script for cross-species BTM correlation
-│   └── example_btm_correlation_day7.png     # Example output plot
-├── Figures/                                 # Generated exploratory and diagnostic figures
-├── Figures_Article/                         # High-resolution, publication-ready figures
-├── ArrayQM/                                 # ArrayQualityMetrics HTML report directories
-└── renv.lock                                # Pinned R dependency environment snapshot
+│   ├── required.R                              # Global libraries, theme_vaxgo, palettes, utility functions
+│   ├── 0_Data_Curation.Rmd                     # BioProject curation and filtering
+│   ├── 1_Download_Standardize_Datasets.Rmd     # GEO download, normalization, probe collapsing, annotation
+│   ├── 1.1_QualityControl.Rmd                  # Array quality metrics and RLE quality control
+│   ├── 2_Differential_Gene_Expression.Rmd      # limma / t-test DGE, human-mouse combination
+│   ├── 3.1_DGE_analyses.Rmd                    # Cross-species DGE comparison, noise & delta metrics
+│   ├── 3.2_Compute_GSEA.Rmd                    # fgsea & ssGSEA unified pipeline (BTMs, Hallmarks)
+│   ├── 3.3_Functional_Analyses.Rmd             # Functional correlations, LEGs, rank conservation
+│   ├── 4_Performance_DifferentTimepoints.rmd   # Cross-temporal ROC/AUC benchmarking with controls
+│   ├── 5.1_EvolutionaryAnalysis_Protein.Rmd     # Protein sequence identity and Kimura K80 CDS distance
+│   ├── 5.2_EvolutionaryAnalysis_Regulation.Rmd  # ENCODE cCRE promoter/enhancer regulatory architecture
+│   ├── FIT_Exploration_Prediction.Rmd          # Found In Translation (FIT) benchmarking
+│   ├── ImmuneGO_Mouse.Rmd                      # Mouse immune gene-set construction
+│   └── Tests.Rmd                               # Exploratory tests
+├── Modelling/                                  # Consolidated mouse-to-human transfer modelling
+│   ├── 6_Statistical_Modelling.Rmd             # LOCO modelling: DGE Baseline -> Full + BTM
+│   ├── 6_Statistical_Modelling_optionB.Rmd     # Alternative modelling formulation
+│   ├── Models/                                 # Fitted workflows (rf_model_*.rds, nn_model_*.rds) and metrics
+│   ├── Tables/                                 # LOCO metrics, observed-vs-predicted, priority lists
+│   └── Figures/                                # Fig. 7 (multilayer modelling), contributions, AUC bars
+├── tables/                                     # Data files (raw inputs + processed/intermediate)
+│   ├── raw_data/                               # Raw expression matrices, platform/GPL and series-matrix files
+│   ├── processed_data/                         # Cleaned metadata and processed expression matrices
+│   ├── Data curation/                          # BioProject/GEO curation tables and plots
+│   ├── Differential gene expression/           # DEG tables, esets, log2FC and annotation objects
+│   ├── Functional analysis/                    # GSEA/BTM/Hallmark results and correlation summaries
+│   ├── Gene sets/                              # BTM, ImmuneGO and Hallmark gene-set definitions
+│   ├── Gene and Protein sequences/             # CDS sequences, alignments and distance tables
+│   ├── Genomic/                                # ENCODE cCRE BED files
+│   ├── Regulation/                             # cCRE/TF regulation tables
+│   ├── FIT/                                    # Found In Translation inputs/outputs
+│   ├── Performance/                            # ROC/AUC data for performance tests
+│   └── Quality control/                        # QC reports and plots
+├── Figures/                                    # Generated exploratory and diagnostic figures
+└── renv.lock                                   # Pinned R dependency environment snapshot
 ```
 
 ------------------------------------------------------------------------
@@ -94,8 +102,8 @@ mousetohuman_multilayer/
 |:---|:---|:---|:---|
 | **BTMs** | Blood Transcription Modules (346 consensus modules) | Li et al. | *Nat Immunol* 2014, 2021 |
 | **MSigDB Hallmarks** | 50 well-defined hallmark biological processes | Broad Institute | Liberzon et al., *Cell Syst* 2015 |
-| **ImmuneGO** | Mouse-adapted immune Gene Ontology annotations | VaxGO | Custom curated |
-| **VaxSigDB** | Curated vaccination response signatures | VaxGO | Custom curated |
+| **ImmuneGO** | Mouse-adapted immune Gene Ontology annotations | `tables/Gene sets/` | Custom curated |
+| **VaxSigDB** | Curated vaccination response signatures | `tables/Gene sets/` | Custom curated |
 
 ------------------------------------------------------------------------
 
@@ -129,7 +137,7 @@ All package dependencies are managed via `renv`. Pinned core specifications:
 | **butcher** | 0.4.0 | CRAN | Model size reduction for serialisation (`butcher()`) |
 | **ComplexHeatmap** | 2.26.1 | Bioconductor | High-dimensional heatmap visualizations |
 | **pROC** | 1.18.5 | CRAN | ROC curve and AUC generation |
-
+All intermediate and processed files are archived under `tables/` (`raw_data/` for raw downloads and platform files; `processed_data/` for cleaned metadata and expression matrices; topic folders such as `Differential gene expression/`, `Functional analysis/` and `Gene sets/` for derived objects), allowing downstream analyses to run without re-downloading raw files. Users wishing to replicate preprocessing from scratch can query the original accessions:
 ------------------------------------------------------------------------
 
 ## Data Acquisition
@@ -173,17 +181,17 @@ Each notebook sources `scripts_notebooks/required.R`, initializing the shared wo
 
 | Step | Notebook | Key Inputs | Key Outputs |
 |:---|:---|:---|:---|
-| **0** | `0_Data_Curation.Rmd` | `tables/DataCuration/animals_vaccines_bioproject_result.csv` | `tables/DataCuration/datacuration_step2.csv` |
-| **1** | `1_QualityControl.Rmd` | `tables/*_eset.rds`, `tables/*_metadata.rds` | `ArrayQM/` reports, RLE plots |
-| **2** | `2_Preprocessing_and_DGE.Rmd` | Raw GEO ExpressionSets or `tables/*_exprs.rds` | `tables/*_dge_limma_degs.rds`, `tables/*_log2fc_sample_clean_long.rds` |
-| **3.1** | `3.1_Comparing_Human_Mouse_DGE_analyses.Rmd` | `tables/all_human_mouse_dge_limma_degs.rds` | `tables/human_mouse_log2fc_avg_wide_all.rds`, divergence weights |
-| **3.2** | `3.2_Comparing_Human_Mouse_GSEA.Rmd` | `all_human_mouse_dge_limma_degs_matched_control.rds`, BTM & Hallmark CSVs | `tables/all_human_mouse_gsea_btm_results.rds`, `tables/*_gsea_mean_wide.rds` |
-| **3.3** | `3.3_Comparing_Human_Mouse_Functional_Analyses.Rmd` | `all_human_mouse_gsea_btm_results.rds`, `all_human_mouse_gsea_btm_legs.rds` | Module correlation over time (**Fig 4a**), LEG barplots (**Fig 5a**), Rank conservation (**Fig 5b**) |
-| **4** | `4_Performance_EqualTImepoints.Rmd` & `4_Performance_DifferentTimepoints.rmd` | `all_human_mouse_dge_limma_degs_matched_filtered.rds`, BTM annotations | ROC curves, AUC summary tables (**Fig 4b**), PR curves |
-| **5.1** | `5.1_EvolutionaryAnalysis_Protein.Rmd` | Ensembl BioMart CDS data, `all_alignments`, `all_human_mouse_gsea_btm_legs.rds` | `human_mouse_cds_distance.rds` (Kimura K80), protein identity vs $\Delta\text{log}_2\text{FC}$ |
-| **5.2** | `5.2_EvolutionaryAnalysis_Regulation.Rmd` | ENCODE cCRE BED files (`tables/Genomic/*`), gene TSS coords | `cres_type_homology_comparison_wide.rds`, promoter conservation plots |
-| **6** | `6_Statistical_Modelling.Rmd` | `human_mouse_statsmodelling_parameters_values.rds` | `tidymodels` Random Forest & Elastic Net models, VIP feature importance |
-| **6 (v2)** | `Modelling/6_Statistical_Modelling.Rmd` | `human_mouse_statsmodelling_gene_annotated_layers.rds`, `dge_btm_process_genes_diff_bygene_clean_filtered.rds` | `Modelling/Models/rf_model_*.rds`, LOCO metrics, `score_table_v2.rds`, Fig. 7 |
+| **0** | `0_Data_Curation.Rmd` | `tables/Data curation/animals_vaccines_bioproject_result.txt` | `tables/Data curation/datacuration_step2.csv` |
+| **1** | `1_Download_Standardize_Datasets.Rmd` | Raw GEO ExpressionSets (series matrices in `tables/raw_data/`) | `tables/raw_data/*_exprs.rds`, `tables/processed_data/*_exprs_hgnc_symbol.rds` |
+| **1.1** | `1.1_QualityControl.Rmd` | `tables/Differential gene expression/*_eset.rds`, `tables/processed_data/*_metadata.rds` | QC reports and RLE plots |
+| **2** | `2_Differential_Gene_Expression.Rmd` | `tables/processed_data/*_exprs.rds` | `tables/Differential gene expression/*_dge_limma_degs.rds`, `*_log2fc_sample_clean_long.rds` |
+| **3.1** | `3.1_DGE_analyses.Rmd` | `tables/Differential gene expression/all_human_mouse_dge_limma_degs.rds` | `tables/human_mouse_log2fc_avg_wide_all.rds`, divergence weights |
+| **3.2** | `3.2_Compute_GSEA.Rmd` | `all_human_mouse_dge_limma_degs_matched_control.rds`, BTM & Hallmark CSVs | `tables/Functional analysis/all_human_mouse_gsea_btm_results.rds` |
+| **3.3** | `3.3_Functional_Analyses.Rmd` | `tables/Functional analysis/all_human_mouse_gsea_btm_results.rds`, `..._legs.rds` | Module correlations (**Fig 4a**), LEGs (**Fig 5a**), rank conservation (**Fig 5b**) |
+| **4** | `4_Performance_DifferentTimepoints.rmd` | `tables/Differential gene expression/all_human_mouse_dge_limma_degs_matched_filtered.rds`, BTM annotations | ROC/AUC (**Fig 4b**), PR curves |
+| **5.1** | `5.1_EvolutionaryAnalysis_Protein.Rmd` | Ensembl BioMart CDS data, `all_human_mouse_gsea_btm_legs.rds` | `tables/Gene and Protein sequences/human_mouse_cds_distance.rds` |
+| **5.2** | `5.2_EvolutionaryAnalysis_Regulation.Rmd` | ENCODE cCRE BED files (`tables/Genomic/*`), TSS coords | `tables/Regulation/cres_type_homology_comparison.rds` |
+| **6** | `Modelling/6_Statistical_Modelling.Rmd` | `human_mouse_statsmodelling_gene_annotated_layers.rds`, `tables/Functional analysis/dge_btm_process_genes_diff_bygene_clean_filtered.rds` | `Modelling/Models/rf_model_*.rds`, LOCO metrics, Fig. 7 |
 
 
 

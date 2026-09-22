@@ -62,6 +62,7 @@
     #t-overview:checked ~ .tabs label[for="t-overview"],
     #t-0:checked ~ .tabs label[for="t-0"],
     #t-1:checked ~ .tabs label[for="t-1"],
+    #t-11:checked ~ .tabs label[for="t-11"],
     #t-2:checked ~ .tabs label[for="t-2"],
     #t-31:checked ~ .tabs label[for="t-31"],
     #t-32:checked ~ .tabs label[for="t-32"],
@@ -74,6 +75,7 @@
     #t-overview:checked ~ .tabs label[for="t-overview"] b,
     #t-0:checked ~ .tabs label[for="t-0"] b,
     #t-1:checked ~ .tabs label[for="t-1"] b,
+    #t-11:checked ~ .tabs label[for="t-11"] b,
     #t-2:checked ~ .tabs label[for="t-2"] b,
     #t-31:checked ~ .tabs label[for="t-31"] b,
     #t-32:checked ~ .tabs label[for="t-32"] b,
@@ -86,6 +88,7 @@
     #t-overview:checked ~ .panels .p-overview,
     #t-0:checked ~ .panels .p-0,
     #t-1:checked ~ .panels .p-1,
+    #t-11:checked ~ .panels .p-11,
     #t-2:checked ~ .panels .p-2,
     #t-31:checked ~ .panels .p-31,
     #t-32:checked ~ .panels .p-32,
@@ -163,6 +166,7 @@
     <input type="radio" name="doc" id="t-overview" checked>
     <input type="radio" name="doc" id="t-0">
     <input type="radio" name="doc" id="t-1">
+    <input type="radio" name="doc" id="t-11">
     <input type="radio" name="doc" id="t-2">
     <input type="radio" name="doc" id="t-31">
     <input type="radio" name="doc" id="t-32">
@@ -174,8 +178,9 @@
     <nav class="tabs">
       <label for="t-overview"><b>Overview</b></label>
       <label for="t-0"><b>0</b> · Data curation</label>
-      <label for="t-1"><b>1</b> · Quality control</label>
-      <label for="t-2"><b>2</b> · Preprocessing &amp; DGE</label>
+      <label for="t-1"><b>1</b> · Standardize</label>
+      <label for="t-11"><b>1.1</b> · Quality control</label>
+      <label for="t-2"><b>2</b> · Differential expression</label>
       <label for="t-31"><b>3.1</b> · DGE analyses</label>
       <label for="t-32"><b>3.2</b> · GSEA</label>
       <label for="t-33"><b>3.3</b> · Functional</label>
@@ -191,55 +196,62 @@
         <div class="banner">End-to-end pipeline</div>
         <svg viewBox="0 0 1160 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ava-overview-title ava-overview-desc">
           <title id="ava-overview-title">Animals Vax Atlas end-to-end pipeline</title>
-          <desc id="ava-overview-desc">Six ordered stages: data curation, quality control, preprocessing and differential expression, cross-species comparison (DGE, GSEA, functional), prediction performance, and evolutionary analysis of protein and regulation.</desc>
+          <desc id="ava-overview-desc">Seven ordered stages: data curation; dataset download and standardization; quality control; differential expression; cross-species comparison (DGE, GSEA and functional analyses); prediction performance; and evolutionary analysis of protein and regulation.</desc>
           <defs>
             <marker id="ov-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#9a918b"/></marker>
           </defs>
           <rect width="100%" height="100%" fill="#fbfaf9"/>
 
-          <line x1="184" y1="75" x2="196" y2="75" stroke="#9a918b" stroke-width="1.2" marker-end="url(#ov-arrow)"/>
-          <line x1="366" y1="75" x2="378" y2="75" stroke="#9a918b" stroke-width="1.2" marker-end="url(#ov-arrow)"/>
-          <line x1="548" y1="75" x2="560" y2="75" stroke="#9a918b" stroke-width="1.2" marker-end="url(#ov-arrow)"/>
-          <line x1="730" y1="75" x2="742" y2="75" stroke="#9a918b" stroke-width="1.2" marker-end="url(#ov-arrow)"/>
-          <line x1="912" y1="75" x2="924" y2="75" stroke="#9a918b" stroke-width="1.2" marker-end="url(#ov-arrow)"/>
+          <line x1="182" y1="75" x2="198" y2="75" stroke="#9a918b" stroke-width="1.2" marker-end="url(#ov-arrow)"/>
+          <line x1="338" y1="75" x2="354" y2="75" stroke="#9a918b" stroke-width="1.2" marker-end="url(#ov-arrow)"/>
+          <line x1="494" y1="75" x2="510" y2="75" stroke="#9a918b" stroke-width="1.2" marker-end="url(#ov-arrow)"/>
+          <line x1="650" y1="75" x2="666" y2="75" stroke="#9a918b" stroke-width="1.2" marker-end="url(#ov-arrow)"/>
+          <line x1="806" y1="75" x2="822" y2="75" stroke="#9a918b" stroke-width="1.2" marker-end="url(#ov-arrow)"/>
+          <line x1="962" y1="75" x2="978" y2="75" stroke="#9a918b" stroke-width="1.2" marker-end="url(#ov-arrow)"/>
 
-          <rect x="20" y="45" width="164" height="60" rx="8" fill="#c39a72"/>
-          <text x="102" y="72" fill="#ffffff" font-size="13" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">0 · Data curation</text>
-          <text x="102" y="89" fill="rgba(255,255,255,0.8)" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">BioProject · GEO</text>
+          <rect x="42" y="45" width="140" height="60" rx="8" fill="#c39a72"/>
+          <text x="112" y="72" fill="#ffffff" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">0 · Data curation</text>
+          <text x="112" y="89" fill="rgba(255,255,255,0.8)" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">BioProject · GEO</text>
 
-          <rect x="202" y="45" width="164" height="60" rx="8" fill="#c39a72"/>
-          <text x="284" y="72" fill="#ffffff" font-size="13" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">1 · Quality control</text>
-          <text x="284" y="89" fill="rgba(255,255,255,0.8)" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">distributions · SA/MA</text>
+          <rect x="198" y="45" width="140" height="60" rx="8" fill="#c39a72"/>
+          <text x="268" y="72" fill="#ffffff" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">1 · Standardize</text>
+          <text x="268" y="89" fill="rgba(255,255,255,0.8)" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">download · normalize</text>
 
-          <rect x="384" y="45" width="164" height="60" rx="8" fill="#c39a72"/>
-          <text x="466" y="72" fill="#ffffff" font-size="13" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">2 · Preproc &amp; DGE</text>
-          <text x="466" y="89" fill="rgba(255,255,255,0.8)" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">limma · t-test</text>
+          <rect x="354" y="45" width="140" height="60" rx="8" fill="#c39a72"/>
+          <text x="424" y="72" fill="#ffffff" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">1.1 · Quality control</text>
+          <text x="424" y="89" fill="rgba(255,255,255,0.8)" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">SA/MA · RLE</text>
 
-          <rect x="566" y="45" width="164" height="60" rx="8" fill="#c39a72"/>
-          <text x="648" y="72" fill="#ffffff" font-size="13" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">3 · Comparison</text>
-          <text x="648" y="89" fill="rgba(255,255,255,0.8)" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">DGE · GSEA · functional</text>
+          <rect x="510" y="45" width="140" height="60" rx="8" fill="#c39a72"/>
+          <text x="580" y="72" fill="#ffffff" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">2 · Diff. expression</text>
+          <text x="580" y="89" fill="rgba(255,255,255,0.8)" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">limma · t-test</text>
 
-          <rect x="748" y="45" width="164" height="60" rx="8" fill="#c39a72"/>
-          <text x="830" y="72" fill="#ffffff" font-size="13" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">4 · Performance</text>
-          <text x="830" y="89" fill="rgba(255,255,255,0.8)" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">ROC · PR · RMSE</text>
+          <rect x="666" y="45" width="140" height="60" rx="8" fill="#c39a72"/>
+          <text x="736" y="72" fill="#ffffff" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">3 · Comparison</text>
+          <text x="736" y="89" fill="rgba(255,255,255,0.8)" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">DGE · GSEA · func.</text>
 
-          <rect x="930" y="45" width="164" height="60" rx="8" fill="#c39a72"/>
-          <text x="1012" y="72" fill="#ffffff" font-size="13" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">5 · Evolutionary</text>
-          <text x="1012" y="89" fill="rgba(255,255,255,0.8)" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">protein · regulation</text>
+          <rect x="822" y="45" width="140" height="60" rx="8" fill="#c39a72"/>
+          <text x="892" y="72" fill="#ffffff" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">4 · Performance</text>
+          <text x="892" y="89" fill="rgba(255,255,255,0.8)" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">ROC · PR · AUC</text>
+
+          <rect x="978" y="45" width="140" height="60" rx="8" fill="#c39a72"/>
+          <text x="1048" y="72" fill="#ffffff" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">5 · Evolutionary</text>
+          <text x="1048" y="89" fill="rgba(255,255,255,0.8)" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">protein · regulation</text>
         </svg>
         <div class="cards" style="margin-top:1.1rem">
           <div class="card">
             <h3>Notebook order</h3>
             <ol>
               <li><code>0_Data_Curation.Rmd</code></li>
-              <li><code>1_QualityControl.Rmd</code></li>
-              <li><code>2_Preprocessing_and_DGE.Rmd</code></li>
-              <li><code>3.1_Comparing_Human_Mouse_DGE_analyses.Rmd</code></li>
-              <li><code>3.2_Comparing_Human_Mouse_GSEA.Rmd</code></li>
-              <li><code>3.3_Comparing_Human_Mouse_Functional_Analyses.Rmd</code></li>
-              <li><code>4_Performance_EqualTImepoints.Rmd</code> · <code>4_Performance_DifferentTimepoints.rmd</code></li>
+              <li><code>1_Download_Standardize_Datasets.Rmd</code></li>
+              <li><code>1.1_QualityControl.Rmd</code></li>
+              <li><code>2_Differential_Gene_Expression.Rmd</code></li>
+              <li><code>3.1_DGE_analyses.Rmd</code></li>
+              <li><code>3.2_Compute_GSEA.Rmd</code></li>
+              <li><code>3.3_Functional_Analyses.Rmd</code></li>
+              <li><code>4_Performance_DifferentTimepoints.rmd</code></li>
               <li><code>5.1_EvolutionaryAnalysis_Protein.Rmd</code></li>
               <li><code>5.2_EvolutionaryAnalysis_Regulation.Rmd</code></li>
+              <li><code>Modelling/6_Statistical_Modelling.Rmd</code></li>
             </ol>
           </div>
           <div class="card cream">
@@ -247,7 +259,7 @@
             <ul>
               <li>Each tab is one notebook; pills are its top-level sections.</li>
               <li>Cards list the sub-sections (headers) inside each section.</li>
-              <li>Notebooks <code>required.R</code>, <code>FIT_training_datasets.Rmd</code>, <code>ImmuneGO_Mouse.Rmd</code> and <code>Tests.Rmd</code> are support/auxiliary.</li>
+              <li>Support/auxiliary notebooks: <code>required.R</code>, <code>FIT_Exploration_Prediction.Rmd</code>, <code>ImmuneGO_Mouse.Rmd</code> and <code>Tests.Rmd</code>.</li>
             </ul>
             <p class="assume">Section names mirror the Rmd headers; code detail is intentionally omitted.</p>
           </div>
@@ -308,10 +320,51 @@
         </div>
       </section>
 
-      <!-- ===================== 1 · QUALITY CONTROL ===================== -->
+      <!-- ===================== 1 · DOWNLOAD & STANDARDIZE ===================== -->
       <section class="panel p-1">
-        <div class="banner">1 · Quality control</div>
-        <p class="notelink">Notebook: <a href="../1_QualityControl.Rmd">1_QualityControl.Rmd</a></p>
+        <div class="banner">1 · Download &amp; standardize datasets</div>
+        <p class="notelink">Notebook: <a href="../1_Download_Standardize_Datasets.Rmd">1_Download_Standardize_Datasets.Rmd</a></p>
+
+        <div class="pills">
+          <span class="pill">Preprocessing</span><span class="arrow">→</span>
+          <span class="pill">1. Fluad</span><span class="arrow">→</span>
+          <span class="pill">2. Engerix B</span><span class="arrow">→</span>
+          <span class="pill">3. S. aureus</span><span class="arrow">→</span>
+          <span class="pill">4. E. coli</span><span class="arrow">→</span>
+          <span class="pill">6. Duchenne</span>
+        </div>
+        <div class="cards">
+          <div class="card">
+            <h3>Per-condition download &amp; annotation</h3>
+            <ol>
+              <li><b>Fluad, vaccine</b> — mouse &amp; human; GEO download, expression matrix, metadata</li>
+              <li><b>Engerix B, vaccine</b> — mouse &amp; human</li>
+              <li><b>S. aureus, infection</b> — mouse &amp; human</li>
+              <li><b>E. coli, infection</b> — human &amp; mouse in the same dataset (mouse / human blocks)</li>
+              <li value="6"><b>Duchenne</b> — mouse</li>
+            </ol>
+          </div>
+          <div class="card">
+            <h3>Annotate genes</h3>
+            <ul>
+              <li>Map probes to orthologous human symbols (BioMart + <code>FIT.mouse2man</code>)</li>
+              <li>Collapse probes to one per gene (highest median)</li>
+              <li>Export annotated matrices for DGE</li>
+            </ul>
+          </div>
+          <div class="card cream">
+            <h3>Key packages</h3>
+            <ul>
+              <li><code>GEOquery</code>, <code>biomaRt</code>, <code>limma</code>, <code>FIT.mouse2man</code></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== 1.1 · QUALITY CONTROL ===================== -->
+      <section class="panel p-11">
+        <div class="banner">1.1 · Quality control</div>
+        <p class="notelink">Notebook: <a href="../1.1_QualityControl.Rmd">1.1_QualityControl.Rmd</a></p>
 
         <div class="pills">
           <span class="pill">Quality control</span><span class="arrow">→</span>
@@ -345,56 +398,42 @@
         </div>
       </section>
 
-      <!-- ===================== 2 · PREPROCESSING & DGE ===================== -->
+      <!-- ===================== 2 · DIFFERENTIAL EXPRESSION ===================== -->
       <section class="panel p-2">
-        <div class="banner">2 · Preprocessing &amp; differential expression</div>
-        <p class="notelink">Notebook: <a href="../2_Preprocessing_and_DGE.Rmd">2_Preprocessing_and_DGE.Rmd</a></p>
+        <div class="banner">2 · Differential gene expression</div>
+        <p class="notelink">Notebook: <a href="../2_Differential_Gene_Expression.Rmd">2_Differential_Gene_Expression.Rmd</a></p>
 
         <div class="pills">
-          <span class="pill">Preprocessing</span><span class="arrow">→</span>
-          <span class="pill">Per-condition DGE</span><span class="arrow">→</span>
-          <span class="pill">FIT</span><span class="arrow">→</span>
-          <span class="pill">8. Combine all datasets</span>
+          <span class="pill">1. Differential expression</span><span class="arrow">→</span>
+          <span class="pill">2. Combine all datasets</span>
         </div>
         <div class="cards">
           <div class="card">
-            <h3>Per-condition preprocessing &amp; DGE</h3>
+            <h3>1 · Per-condition DGE</h3>
             <ol>
-              <li><b>Fluad + MF59, vaccine</b> — mouse &amp; human; download, annotate, normalize, DGE (limma, simple t-test), combine</li>
-              <li><b>Engerix B, vaccine</b> — mouse &amp; human; prepare, DGE, PCA, combine, compare DGE methods</li>
-              <li><b>S. aureus</b> — mouse &amp; human; retrieve, annotate, DGE (limma, t-test), combine, compare methods</li>
-              <li><b>E. coli infection</b> — human &amp; mouse in same dataset; combine, compare methods
-                <ul>
-                  <li>Trauma &amp; burn — human (GSE36809, GSE37069) and mouse (GSE7404); DGE for burn</li>
-                </ul>
-              </li>
-              <li value="6"><b>Duchenne</b> — mouse; download, annotate, DGE (limma)</li>
+              <li><b>1.1 Influenza</b> — mouse, human, combine datasets</li>
+              <li><b>1.2 Hepatitis B</b> — mouse, human, combine datasets</li>
+              <li><b>1.3 S. aureus</b> — mouse, human, combine datasets</li>
+              <li><b>1.4 E. coli</b> — mouse, human, combine datasets</li>
+              <li><b>1.5 Injury</b> — mouse, human</li>
+              <li><b>1.6 Duchenne</b> — mouse</li>
             </ol>
           </div>
           <div class="card">
-            <h3>7 · FIT</h3>
-            <ul>
-              <li>Fluad</li>
-              <li>Engerix B</li>
-              <li>S. aureus</li>
-              <li>E. coli</li>
-            </ul>
-          </div>
-          <div class="card">
-            <h3>8 · Combine all datasets</h3>
+            <h3>2 · Combine all datasets</h3>
             <ul>
               <li>Metadata</li>
               <li>Sample log2FC</li>
               <li>DGE results</li>
               <li>Pair all timepoints by pathogen</li>
-              <li>DGE t-tests vs. limma methods</li>
+              <li>DGE t-tests and Limma methods</li>
               <li>FIT</li>
             </ul>
           </div>
           <div class="card cream">
             <h3>Key packages</h3>
             <ul>
-              <li><code>limma</code>, <code>biomaRt</code>, <code>GEOquery</code>, <code>arrayQualityMetrics</code></li>
+              <li><code>limma</code>, <code>GEOquery</code>, <code>biomaRt</code></li>
             </ul>
           </div>
         </div>
@@ -403,7 +442,7 @@
       <!-- ===================== 3.1 · DGE ANALYSES ===================== -->
       <section class="panel p-31">
         <div class="banner">3.1 · Comparing human &amp; mouse — DGE analyses</div>
-        <p class="notelink">Notebook: <a href="../3.1_Comparing_Human_Mouse_DGE_analyses.Rmd">3.1_Comparing_Human_Mouse_DGE_analyses.Rmd</a></p>
+        <p class="notelink">Notebook: <a href="../3.1_DGE_analyses.Rmd">3.1_DGE_analyses.Rmd</a></p>
 
         <div class="pills">
           <span class="pill">1. Differential gene expression analysis</span><span class="arrow">→</span>
@@ -442,7 +481,7 @@
       <!-- ===================== 3.2 · GSEA ===================== -->
       <section class="panel p-32">
         <div class="banner">3.2 · Comparing human &amp; mouse — GSEA</div>
-        <p class="notelink">Notebook: <a href="../3.2_Comparing_Human_Mouse_GSEA.Rmd">3.2_Comparing_Human_Mouse_GSEA.Rmd</a></p>
+        <p class="notelink">Notebook: <a href="../3.2_Compute_GSEA.Rmd">3.2_Compute_GSEA.Rmd</a></p>
 
         <div class="pills">
           <span class="pill">Import all conditions</span><span class="arrow">→</span>
@@ -476,7 +515,7 @@
       <!-- ===================== 3.3 · FUNCTIONAL ===================== -->
       <section class="panel p-33">
         <div class="banner">3.3 · Comparing human &amp; mouse — functional analyses</div>
-        <p class="notelink">Notebook: <a href="../3.3_Comparing_Human_Mouse_Functional_Analyses.Rmd">3.3_Comparing_Human_Mouse_Functional_Analyses.Rmd</a></p>
+        <p class="notelink">Notebook: <a href="../3.3_Functional_Analyses.Rmd">3.3_Functional_Analyses.Rmd</a></p>
 
         <div class="pills">
           <span class="pill">Import all conditions</span><span class="arrow">→</span>
@@ -506,14 +545,11 @@
       <!-- ===================== 4 · PERFORMANCE ===================== -->
       <section class="panel p-4">
         <div class="banner">4 · Performance tests</div>
-        <p class="notelink">Notebooks: <a href="../4_Performance_EqualTImepoints.Rmd">4_Performance_EqualTImepoints.Rmd</a> · <a href="../4_Performance_DifferentTimepoints.rmd">4_Performance_DifferentTimepoints.rmd</a></p>
+        <p class="notelink">Notebook: <a href="../4_Performance_DifferentTimepoints.rmd">4_Performance_DifferentTimepoints.rmd</a></p>
 
         <div class="pills">
           <span class="pill">Classification: Genes</span><span class="arrow">→</span>
-          <span class="pill">Classification: BTMs</span><span class="arrow">→</span>
-          <span class="pill">ROC: Hallmarks</span><span class="arrow">→</span>
-          <span class="pill">Regression</span><span class="arrow">→</span>
-          <span class="pill">Classification model</span>
+          <span class="pill">BTMs</span>
         </div>
         <div class="cards">
           <div class="card">
@@ -524,35 +560,15 @@
             </ul>
           </div>
           <div class="card">
-            <h3>Classification: BTMs</h3>
+            <h3>BTMs</h3>
             <ul>
-              <li>Means — ROC curve, ROC AUC heatmap, PR curve, PR AUC heatmap</li>
-              <li>NES — ROC curve, ROC AUC heatmap, PR curve</li>
-              <li>Significant up/down vs. not-significant</li>
+              <li><b>Means</b> — ROC curve, ROC AUC, PR curve</li>
+              <li><b>NES</b> — ROC curve, ROC AUC</li>
             </ul>
           </div>
-          <div class="card">
-            <h3>ROC: Hallmarks</h3>
-            <ul>
-              <li>Means Hallmarks</li>
-              <li>NES</li>
-            </ul>
-          </div>
-          <div class="card">
-            <h3>Regression model <span style="font-weight:400;color:var(--soft)">(ADAPT · Fluad)</span></h3>
-            <ul>
-              <li>Compute overall metrics for all genes</li>
-              <li>RMSE, Spearman, correlation plots</li>
-            </ul>
-          </div>
-          <div class="card">
-            <h3>Classification model</h3>
-            <ul>
-              <li>Classify by grid of cutoffs</li>
-              <li>Number of DEGs</li>
-              <li>Metrics: accuracy, recall, precision, precision-recall</li>
-              <li>Classification of DEGs distributions; confusion matrix</li>
-            </ul>
+          <div class="card cream">
+            <h3>Scope</h3>
+            <p class="assume">Cross-temporal (different timepoints) ROC/AUC benchmarking against biological controls and permutation nulls.</p>
           </div>
         </div>
       </section>
