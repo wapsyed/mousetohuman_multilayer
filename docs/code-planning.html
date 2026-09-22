@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Animals Vax Atlas · Code planning (by notebook)</title>
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,400;1,700&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -21,9 +21,9 @@
       --pill-2:     #3b56d6;
       --accent:     #4dbbd5;
       --link:       #4361ee;
-      --font-sans:  'Geist', system-ui, sans-serif;
-      --font-serif: 'Instrument Serif', serif;
-      --font-mono:  'Geist Mono', ui-monospace, monospace;
+      --font-sans:  Arial, Helvetica, sans-serif;
+      --font-serif: 'Merriweather', Georgia, serif;
+      --font-mono:  ui-monospace, Menlo, Consolas, monospace;
     }
 
     body {
@@ -36,12 +36,12 @@
     .wrap { max-width: 1280px; margin: 0 auto; }
 
     .eyebrow {
-      font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500;
+      font-family: var(--font-sans); font-size: 0.66rem; font-weight: 500;
       letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted);
       margin-bottom: 0.5rem;
     }
     h1 {
-      font-family: var(--font-serif); font-weight: 400; letter-spacing: -0.02em;
+      font-family: var(--font-serif); font-weight: 700; letter-spacing: 0;
       font-size: clamp(1.6rem, 2.6vw + 0.8rem, 2.3rem); margin-bottom: 0.5rem;
     }
     .sub { color: var(--muted); max-width: 72ch; margin-bottom: 2rem; }
@@ -54,12 +54,12 @@
       background: var(--card-2); border: 1px solid var(--rule); border-radius: 10px;
     }
     .tabs label {
-      font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.02em;
+      font-family: var(--font-sans); font-size: 0.72rem; letter-spacing: 0.02em;
       padding: 0.42rem 0.7rem; border-radius: 6px; cursor: pointer;
       color: var(--muted); border: 1px solid transparent; white-space: nowrap;
     }
     .tabs label:hover { color: var(--ink); background: #eef1fd; }
-    .tabs label b { font-weight: 600; color: var(--ink); }
+    .tabs label b { font-weight: 700; color: var(--ink); }
 
     #t-overview:checked ~ .tabs label[for="t-overview"],
     #t-0:checked ~ .tabs label[for="t-0"],
@@ -103,12 +103,12 @@
     .banner {
       background: var(--banner); color: var(--banner-ink);
       border-radius: 10px; padding: 0.85rem 1.25rem; text-align: center;
-      font-weight: 600; letter-spacing: 0.02em; margin-bottom: 1.1rem;
+      font-family: var(--font-serif); font-weight: 700; letter-spacing: 0; margin-bottom: 1.1rem;
       font-size: 1.05rem;
     }
     .banner.sub { font-size: 0.95rem; padding: 0.6rem 1.1rem; margin-top: 1.6rem; }
     .notelink {
-      font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted);
+      font-family: var(--font-sans); font-size: 0.7rem; color: var(--muted);
       margin-bottom: 1.1rem;
     }
     .notelink a { color: var(--link, var(--pill)); text-decoration: none; border-bottom: 1px solid var(--rule); }
@@ -130,7 +130,8 @@
     }
     .card.cream { background: var(--card-2); }
     .card h3 {
-      font-size: 0.85rem; font-weight: 600; margin-bottom: 0.6rem;
+      font-family: var(--font-serif);
+      font-size: 0.85rem; font-weight: 700; margin-bottom: 0.6rem;
       padding-bottom: 0.5rem; border-bottom: 1px solid var(--rule);
     }
     .card ol, .card ul { margin: 0 0 0 1.05rem; color: var(--muted); font-size: 0.8rem; line-height: 1.5; }
@@ -144,7 +145,7 @@
 
     table { width: 100%; border-collapse: collapse; font-size: 0.76rem; }
     th, td { text-align: left; padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--rule); }
-    th { font-family: var(--font-mono); font-size: 0.66rem; text-transform: uppercase;
+    th { font-family: var(--font-sans); font-size: 0.66rem; text-transform: uppercase;
          letter-spacing: 0.06em; color: var(--soft); font-weight: 500; }
     td { color: var(--muted); }
     td:first-child { color: var(--ink); }
@@ -153,14 +154,14 @@
 
     .foot {
       margin-top: 2.5rem; padding-top: 1.25rem; border-top: 1px solid var(--rule);
-      font-family: var(--font-mono); font-size: 0.7rem; color: var(--soft);
+      font-family: var(--font-sans); font-size: 0.7rem; color: var(--soft);
       display: flex; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;
     }
     .assume { font-size: 0.72rem; color: var(--soft); font-style: italic; margin-top: 0.5rem; }
   </style>
 </head>
 <body>
-<style>.site-nav{background:#000000;color:#ffffff;padding:.75rem 0;margin:-2.5rem -2rem 2rem}.site-nav .inner{max-width:960px;margin:0 auto;padding:0 2rem;display:flex;flex-wrap:wrap;gap:1.25rem;align-items:baseline}.site-nav .brand{font-family:'Instrument Serif',serif;font-size:1.05rem;color:#ffffff;margin-right:auto;letter-spacing:0;text-transform:none}.site-nav a{color:rgba(255,255,255,.78);text-decoration:none;font-family:'Geist Mono',monospace;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase}.site-nav a:hover{color:#4dbbd5}</style>
+<style>.site-nav{background:#000000;color:#ffffff;padding:.75rem 0;margin:-2.5rem -2rem 2rem}.site-nav .inner{max-width:960px;margin:0 auto;padding:0 2rem;display:flex;flex-wrap:wrap;gap:1.25rem;align-items:baseline}.site-nav .brand{font-family:'Merriweather',Georgia,serif;font-weight:700;font-size:.98rem;color:#ffffff;margin-right:auto;letter-spacing:0;text-transform:none}.site-nav a{color:rgba(255,255,255,.78);text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase}.site-nav a:hover{color:#4dbbd5}</style>
 <nav class="site-nav"><div class="inner"><a class="brand" href="index.html">Mouse2Human</a><a href="overview.html">Overview</a><a href="methodology.html">Methodology</a><a href="code-planning.html">Code planning</a></div></nav>
 
   <div class="wrap app">
@@ -215,32 +216,32 @@
           <line x1="962" y1="75" x2="978" y2="75" stroke="#a1b0f7" stroke-width="1.2" marker-end="url(#ov-arrow)"/>
 
           <rect x="42" y="45" width="140" height="60" rx="8" fill="#4361ee"/>
-          <text x="112" y="72" fill="#ffffff" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">0 · Data curation</text>
-          <text x="112" y="89" fill="rgba(255,255,255,0.8)" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">BioProject · GEO</text>
+          <text x="112" y="72" fill="#ffffff" font-size="12" font-weight="600" font-family="Arial, sans-serif" text-anchor="middle">0 · Data curation</text>
+          <text x="112" y="89" fill="rgba(255,255,255,0.8)" font-size="8.5" font-family="Arial, sans-serif" text-anchor="middle">BioProject · GEO</text>
 
           <rect x="198" y="45" width="140" height="60" rx="8" fill="#4361ee"/>
-          <text x="268" y="72" fill="#ffffff" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">1 · Standardize</text>
-          <text x="268" y="89" fill="rgba(255,255,255,0.8)" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">download · normalize</text>
+          <text x="268" y="72" fill="#ffffff" font-size="12" font-weight="600" font-family="Arial, sans-serif" text-anchor="middle">1 · Standardize</text>
+          <text x="268" y="89" fill="rgba(255,255,255,0.8)" font-size="8.5" font-family="Arial, sans-serif" text-anchor="middle">download · normalize</text>
 
           <rect x="354" y="45" width="140" height="60" rx="8" fill="#4361ee"/>
-          <text x="424" y="72" fill="#ffffff" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">1.1 · Quality control</text>
-          <text x="424" y="89" fill="rgba(255,255,255,0.8)" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">SA/MA · RLE</text>
+          <text x="424" y="72" fill="#ffffff" font-size="12" font-weight="600" font-family="Arial, sans-serif" text-anchor="middle">1.1 · Quality control</text>
+          <text x="424" y="89" fill="rgba(255,255,255,0.8)" font-size="8.5" font-family="Arial, sans-serif" text-anchor="middle">SA/MA · RLE</text>
 
           <rect x="510" y="45" width="140" height="60" rx="8" fill="#4361ee"/>
-          <text x="580" y="72" fill="#ffffff" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">2 · Diff. expression</text>
-          <text x="580" y="89" fill="rgba(255,255,255,0.8)" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">limma · t-test</text>
+          <text x="580" y="72" fill="#ffffff" font-size="12" font-weight="600" font-family="Arial, sans-serif" text-anchor="middle">2 · Diff. expression</text>
+          <text x="580" y="89" fill="rgba(255,255,255,0.8)" font-size="8.5" font-family="Arial, sans-serif" text-anchor="middle">limma · t-test</text>
 
           <rect x="666" y="45" width="140" height="60" rx="8" fill="#4361ee"/>
-          <text x="736" y="72" fill="#ffffff" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">3 · Comparison</text>
-          <text x="736" y="89" fill="rgba(255,255,255,0.8)" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">DGE · GSEA · func.</text>
+          <text x="736" y="72" fill="#ffffff" font-size="12" font-weight="600" font-family="Arial, sans-serif" text-anchor="middle">3 · Comparison</text>
+          <text x="736" y="89" fill="rgba(255,255,255,0.8)" font-size="8.5" font-family="Arial, sans-serif" text-anchor="middle">DGE · GSEA · func.</text>
 
           <rect x="822" y="45" width="140" height="60" rx="8" fill="#4361ee"/>
-          <text x="892" y="72" fill="#ffffff" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">4 · Performance</text>
-          <text x="892" y="89" fill="rgba(255,255,255,0.8)" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">ROC · PR · AUC</text>
+          <text x="892" y="72" fill="#ffffff" font-size="12" font-weight="600" font-family="Arial, sans-serif" text-anchor="middle">4 · Performance</text>
+          <text x="892" y="89" fill="rgba(255,255,255,0.8)" font-size="8.5" font-family="Arial, sans-serif" text-anchor="middle">ROC · PR · AUC</text>
 
           <rect x="978" y="45" width="140" height="60" rx="8" fill="#4361ee"/>
-          <text x="1048" y="72" fill="#ffffff" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">5 · Evolutionary</text>
-          <text x="1048" y="89" fill="rgba(255,255,255,0.8)" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">protein · regulation</text>
+          <text x="1048" y="72" fill="#ffffff" font-size="12" font-weight="600" font-family="Arial, sans-serif" text-anchor="middle">5 · Evolutionary</text>
+          <text x="1048" y="89" fill="rgba(255,255,255,0.8)" font-size="8.5" font-family="Arial, sans-serif" text-anchor="middle">protein · regulation</text>
         </svg>
         <div class="cards" style="margin-top:1.1rem">
           <div class="card">
