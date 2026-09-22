@@ -1,10 +1,13 @@
 ---
 title: "5_EvolutionaryAnalysis"
 output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
-
 # Evolutionary analysis
+
 # Setup
 
 ```{r message=FALSE, warning=FALSE}
@@ -14,7 +17,6 @@ library(here)
 # Source project-wide functions, themes, and colour palettes
 source(here("scripts_notebooks", "required.R"))
 ```
-
 
 # Protein identity
 
@@ -83,12 +85,9 @@ protein_identity_process = alignments_human2mouse %>%
 # Import pre-computed human gene information and join with alignment data
 gene_info_human =
   alignments_human2mouse_all %>% 
-  
   #Add difference in log2FC
   inner_join(dge_btm_process_genes_diff_bygene_clean_filtered,
              by = join_by(gene == hgnc_symbol)) 
-
-
 
 gene_info_human %>% 
   dplyr::count(pathogen, status)
@@ -96,8 +95,8 @@ gene_info_human %>%
 
 ```
 
-
 ### Protein id% vs. Diff. in means
+
 ```{r fig.height=3, fig.width=8, message=FALSE, warning=FALSE}
 #### Difference in means vs. status
 gene_info_human_clean_dge <- gene_info_human %>%
@@ -109,7 +108,6 @@ gene_info_human_clean_dge <- gene_info_human %>%
 gene_info_human_clean_dge %>% 
   saveRDS(here("tables", "Gene and Protein sequences", "human_mouse_gene_info_dge_clean.rds"))
 ```
-
 
 ```{r fig.height=3, fig.width=8, message=FALSE, warning=FALSE}
 #Import
@@ -205,8 +203,6 @@ alignments_human2mouse_legs_identity_log2fc_plot %>%
          height = 3)
 
 ```
-
-
 
 ```{r fig.height=3, fig.width=3, message=FALSE, warning=FALSE}
 
@@ -307,17 +303,10 @@ alignments_human2mouse_legs_identity_log2fc_pooled_plot %>%
 
 ```
 
-
-
-
-
-
-
-
-
 ### Protein id% by Shared/NotShared: Boxplot
 
 All
+
 ```{r fig.height=3, fig.width=8}
 # Protein identity by Shared/NotShared: Boxplot
 protein_identity_genes_distribution = gene_info_human_clean_dge %>% 
@@ -394,78 +383,8 @@ protein_identity_genes_distribution %>%
          height = 3)
 ```
 
-
-
-### Protein id% by shared/not-shared, by process
-```{r fig.width=8, fig.height= 4}
-protein_identity_process_distribution = gene_info_human_clean_dge %>% 
-  ggplot(aes(x = status, y = mean_identity)) +
-  
-  # Faceting and Axis Scaling
-  facet_nested_wrap(
-    ~treatment + pathogen + timepoint_comparison,
-    nrow = 1,
-    scales = "fixed",
-    strip = strip_nested(size = "variable")
-  ) +
-  
-    # 1. First layer: Boxplot filled by STATUS
-  geom_boxplot(aes(fill = status), outlier.shape = NA, alpha = 0.6) +
-  scale_fill_manual(
-    name = "Status",
-    values = colors$comparison
-  ) +
-    
-  # 3. Second layer: Beeswarm points filled by GROUP
-  new_scale_fill() +
-  geom_jitter(
-    aes(fill = group,
-        # group = group
-        ),
-    pch = 21,
-    color = "black",
-    size = 2, position = position_dodge2(width = 0.3)
-    # cex = 5 # Adjusts horizontal point spacing
-  ) +
-  scale_fill_manual(
-    name = "Immune Group",
-    values = btm_immune_groups$group # Named vector/list with your group colors
-  ) +
-  
-  scale_x_discrete(expand = c(0.2, 0.2)) +
-  scale_y_continuous(expand = expansion(mult = c(0.05, 0.05)),
-                     limits = c(50, 110)) +
-  
-  # Labels (Corrected X and Y axis mappings)
-  labs(
-    x = "Status",
-    y = "% Identity",
-    fill = "Group"
-  ) +
-  
-  # Theme and Legend Styling
-  theme_vaxgo() +
-  theme(
-    axis.text = element_text(size = 10),
-    strip.text = element_text(size = 10, hjust = 0),
-    panel.spacing = unit(1, "cm"),
-    legend.position = "top",
-    legend.box = "vertical",
-    legend.text = element_text(size = 10),
-    ggh4x.facet.nestline = element_line(colour = "black")
-  )
-
-protein_identity_process_distribution +
-  stat_compare_means(
-    mapping = aes(group = status),
-    comparisons = list(c("Shared", "Not-shared")),
-    method = "wilcox.test",
-    label = "p.format",
-    label.y = 102, size = 3
-  )
-```
-
 Statistical analysis
+
 ```{r fig.width=8, fig.height= 4}
 # # NON-PARAMETRIC TEST (Wilcoxon) + EFFECT SIZE (r)
 # # Calculate Wilcoxon test + manual r effect size
@@ -515,7 +434,6 @@ Statistical analysis
 
 
 ```
-
 
 Integrate sequence identity with cross-species gene correlation,
 organized by functional hierarchy. This prepares data for comparing
@@ -1273,7 +1191,6 @@ top_shared_notshared_genes %>%
        fill = "Pathogen")
 ```
 
-
 Four-panel scatterplot matrix exploring relationships between gene
 sharing frequency, sequence identity, and cross-species correlation.
 These plots identify which shared LEGs have the strongest conservation
@@ -1853,7 +1770,6 @@ gene_info_human %>%
   guides(color = guide_legend(nrow = 1, byrow = T),
          fill = "none")
 ```
-
 
 ```{r fig.height=3, fig.width=12}
 # Distribution, boxplot and violin
@@ -2540,9 +2456,6 @@ alignment_results_pairwise <- tibble(
 
 ```
 
-
-
-
 ## Protein structure
 
 ### Prepare protein data for CD2
@@ -2953,16 +2866,10 @@ ggmsa(seqs_to_plot,
 
 ```
 
-
-
-
-
-
-
 ## Evolution of protein sequence
 
-
 ### Download sequences
+
 ```{r}
 # ---- 1. Prerequisites & Installation ----
 # Ensure all required packages are installed
@@ -3017,6 +2924,7 @@ target_map <- ortholog_map %>%
 ```
 
 Functions
+
 ```{r}
 #Functions =============
 # Helper function to process gene chunks safely
@@ -3078,6 +2986,7 @@ fetch_mouse_cds_chunked <- function(df_part, part_label, chunk_size = 100) {
 ```
 
 Download sequences
+
 ```{r}
 #Download Human sequences ====================
 message("Downloading Mouse coding sequences in 3 batches")
@@ -3130,7 +3039,6 @@ human_cds_clean <- human_cds_raw %>%
 # Save
 saveRDS(human_cds_clean, file = here::here("tables", "Gene and Protein sequences", "human_cds_clean.rds"))
 ```
-
 
 ```{r}
 #Download Mouse ==========================
@@ -3192,7 +3100,6 @@ notify(
 )
 ```
 
-
 ```{r}
 #Import
 mouse_cds_clean = readRDS(file = here::here("tables", "Gene and Protein sequences", "mouse_cds_clean.rds"))
@@ -3231,8 +3138,6 @@ notify(title = "Alignment done", msg = "Check it out!")
 
 ```
 
-
-
 ### Is LEG status explaned by the evolutionary distance in the CDS?
 
 ```{r fig.height=3, fig.width=3}
@@ -3255,8 +3160,8 @@ human_mouse_cds_distance_dge %>%
 
 ```
 
-
 Is LEG status explaned by the evolutionary distance in the CDS?
+
 ```{r fig.height=3, fig.width=8}
 #Is LEG status explaned by the evolutionary distance in the CDS?
 distance_legs_plot =  human_mouse_cds_distance_dge %>% 
@@ -3327,9 +3232,8 @@ distance_legs_plot %>%
 
 ```
 
-
-
 Is the absolute difference in Log2FC explained by sequence distance?
+
 ```{r fig.height=3, fig.width=3}
 difflog2fc_distance_scatter_plot <- human_mouse_cds_distance_dge %>%
   filter(status == "All genes") %>% 
@@ -3481,11 +3385,3 @@ difflog2fc_distance_scatter_condition_plot %>%
          height = 3)
 
 ```
-
-
-
-
-
-
-
-

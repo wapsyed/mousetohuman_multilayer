@@ -14,8 +14,6 @@ editor_options:
 library(here)
 # Source project-wide functions, themes, and colour palettes
 source(here("scripts_notebooks", "required.R"))
-
-
 ```
 
 # Functional enrichment
@@ -34,7 +32,6 @@ consistent column names and pathogen labels.
 ```{r}
 # Import annotation tables for BTMs and Hallmark gene sets
 btm_annotation_genes <- read_csv(here("tables", "Gene sets", "btm_annotation_genes.csv"))
-msigdbr_grouped <- read_csv(here("tables", "Gene sets", "msigdb_hallmarks_grouped_genes.csv"))
 
 #Load DGE results
 all_degs <- readRDS(here("tables", "Differential gene expression", "all_human_mouse_dge_limma_degs.rds"))
@@ -60,7 +57,7 @@ conditions_filtered <- readRDS(file = here("tables", "Differential gene expressi
   distinct()
 
 # ── Load BTM (Blood Transcriptional Modules) results
-# Load mean log2FC per BTM process, collapsed across genes within each module
+
 dge_btm_mean_process <- readRDS(here("tables", "Functional analysis", "all_human_mouse_dge_btm_mean_process.rds")) 
 
 # Load gene-level BTM membership
@@ -1933,7 +1930,6 @@ dge_btm_gsea_mean_wide %>%
 
 # Reshape rank variables into long format
 df_legs_ranked = df_legs %>%
-  filter(process == process_selected) %>%
   select(symbol:timepoint_comparison, group,
          status, n_status_perc:facet_label,
          Mouse_rank:Human_rank) %>%
@@ -2095,190 +2091,6 @@ legs_scatterplot_rank_significance_horizontal %>%
 
 
 
-
-##### Comparing gene ranks: Slope plot
-
-```{r fig.height= 10, fig.width=4}
-# Plot gene positions across species using ranks
-df_legs_ranked_significance_plot = df_legs_ranked %>%
-  # mutate(facet_label = str_replace_all(facet_label, "\n", " ")) %>% 
-  # filter(status == "Shared") %>% 
-  # Select only significance-weighted rank variables
-  filter(variable %in% c("Mouse_rank_p", "Human_rank_p")) %>%
-  # Data aesthetics
-  ggplot() +
-  aes(x = organism,
-      y = value,
-      group = symbol,
-      color = status) +
-  # Facets
-  facet_nested_wrap(
-    ~pathogen + facet_label,
-    scales = "free",
-    ncol = 1,
-    strip = strip_nested(size = "variable")
-  ) +
-  # Geoms: layered lines - Shared genes drawn last (on top) with full opacity
-  geom_line(size = 0.5, alpha = 0.3, data = . %>% filter(status %in% c("Human only", "Mouse only"))) +
-  geom_line(size = 0.7, alpha = 1.0, data = . %>% filter(status == "Shared")) +
-  # Scales and Labels
-  scale_color_manual(values = colors$comparison) +
-  scale_x_discrete(expand = c(0.01, 0.01)) +
-  scale_y_continuous(
-    # Commented out: labels = label_number(suffix = "k", scale = 1e-3)
-    transform = "reverse",
-    expand = c(0.01, 0.01)
-  ) +
-  labs(color = "Core Status",
-       y = "Rank (Descending log2FC)",
-       x = NULL,
-       title = process_selected) +
-  # Theme and Legend styling
-  theme_vaxgo() +
-  guides(color = guide_legend(override.aes = list(linewidth = 3))) +
-  theme(
-    axis.text = element_text(size = 10),
-    strip.text = element_text(size = 10, hjust = 0),
-    panel.spacing = unit(0.2, "lines"),
-    
-    legend.position = "top",
-    legend.text = element_text(size = 10),
-    legend.title = element_text(size = 10),
-    legend.margin = margin(0, 0, -10, 0),
-    ggh4x.facet.nestline = element_line(colour = "black")
-  ) 
-
-df_legs_ranked_significance_plot +
-  theme(plot.margin = margin(0, 1, 0, 1, unit = "cm"))
-```
-
-
-```{r fig.height= 10, fig.width=5}
-# # ADD  LABELS
-# df_legs_ranked_plot +
-#   geom_text_repel(
-#     data = df_legs_ranked %>%
-#       # filter(pathogen == "Saureus") %>%
-#       filter(status == "Shared") %>%
-#       group_by(pathogen, process, timepoint) %>%
-#       arrange(rank, .by_group = TRUE) %>%
-#   filter(
-#     (nes_Mouse > 0 & row_number() <= 5) |
-#     (nes_Mouse < 0 & row_number() > (n() - 5))
-#   ) %>%
-#   ungroup(),
-#     aes(label = symbol,
-#         x = "M"),
-#     size = 3,
-#     color = "black",
-#     direction = "y",
-#     hjust = 0,
-#   max.iter = 1e4, max.time = 1,
-#     nudge_x = 0.1,
-#     # segment.size = .7,
-#     # segment.alpha = .5,
-#   force        = 0.5,
-#     segment.linetype = "solid",
-#     box.padding = .4,
-#   point.padding = 0.2,
-#   segment.square    = T,
-#     segment.inflect   = TRUE
-#     # segment.curvature = -1,
-#     # segment.ncp = 3,
-#     # segment.angle = 20
-#   ) +
-#   coord_cartesian(clip = "off")
-
-# Save significance-weighted slope plot
-df_legs_ranked_significance_plot %>%
-  ggsave(filename = here("Figures", paste0("all_human_mouse_gsea_btm_results_leadingedge_core_ranks_lineplot_", process_selected, "2.png")),
-         width = 12,
-         height = 5)
-
-# Render both slope plots
-df_legs_ranked_significance_plot
-df_legs_ranked_plot
-```
-
-
-
-
-Combine all leading edge analysis plots into composite figures using
-patchwork. Two versions are assembled: a full composite with
-scatterplot, log2FC comparison, and slope plot, and a shortened version
-with only the scatterplot and slope plot.
-
-```{r fig.height=16, fig.width=20}
-# Combine all leading edge plots into composite figures
-# Full composite: scatter + spacer + log2FC + spacer + slope
-leading_edges_plots = (
-  (df_test_scatter + theme(legend.position = "top")) /
-  plot_spacer() /
-  (df_test_log2fc + theme(legend.position = "none")) /
-  plot_spacer() /
-  (df_legs_ranked_plot + theme(legend.position = "none"))
-) +
-plot_layout(
-  guides = "collect",
-  heights = c(0.8, 0, 1, 0, 1)
-) +
-plot_annotation(
-  theme = theme(
-    legend.position = "top",
-    plot.margin = margin(1, 1, 1, 1, "pt")
-  )
-) &
-theme(
-  panel.spacing = unit(0, "lines"),
-  plot.margin = margin(0, 2, 0, 2, "pt")
-)
-
-# Render full composite
-leading_edges_plots
-
-# Save full composite
-leading_edges_plots %>%
-  ggsave(filename = here("Figures", paste0("all_human_mouse_gsea_btm_results_leadingedge_core_", process_selected, ".png")),
-         width = 20,
-         height = 16)
-
-# Shortened version: scatter + spacer + slope only
-leading_edges_plots_short = (
-  (df_test_scatter + theme(legend.position = "top")) /
-  plot_spacer() /
-  (df_legs_ranked_plot + theme(legend.position = "none"))
-) +
-plot_layout(
-  guides = "collect",
-  heights = c(1, -0.2, 1)
-) +
-plot_annotation(
-  theme = theme(
-    legend.position = "top",
-    plot.margin = margin(1, 1, 1, 1, "pt")
-  )
-) &
-theme(
-  panel.spacing = unit(0, "lines"),
-  # Commented out: plot.margin = margin(0, 2, 0, 2, "pt")
-  legend.margin = margin(0, 0, 0, 0),
-  legend.box.margin = margin(1, 0, -10, 0),
-  plot.margin = margin(0.5, 0.5, 0.5, 0.5, unit = "cm")
-)
-
-# Render shortened composite
-leading_edges_plots_short
-
-# Save shortened composite
-leading_edges_plots_short %>%
-  ggsave(filename = here("Figures", paste0("all_human_mouse_gsea_btm_results_leadingedge_core_short_", process_selected, ".png")),
-         width = 20,
-         height = 12)
-```
-
-
-
-
 ##### Unite LEGs with DGE for future analyses
 ```{r}
 # Gene expression
@@ -2351,9 +2163,6 @@ dge_btm_process_genes_diff_bygene_clean_filtered %>%
 
 
 dge_btm_process_genes_diff_bygene_clean_filtered
-
-
-
 
 ```
 
