@@ -1,0 +1,77 @@
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --paper:      #fbfaf9;
+  --card:       #ffffff;
+  --card-2:     #faf7f3;
+  --ink:        #33302e;
+  --muted:      #6f6763;
+  --soft:       #9a918b;
+  --rule:       #e6ded4;
+  --banner:     #4a4542;
+  --banner-ink: #ffffff;
+  --accent:     #c39a72;
+  --font-sans:  'Geist', system-ui, sans-serif;
+  --font-serif: 'Instrument Serif', serif;
+  --font-mono:  'Geist Mono', ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: var(--font-sans);
+  background: var(--paper);
+  color: var(--ink);
+  line-height: 1.65;
+  margin: 0;
+  padding: 0;
+  font-size: 16px;
+}
+
+/* ── site nav ── */
+.site-nav { background: var(--banner); color: var(--banner-ink); padding: 0.75rem 0; }
+.site-nav .inner { max-width: 960px; margin: 0 auto; padding: 0 2rem; display: flex; flex-wrap: wrap; gap: 1.25rem; align-items: baseline; }
+.site-nav .brand { font-family: var(--font-serif); font-size: 1.05rem; color: var(--banner-ink); margin-right: auto; }
+.site-nav a { color: rgba(255,255,255,0.82); border-bottom: none; text-decoration: none; font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; }
+.site-nav a:hover { color: #ffffff; }
+.site-nav a.active { color: #ffffff; border-bottom: 1px solid rgba(255,255,255,0.5); }
+
+main, .content { max-width: 960px; margin: 0 auto; padding: 2.5rem 2rem 5rem; }
+
+/* ── headings ── */
+h1, h2, h3, h4 { line-height: 1.25; }
+h1 { font-family: var(--font-serif); font-weight: 400; letter-spacing: -0.02em; font-size: clamp(1.9rem, 2.4vw + 1rem, 2.6rem); margin: 0 0 0.6rem; }
+h2 { font-family: var(--font-sans); font-weight: 600; font-size: 1.25rem; margin: 2.4rem 0 0.8rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--rule); }
+h3 { font-family: var(--font-sans); font-weight: 600; font-size: 1.02rem; margin: 1.6rem 0 0.5rem; }
+h4 { font-family: var(--font-sans); font-weight: 600; font-size: 0.92rem; margin: 1.2rem 0 0.4rem; color: var(--muted); }
+p { margin: 0.75rem 0; }
+strong { font-weight: 600; }
+em { font-style: italic; }
+
+/* ── links ── */
+a { color: var(--banner); text-decoration: none; border-bottom: 1px solid var(--rule); }
+a:hover { border-bottom-color: var(--accent); }
+
+/* ── code ── */
+code, pre, kbd { font-family: var(--font-mono); }
+code { background: #f1ece5; color: var(--ink); font-size: 0.85em; padding: 0.08rem 0.32rem; border-radius: 3px; }
+pre { background: var(--card-2); border: 1px solid var(--rule); border-radius: 8px; padding: 1rem 1.1rem; overflow-x: auto; font-size: 0.82rem; line-height: 1.5; margin: 1rem 0; }
+pre code { background: none; padding: 0; font-size: inherit; }
+
+/* ── tables ── */
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 0.85rem; }
+th, td { border-bottom: 1px solid var(--rule); padding: 0.5rem 0.6rem; text-align: left; vertical-align: top; }
+th { font-family: var(--font-mono); font-size: 0.68rem; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--soft); }
+
+/* ── blockquote / callouts ── */
+blockquote { margin: 1.2rem 0; padding: 0.4rem 1.1rem; border-left: 3px solid var(--accent); background: var(--card-2); font-family: var(--font-serif); font-style: italic; color: var(--muted); }
+blockquote p { margin: 0.4rem 0; }
+
+/* ── rules, images, lists ── */
+hr { border: 0; border-top: 1px solid var(--rule); margin: 2.2rem 0; }
+img { max-width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 8px; margin: 0.8rem 0; }
+ul, ol { margin: 0.75rem 0 0.75rem 1.3rem; }
+li { margin: 0.25rem 0; }
+
+/* ── footer ── */
+.foot { max-width: 960px; margin: 0 auto; padding: 1.25rem 2rem 3rem; border-top: 1px solid var(--rule); font-family: var(--font-mono); font-size: 0.7rem; color: var(--soft); display: flex; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
