@@ -49,7 +49,7 @@ The computational pipeline is structured into modular R Markdown notebooks desig
 - **`3.3_Functional_Analyses.Rmd`** — Evaluates higher-order functional conservation. Generates module-level NES and mean log₂FC cross-species correlations over time (**Figure 4a**), quantifies shared vs. species-specific leading-edge genes (LEGs) (**Figure 5a**), and plots rank conservation for core modules such as "immune activation - generic cluster" (**Figure 5b**).
 - **`4_Performance_DifferentTimepoints.rmd`** — Assesses murine predictive power for human module regulation. Generates ROC curves and computes Area Under the Curve (AUC) (**Figure 4b**) for cross-temporal (different) timepoints, benchmarked against biological controls (e.g., Duchenne Muscular Dystrophy, DMD) and permutation null distributions.
 - **`5.1_EvolutionaryAnalysis_Protein.Rmd`** & **`5.2_EvolutionaryAnalysis_Regulation.Rmd`** — Dissects evolutionary determinants. Retrieves Ensembl BioMart coding sequences (CDS) and amino acid identity %, computes codon-level pairwise alignment and **Kimura 2-Parameter (K80) genetic distances**, and integrates ENCODE candidate Cis-Regulatory Elements (cCREs: PLS, pELS, dELS, and CTCF-bound sites) across GRCh38 and mm10 to assess promoter conservation.
-- **`Modelling/6_Statistical_Modelling.Rmd`** — Consolidated modelling pipeline that predicts the **human** response gene by gene. Uses two nested feature layers (**DGE Baseline → Full + BTM**), two universes (all human DEGs for *rank transfer* and *direction*; mouse LEGs for *shared-LEG classification*), and **leave-one-condition-out (LOCO)** cross-validation. Benchmarks four algorithms — linear/logistic regression, **lasso**, **random forest** and a **neural network** — and exports the best model per task plus four out-of-fold scores (`score_shared`, `score_rank`, `score_direction`, `score_translational`). See [Statistical modelling](#statistical-modelling-v2) below.
+- **`6_Statistical_Modelling.Rmd`** — Consolidated modelling pipeline that predicts the **human** response gene by gene. Uses two nested feature layers (**DGE Baseline → Full + BTM**), two universes (all human DEGs for *rank transfer* and *direction*; mouse LEGs for *shared-LEG classification*), and **leave-one-condition-out (LOCO)** cross-validation. Benchmarks four algorithms — linear/logistic regression, **lasso**, **random forest** and a **neural network** — and exports the best model per task plus four out-of-fold scores (`score_shared`, `score_rank`, `score_direction`, `score_translational`). See [Statistical modelling](#statistical-modelling-v2) below.
 
 Auxiliary notebooks: **`FIT_Exploration_Prediction.Rmd`** (Found In Translation benchmarking), **`ImmuneGO_Mouse.Rmd`** (mouse immune gene-set construction) and **`Tests.Rmd`** (exploratory tests).
 
@@ -71,12 +71,11 @@ mousetohuman_multilayer/
 │   ├── 4_Performance_DifferentTimepoints.rmd   # Cross-temporal ROC/AUC benchmarking with controls
 │   ├── 5.1_EvolutionaryAnalysis_Protein.Rmd     # Protein sequence identity and Kimura K80 CDS distance
 │   ├── 5.2_EvolutionaryAnalysis_Regulation.Rmd  # ENCODE cCRE promoter/enhancer regulatory architecture
+│   ├── 6_Statistical_Modelling.Rmd             # LOCO modelling: DGE Baseline -> Full + BTM (outputs to Modelling/)
 │   ├── FIT_Exploration_Prediction.Rmd          # Found In Translation (FIT) benchmarking
 │   ├── ImmuneGO_Mouse.Rmd                      # Mouse immune gene-set construction
 │   └── Tests.Rmd                               # Exploratory tests
-├── Modelling/                                  # Consolidated mouse-to-human transfer modelling
-│   ├── 6_Statistical_Modelling.Rmd             # LOCO modelling: DGE Baseline -> Full + BTM
-│   ├── 6_Statistical_Modelling_optionB.Rmd     # Alternative modelling formulation
+├── Modelling/                                  # Artefacts written by 6_Statistical_Modelling.Rmd
 │   ├── Models/                                 # Fitted workflows (rf_model_*.rds, nn_model_*.rds) and metrics
 │   ├── Tables/                                 # LOCO metrics, observed-vs-predicted, priority lists
 │   └── Figures/                                # Fig. 7 (multilayer modelling), contributions, AUC bars
@@ -194,13 +193,13 @@ Each notebook sources `scripts_notebooks/required.R`, initializing the shared wo
 | **4** | `4_Performance_DifferentTimepoints.rmd` | `tables/Differential gene expression/all_human_mouse_dge_limma_degs_matched_filtered.rds`, BTM annotations | ROC/AUC (**Fig 4b**), PR curves |
 | **5.1** | `5.1_EvolutionaryAnalysis_Protein.Rmd` | Ensembl BioMart CDS data, `all_human_mouse_gsea_btm_legs.rds` | `tables/Gene and Protein sequences/human_mouse_cds_distance.rds` |
 | **5.2** | `5.2_EvolutionaryAnalysis_Regulation.Rmd` | ENCODE cCRE BED files (`tables/Genomic/*`), TSS coords | `tables/Regulation/cres_type_homology_comparison.rds` |
-| **6** | `Modelling/6_Statistical_Modelling.Rmd` | `human_mouse_statsmodelling_gene_annotated_layers.rds`, `tables/Functional analysis/dge_btm_process_genes_diff_bygene_clean_filtered.rds` | `Modelling/Models/rf_model_*.rds`, LOCO metrics, Fig. 7 |
+| **6** | `6_Statistical_Modelling.Rmd` | `human_mouse_statsmodelling_gene_annotated_layers.rds`, `tables/Functional analysis/dge_btm_process_genes_diff_bygene_clean_filtered.rds` | `Modelling/Models/rf_model_*.rds`, LOCO metrics, Fig. 7 |
 
 
 
 ## Statistical modelling {#statistical-modelling-v2}
 
-The consolidated pipeline `Modelling/6_Statistical_Modelling.Rmd` predicts the **human** response gene by gene from a mouse experiment, using biological feature layers and **leave-one-condition-out (LOCO)** cross-validation.
+The consolidated pipeline `6_Statistical_Modelling.Rmd` (in `scripts_notebooks/`, writing its artefacts to `Modelling/`) predicts the **human** response gene by gene from a mouse experiment, using biological feature layers and **leave-one-condition-out (LOCO)** cross-validation.
 
 ### Design
 

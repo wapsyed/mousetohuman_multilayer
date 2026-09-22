@@ -255,12 +255,12 @@ Continuous relationships between sequence/regulatory features (sequence identity
 
 ## IX. MULTILAYER MACHINE-LEARNING MODELLING (`tidymodels`)
 
-The consolidated **mouse-to-human transfer** pipeline (`Modelling/6_Statistical_Modelling.Rmd`) integrates evolutionary, regulatory and transcriptomic metrics to predict the **human** response gene by gene (manuscript **Fig. 7**). An alternative/sensitivity formulation for shared-LEG classification is provided in `Modelling/6_Statistical_Modelling_optionB.Rmd`.
+The consolidated **mouse-to-human transfer** pipeline (`scripts_notebooks/6_Statistical_Modelling.Rmd`) integrates evolutionary, regulatory and transcriptomic metrics to predict the **human** response gene by gene (manuscript **Fig. 7**). The script reads the feature layers and writes all of its artefacts into the `Modelling/` folder:
 
 ```
+scripts_notebooks/6_Statistical_Modelling.Rmd   # main consolidated pipeline (LOCO)
+
 Modelling/
-├── 6_Statistical_Modelling.Rmd            # main consolidated pipeline (LOCO)
-├── 6_Statistical_Modelling_optionB.Rmd    # alternative formulation (shared-LEG classification)
 ├── Figures/                               # Fig7_multilayer_modelling.png, performance bars, coefficients
 ├── Models/                                # metrics, coefficients, importances, out-of-fold predictions, butchered models
 └── Tables/                                # LOCO metric tables (CSV) and candidate lists

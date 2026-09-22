@@ -984,15 +984,14 @@ trends.</li>
 <h2 id="ix-multilayer-machine-learning-modelling-tidymodels">IX.
 MULTILAYER MACHINE-LEARNING MODELLING (<code>tidymodels</code>)</h2>
 <p>The consolidated <strong>mouse-to-human transfer</strong> pipeline
-(<code>Modelling/6_Statistical_Modelling.Rmd</code>) integrates
+(<code>scripts_notebooks/6_Statistical_Modelling.Rmd</code>) integrates
 evolutionary, regulatory and transcriptomic metrics to predict the
 <strong>human</strong> response gene by gene (manuscript <strong>Fig.
-7</strong>). An alternative/sensitivity formulation for shared-LEG
-classification is provided in
-<code>Modelling/6_Statistical_Modelling_optionB.Rmd</code>.</p>
-<pre><code>Modelling/
-├── 6_Statistical_Modelling.Rmd            # main consolidated pipeline (LOCO)
-├── 6_Statistical_Modelling_optionB.Rmd    # alternative formulation (shared-LEG classification)
+7</strong>). The script reads the feature layers and writes all of its
+artefacts into the <code>Modelling/</code> folder:</p>
+<pre><code>scripts_notebooks/6_Statistical_Modelling.Rmd   # main consolidated pipeline (LOCO)
+
+Modelling/
 ├── Figures/                               # Fig7_multilayer_modelling.png, performance bars, coefficients
 ├── Models/                                # metrics, coefficients, importances, out-of-fold predictions, butchered models
 └── Tables/                                # LOCO metric tables (CSV) and candidate lists</code></pre>
