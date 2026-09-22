@@ -80,7 +80,6 @@ if (!isTRUE(getOption("vaxgo.skip_package_loading"))) {
 }
 
 # Optional GitHub-only packages, install manually when needed ----
-# github_pkgs <- c("RRHO2/RRHO2", "YuLab-SMU/ggmsa")
 # Download the FIT reference database (only needed for the FIT analyses) ----
 # pak::pak('shenorrLabTRDF/FIT.mouse2man')
 
