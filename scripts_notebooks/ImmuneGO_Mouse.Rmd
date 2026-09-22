@@ -7,7 +7,7 @@
 
 ```{r}
 #Import
-btm_annotation_table <- read_excel(here("VaxGO", "btm_annotation_table.xls"))
+btm_annotation_table <- read_excel(here("tables", "Gene sets", "btm_annotation_table.xls"))
 btm_annotation = read.table(file = here("tables", "Gene sets", "BTM functional groups V3.txt"), sep="\t", header=TRUE) %>% 
   clean_names() %>% 
   rename(id = name) %>% 
