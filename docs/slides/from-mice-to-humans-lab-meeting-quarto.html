@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<script src="from-mice-to-humans-lab-meeting_files/libs/clipboard/clipboard.min.js"></script>
+<script src="from-mice-to-humans-lab-meeting_files/libs/quarto-html/tabby.min.js"></script>
+<script src="from-mice-to-humans-lab-meeting_files/libs/quarto-html/popper.min.js"></script>
+<script src="from-mice-to-humans-lab-meeting_files/libs/quarto-html/tippy.umd.min.js"></script>
+<link href="from-mice-to-humans-lab-meeting_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="from-mice-to-humans-lab-meeting_files/libs/quarto-html/light-border.css" rel="stylesheet">
+<link href="from-mice-to-humans-lab-meeting_files/libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
+  <meta name="generator" content="quarto-1.10.18">
+
+  <meta name="author" content="Wasim Aluísio Prates-Syed · Lira AA · Cortes N · Silva JDQ · Hamaguchi B · Carvalho E · Castillo-Chávez A · Durães-Carvalho R · Cabral-Marques O · Sabino EC · Krieger JE · Hagan T · Cabral-Miranda G">
+  <title>From mice to humans</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+  <link rel="stylesheet" href="from-mice-to-humans-lab-meeting_files/libs/revealjs/dist/reset.css">
+  <link rel="stylesheet" href="from-mice-to-humans-lab-meeting_files/libs/revealjs/dist/reveal.css">
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="from-mice-to-humans-lab-meeting_files/libs/revealjs/dist/theme/quarto-dea5ad8efcfe70e8d6ed2e4db8960d4c.css">
+  <link href="from-mice-to-humans-lab-meeting_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.css" rel="stylesheet">
+  <link href="from-mice-to-humans-lab-meeting_files/libs/revealjs/plugin/reveal-menu/menu.css" rel="stylesheet">
+  <link href="from-mice-to-humans-lab-meeting_files/libs/revealjs/plugin/reveal-menu/quarto-menu.css" rel="stylesheet">
+  <link href="from-mice-to-humans-lab-meeting_files/libs/revealjs/plugin/quarto-support/footer.css" rel="stylesheet">
+  <style type="text/css">
+    .reveal div.sourceCode {
+      margin: 0;
+      overflow: auto;
+    }
+    .reveal div.hanging-indent {
+      margin-left: 1em;
+      text-indent: -1em;
+    }
+    .reveal .slide:not(.center) {
+      height: 100%;
+    }
+    .reveal .slide.scrollable {
+      overflow-y: auto;
+    }
+    .reveal .footnotes {
+      height: 100%;
+      overflow-y: auto;
+    }
+    .reveal .slide .absolute {
+      position: absolute;
+      display: block;
+    }
+    .reveal .footnotes ol {
+      counter-reset: ol;
+      list-style-type: none; 
+      margin-left: 0;
+    }
+    .reveal .footnotes ol li:before {
+      counter-increment: ol;
+      content: counter(ol) ". "; 
+    }
+    .reveal .footnotes ol li > p:first-child {
+      display: inline-block;
+    }
+    .reveal .slide ul,
+    .reveal .slide ol {
+      margin-bottom: 0.5em;
+    }
+    .reveal .slide ul li,
+    .reveal .slide ol li {
+      margin-top: 0.4em;
+      margin-bottom: 0.2em;
+    }
+    .reveal .slide ul[role="tablist"] li {
+      margin-bottom: 0;
+    }
+    .reveal .slide ul li > *:first-child,
+    .reveal .slide ol li > *:first-child {
+      margin-block-start: 0;
+    }
+    .reveal .slide ul li > *:last-child,
+    .reveal .slide ol li > *:last-child {
+      margin-block-end: 0;
+    }
+    .reveal .slide .columns:nth-child(3) {
+      margin-block-start: 0.8em;
+    }
+    .reveal blockquote {
+      box-shadow: none;
+    }
+    .reveal .tippy-content>* {
+      margin-top: 0.2em;
+      margin-bottom: 0.7em;
+    }
+    .reveal .tippy-content>*:last-child {
+      margin-bottom: 0.2em;
+    }
+    .reveal .slide > img.stretch.quarto-figure-center,
+    .reveal .slide > img.r-stretch.quarto-figure-center {
+      display: block;
+      margin-left: auto;
+      margin-right: auto; 
+    }
+    .reveal .slide > img.stretch.quarto-figure-left,
+    .reveal .slide > img.r-stretch.quarto-figure-left  {
+      display: block;
+      margin-left: 0;
+      margin-right: auto; 
+    }
+    .reveal .slide > img.stretch.quarto-figure-right,
+    .reveal .slide > img.r-stretch.quarto-figure-right  {
+      display: block;
+      margin-left: auto;
+      margin-right: 0; 
+    }
+  </style>
+</head>
+<body class="quarto-light">
+  <div class="reveal">
+    <div class="slides">
+
+<section id="title-slide" data-background-image="img/01-graphical-abstract.png" data-background-opacity="0.16" data-background-position="right center" data-background-size="52% auto" class="quarto-title-block center">
+  <h1 class="title">From mice to humans</h1>
+  <p class="subtitle">A multi-omic predictive framework for translational immunology</p>
+
+<div class="quarto-title-authors">
+<div class="quarto-title-author">
+<div class="quarto-title-author-name">
+Wasim Aluísio Prates-Syed · Lira AA · Cortes N · Silva JDQ · Hamaguchi B · Carvalho E · Castillo-Chávez A · Durães-Carvalho R · Cabral-Marques O · Sabino EC · Krieger JE · Hagan T · Cabral-Miranda G
+</div>
+        <p class="quarto-title-affiliation">
+            Laboratory of Genetics and Molecular Cardiology, InCor — FMUSP
+          </p>
+    </div>
+</div>
+
+  <p class="date">September 2026</p>
+</section>
+<section id="the-problem" class="slide level2">
+<h2>01 · The problem</h2>
+<div class="head">
+<p>Mice are the workhorse — but how well do they <em>actually</em> predict human immunity?</p>
+</div>
+<ul>
+<li>Murine models underpin preclinical vaccine research, yet their translational value remains <strong>contested</strong>, contributing to clinical trial failures.</li>
+<li>Prior cross-species comparisons were largely <strong>descriptive</strong>: gene-centric, linear, and disconnected from sequence evolution and cis-regulatory architecture.</li>
+<li>The consequence: <strong>contradictory reports</strong> and no practical framework to prioritise targets for human translation.</li>
+</ul>
+<div class="stats">
+<div class="stat">
+<span class="num">201</span><span class="lab">mouse immunization datasets screened from GEO (Fig. 1a)</span>
+</div>
+<div class="stat">
+<span class="num ink">6</span><span class="lab">matched mouse–human conditions carried forward</span>
+</div>
+</div>
+<aside class="notes">
+<p>Frame the problem: mice are the dominant preclinical model, but their predictive value is contested and the literature is contradictory. Crucially, previous comparisons were descriptive and disconnected from genomic architecture — nobody linked conservation to sequence evolution or cis-regulation.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="study-design" class="slide level2">
+<h2>02 · Study design</h2>
+<div class="columns">
+<div class="column" style="width:50%;">
+<div class="head">
+<p>One framework, three stimulus categories, matched across species</p>
+</div>
+<ul>
+<li><strong>Vaccination</strong> — Fluad® (influenza), Engerix B® (hepatitis B)</li>
+<li><strong>Infection</strong> — <em>S. aureus</em>, <em>E. coli</em></li>
+<li><strong>Injury</strong> — burn, trauma-haemorrhage</li>
+<li><strong>+ DMD</strong> (mdx mouse) as a biological negative control</li>
+</ul>
+<p class="mono">
+Blood transcriptomes · GEO / BioProject<br> limma + empirical Bayes · covariates (age, sex, ethnicity)<br> human downsampled to n = 5, 200 iterations, median statistics
+</p>
+</div><div class="column" style="width:50%;">
+<div class="fig">
+<p><img data-src="img/fig1b-timelines.png"></p>
+<p class="cap">
+Fig. 1b — experimental timelines for matched mouse and human datasets across vaccination, infection and injury (GSE120661 · GSE124689 · GSE19668 · GSE33341 · GSE7404 · GSE37069 · GSE36809).
+</p>
+</div>
+</div></div>
+<aside class="notes">
+<p>Design: three stimulus categories — vaccination, acute infection and injury — each with matched mouse and human blood transcriptomes. DMD (mdx) is our biological negative control. Everything is harmonised: limma with empirical Bayes, covariate adjustment, and iterative downsampling of human subjects to n = 5 over 200 iterations to remove pseudo-significance.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="result-analytical-granularity" class="slide level2">
+<h2>03 · Result — analytical granularity</h2>
+<div class="columns">
+<div class="column" style="width:50%;">
+<div class="head">
+<p>Cells disagree. Pathways <em>agree</em>.</p>
+</div>
+<div class="stats">
+<div class="stat">
+<span class="num">0.89–0.97</span><span class="lab">module-level (BTM NES) Pearson correlation between species</span>
+</div>
+</div>
+<ul>
+<li>Gene-level effect sizes correlate only <strong>moderately</strong>; module activation is <strong>highly conserved</strong>.</li>
+<li>Shared leading-edge genes = <strong>67.5–79%</strong> of mouse LEGs in enriched modules (70.5% pooled).</li>
+<li>Collapsing dimensionality into BTMs <strong>reduces noise</strong> and exposes a robust translational signature.</li>
+</ul>
+</div><div class="column" style="width:50%;">
+<div class="fig">
+<p><img data-src="img/fig4-modules.png"></p>
+<p class="cap">
+Fig. 4a–c — BTM module-level correlation (a) and classification performance (b, c) across conditions. · Fig. 5a — shared leading-edge genes across BTM process categories.
+</p>
+</div>
+</div></div>
+<aside class="notes">
+<p>First result: granularity matters. Individual orthologous genes correlate only moderately, but when we collapse the transcriptome into Blood Transcription Modules the correlation jumps to 0.89–0.97 (trauma being the exception). Shared leading-edge genes account for 67.5–79% of mouse LEGs — the translational signal lives in the leading edge, not in all genes.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="result-stimulus-intensity-kinetics" class="slide level2">
+<h2>04 · Result — stimulus intensity &amp; kinetics</h2>
+<div class="head">
+<p>Translatability scales with the <em>strength</em> of the perturbation</p>
+</div>
+<div class="columns">
+<div class="column" style="width:50%;">
+<div class="panel strong">
+<p class="ptitle">
+Infection &amp; injury — conserved
+</p>
+<p class="big">
+ρ = 0.41–0.59
+</p>
+<p>Acute <em>S. aureus</em>, <em>E. coli</em> and burn engage evolutionarily stable, highly conserved programs.</p>
+<p>Effect-size difference (|ΔLog2FC|) significantly smaller than negative controls — WMW adjusted P &lt; 1 × 10⁻¹⁵.</p>
+</div>
+</div><div class="column" style="width:50%;">
+<div class="panel weak">
+<p class="ptitle">
+Single-dose vaccination — diverges
+</p>
+<p class="big cyan">
+ρ = −0.32–0.27
+</p>
+<p>Fluad® and Engerix B® fail to reach the systemic activation threshold, remaining near baseline controls.</p>
+<p>Preclinical immunogenicity may require <strong>boosters or stronger adjuvants</strong> to emerge from species-specific noise.</p>
+</div>
+</div></div>
+<p class="mono">
+Timing ≠ chronology · mouse 2–6 h matches the human peak inflammatory window (days 1–3) → align by biological equivalence
+</p>
+<aside class="notes">
+<p>Second result: translatability scales with the strength of the perturbation. Acute bacterial infection and severe injury engage conserved core mammalian programs (rho 0.41–0.59), whereas single-dose subunit/inactivated vaccines stay near baseline (rho −0.32 to 0.27). And timing rarely matches chronologically: mouse 2–6 h aligns with the human days 1–3 window.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="result-classification-performance" class="slide level2">
+<h2>05 · Result — classification performance</h2>
+<div class="columns">
+<div class="column" style="width:48%;">
+<div class="head">
+<p>Mouse signatures call human direction — best at <em>module</em> level</p>
+</div>
+<div class="stats" style="flex-direction: column; gap: .5em;">
+<div class="stat">
+<span class="num">0.84–0.98</span><span class="lab">ROC-AUC · mouse BTM signatures classifying human module regulation</span>
+</div>
+<div class="stat">
+<span class="num ink">0.64–0.74</span><span class="lab">ROC-AUC · gene-level mouse signatures in infection &amp; injury</span>
+</div>
+</div>
+<p class="mono">
+Biological negative control (DMD): ROC-AUC 0.48–0.61 — near random
+</p>
+</div><div class="column" style="width:52%;">
+<div class="fig">
+<p><img data-src="img/fig3-classification.png"></p>
+<p class="cap">
+Fig. 3a–b — ROC-AUC and PR-AUC matrices for mouse signatures classifying up- and downregulated human genes, with human self-prediction and the DMD negative control.
+</p>
+</div>
+</div></div>
+<aside class="notes">
+<p>Third result: prediction. Mouse signatures classify the direction of human gene regulation, but module-level models clearly beat gene-level ones — 0.84–0.98 ROC-AUC versus 0.64–0.74 — and both beat the DMD negative control (0.48–0.61). Downregulation is easier to predict than upregulation at early time points.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="result-evolution-regulation" class="slide level2">
+<h2>06 · Result — evolution &amp; regulation</h2>
+<div class="columns">
+<div class="column" style="width:52%;">
+<div class="head">
+<p>Why genes <em>diverge</em></p>
+</div>
+<p>Small per-gene effects, but a consistent direction: sequence constraint tracks <strong>stability</strong>; regulatory plasticity tracks <strong>divergence</strong>.</p>
+<div class="panel strong">
+<p class="ptitle">
+Associated with lower |ΔLog2FC|
+</p>
+<ul>
+<li>Higher protein sequence identity <span class="mono">rho = −0.08</span></li>
+<li>Greater TF availability and TF sharing <span class="mono">rho = −0.017 / −0.013</span></li>
+<li>Conserved promoter-like (PLS) signatures <span class="mono">n.s.</span></li>
+</ul>
+</div>
+<div class="panel weak">
+<p class="ptitle">
+Associated with higher |ΔLog2FC|
+</p>
+<ul>
+<li>Greater Kimura (K80) evolutionary distance <span class="mono">rho = 0.10</span></li>
+<li>Enhancer multiplicity — pELS / dELS counts <span class="mono">rho = 0.036 / 0.039</span></li>
+<li>CRE turnover and CTCF-bound pELS <span class="mono">bound rho = 0.042</span></li>
+</ul>
+</div>
+</div><div class="column" style="width:48%;">
+<div class="fig">
+<p><img data-src="img/fig6-evolution-regulation.png"></p>
+<p class="cap">
+Fig. 6a–e — protein sequence identity and Kimura distance (a), transcription factor availability (b), cis-regulatory element abundance (c), CRE conservation and turnover (d) and CTCF binding (e) against |ΔLog2FC|.
+</p>
+</div>
+</div></div>
+<aside class="notes">
+<p>Fourth result: why individual genes diverge. Coding-sequence constraint and trans-regulatory availability reduce expression divergence, while enhancer multiplicity and CRE turnover increase it. The association is small in magnitude but highly significant, and it is directional: sequence constraint ↔︎ stability; regulatory plasticity ↔︎ divergence.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="result-multilayer-modelling" class="slide level2">
+<h2>07 · Result — multilayer modelling</h2>
+<div class="columns">
+<div class="column" style="width:48%;">
+<div class="head">
+<p>Layers turn near-chance transfer into <em>useful</em> prediction</p>
+</div>
+<ul>
+<li>Mouse rank alone: <strong>R² = 0.001</strong> · mouse direction alone: <strong>ROC-AUC 0.511</strong> — no transfer.</li>
+<li><ul>
+<li>evolution, TF, CRE and BTM layers → random forest <strong>R² = 0.234</strong> for human rank and <strong>ROC-AUC = 0.849</strong> for direction.</li>
+</ul></li>
+<li>Shared vs mouse-only LEGs stay hard: lasso best by a whisker (<strong>0.617</strong> predictive / <strong>0.627</strong> explanatory).</li>
+</ul>
+<p class="mono">
+LOCO-CV (4 folds) · nested layers: DGE Baseline → Full + BTM<br> 4 algorithms: linear/logistic · lasso · random forest · neural network
+</p>
+</div><div class="column" style="width:52%;">
+<div class="fig">
+<p><img data-src="img/fig7-models.png"></p>
+<p class="cap">
+Fig. 7 — multilayer modelling: (a) layer integration workflow, (b) shared-LEG classification, (c) directional concordance and (d) human rank regression, across algorithms and feature layers.
+</p>
+</div>
+</div></div>
+<aside class="notes">
+<p>Fifth result: the multilayer model. Mouse rank and direction alone do not transfer at all — R² = 0.001 and ROC-AUC 0.511. Adding the biological layers raises the random forest to R² = 0.234 for human rank and 0.849 for directional concordance. Shared-LEG classification stays hard; the lasso is only marginally best there (0.617/0.627). Everything is evaluated by leave-one-condition-out cross-validation, so every gene is scored by a model that never saw its pathogen.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="take-aways-limitations" class="slide level2">
+<h2>08 · Take-aways &amp; limitations</h2>
+<div class="head">
+<p>Translatability is a function of <em>granularity</em>, <em>intensity</em> and <em>timing</em></p>
+</div>
+<div class="columns">
+<div class="column" style="width:50%;">
+<div class="panel strong">
+<p class="ptitle">
+What the study establishes
+</p>
+<ul>
+<li>Module-level analysis beats gene-level analysis for cross-species concordance.</li>
+<li>Acute infection and injury translate; single-dose vaccination does not.</li>
+<li>Evolutionary and regulatory layers carry a conserved signal beyond mouse DGE.</li>
+<li>Four out-of-fold scores — <span class="mono">score_shared</span>, <span class="mono">score_rank</span>, <span class="mono">score_direction</span>, <span class="mono">score_translational</span> — prioritise candidate genes.</li>
+</ul>
+</div>
+</div><div class="column" style="width:50%;">
+<div class="panel weak">
+<p class="ptitle">
+Limitations to keep in mind
+</p>
+<ul>
+<li>Small murine cohorts; scarce harmonised metadata.</li>
+<li>Two inbred strains only (C57BL/6, CB6F1) — strain choice shapes translatability.</li>
+<li>Single-dose mouse vaccination vs.&nbsp;human prime-boost regimens.</li>
+<li>Blood-based BTMs and one-to-one Ensembl orthologs — needs testing in other tissues and gene sets.</li>
+</ul>
+</div>
+</div></div>
+<aside class="notes">
+<p>Take-aways: translatability is not a fixed property of the mouse; it is a function of granularity, stimulus intensity and temporal alignment. The model outputs four complementary scores that can be used to prioritise genes. Be honest about the limitations: small murine cohorts, two inbred strains, single-dose vaccines, blood only, and one-to-one orthologs only.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="availability" class="slide level2">
+<h2>09 · Availability</h2>
+<div class="head">
+<p>Open code, trained models, and a notebook to <em>apply</em> them</p>
+</div>
+<div class="columns">
+<div class="column" style="width:33%;">
+<div class="card">
+<p><span class="idx">Pipeline</span></p>
+<p class="ctitle">
+mousetohuman_multilayer
+</p>
+<p>Full R Markdown pipeline — curation, QC, limma DGE, GSEA, evolutionary and regulatory analyses, and the LOCO modelling script. Pinned with <code>renv</code>.</p>
+<p><span class="url">github.com/wapsyed/mousetohuman_multilayer</span></p>
+</div>
+</div><div class="column" style="width:33%;">
+<div class="card">
+<p><span class="idx">Documentation</span></p>
+<p class="ctitle">
+Project site
+</p>
+<p>Overview, complete methodology — including the multilayer modelling pipeline — and the notebook map, in one place.</p>
+<p><span class="url">wapsyed.github.io/mousetohuman_multilayer</span></p>
+</div>
+</div><div class="column" style="width:34%;">
+<div class="card">
+<p><span class="idx">Apply it</span></p>
+<p class="ctitle">
+mousetohuman_predict
+</p>
+<p>Step-by-step notebook: from DGE input to GSEA, model prediction and visualisation of the four translational scores. Runs in RStudio via Binder.</p>
+<p><span class="url">github.com/wapsyed/mousetohuman_predict</span></p>
+</div>
+</div></div>
+<p class="thanks">
+Thank you — questions welcome.
+</p>
+<aside class="notes">
+<p>Close by pointing to the deliverables: the full open-source pipeline, the project site that documents the methodology and the notebook map, and the step-by-step notebook that applies the trained models to a new mouse dataset — runnable in the browser via Binder. Everything is open so the community can audit and retrain.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+
+</section>
+    </div>
+  <div class="quarto-auto-generated-content" style="display: none;">
+<div class="footer footer-default">
+<p>Mouse2Human · Lab meeting · September 2026 · Genes and Immunity (under review)</p>
+</div>
+</div></div>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script>
+  <script src="from-mice-to-humans-lab-meeting_files/libs/revealjs/dist/reveal.js"></script>
+  <!-- reveal.js plugins -->
+  <script src="from-mice-to-humans-lab-meeting_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.js"></script>
+  <script src="from-mice-to-humans-lab-meeting_files/libs/revealjs/plugin/pdf-export/pdfexport.js"></script>
+  <script src="from-mice-to-humans-lab-meeting_files/libs/revealjs/plugin/reveal-menu/menu.js"></script>
+  <script src="from-mice-to-humans-lab-meeting_files/libs/revealjs/plugin/reveal-menu/quarto-menu.js"></script>
+  <script src="from-mice-to-humans-lab-meeting_files/libs/revealjs/plugin/quarto-support/support.js"></script>
+  
+
+  <script src="from-mice-to-humans-lab-meeting_files/libs/revealjs/plugin/notes/notes.js"></script>
+  <script src="from-mice-to-humans-lab-meeting_files/libs/revealjs/plugin/search/search.js"></script>
+  <script src="from-mice-to-humans-lab-meeting_files/libs/revealjs/plugin/zoom/zoom.js"></script>
+  <script src="from-mice-to-humans-lab-meeting_files/libs/revealjs/plugin/math/math.js"></script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script>
+
+  <script>
+
+      // Full list of configuration options available at:
+      // https://revealjs.com/config/
+      Reveal.initialize({
+'controlsAuto': false,
+'previewLinksAuto': false,
+'pdfSeparateFragments': false,
+'autoAnimateEasing': "ease",
+'autoAnimateDuration': 1,
+'autoAnimateUnmatched': true,
+'jumpToSlide': true,
+'menu': {"side":"left","useTextContentForMissingTitles":true,"markers":false,"loadIcons":false,"custom":[{"title":"Tools","icon":"<i class=\"fas fa-gear\"></i>","content":"<ul class=\"slide-menu-items\">\n<li class=\"slide-tool-item active\" data-item=\"0\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.fullscreen(event)\"><kbd>f</kbd> Fullscreen</a></li>\n<li class=\"slide-tool-item\" data-item=\"1\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.speakerMode(event)\"><kbd>s</kbd> Speaker View</a></li>\n<li class=\"slide-tool-item\" data-item=\"2\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.overview(event)\"><kbd>o</kbd> Slide Overview</a></li>\n<li class=\"slide-tool-item\" data-item=\"3\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.togglePdfExport(event)\"><kbd>e</kbd> PDF Export Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"4\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.toggleScrollView(event)\"><kbd>r</kbd> Scroll View Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"5\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.keyboardHelp(event)\"><kbd>?</kbd> Keyboard Help</a></li>\n</ul>"}],"openButton":true},
+'smaller': false,
+ 
+        // Display controls in the bottom right corner
+        controls: true,
+
+        // Help the user learn the controls by providing hints, for example by
+        // bouncing the down arrow when they first encounter a vertical slide
+        controlsTutorial: false,
+
+        // Determines where controls appear, "edges" or "bottom-right"
+        controlsLayout: 'edges',
+
+        // Visibility rule for backwards navigation arrows; "faded", "hidden"
+        // or "visible"
+        controlsBackArrows: 'faded',
+
+        // Display a presentation progress bar
+        progress: true,
+
+        // Display the page number of the current slide
+        slideNumber: 'c/t',
+
+        // 'all', 'print', or 'speaker'
+        showSlideNumber: 'all',
+
+        // Add the current slide number to the URL hash so that reloading the
+        // page/copying the URL will return you to the same slide
+        hash: true,
+
+        // Start with 1 for the hash rather than 0
+        hashOneBasedIndex: false,
+
+        // Flags if we should monitor the hash and change slides accordingly
+        respondToHashChanges: true,
+
+        // Push each slide change to the browser history
+        history: true,
+
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+
+        // Enable the slide overview mode
+        overview: true,
+
+        // Disables the default reveal.js slide layout (scaling and centering)
+        // so that you can use custom CSS layout
+        disableLayout: false,
+
+        // Vertical centering of slides
+        center: false,
+
+        // Enables touch navigation on devices with touch input
+        touch: true,
+
+        // Loop the presentation
+        loop: false,
+
+        // Change the presentation direction to be RTL
+        rtl: false,
+
+        // see https://revealjs.com/vertical-slides/#navigation-mode
+        navigationMode: 'linear',
+
+        // Randomizes the order of slides each time the presentation loads
+        shuffle: false,
+
+        // Turns fragments on and off globally
+        fragments: true,
+
+        // Flags whether to include the current fragment in the URL,
+        // so that reloading brings you to the same fragment position
+        fragmentInURL: false,
+
+        // Flags if the presentation is running in an embedded mode,
+        // i.e. contained within a limited portion of the screen
+        embedded: false,
+
+        // Flags if we should show a help overlay when the questionmark
+        // key is pressed
+        help: true,
+
+        // Flags if it should be possible to pause the presentation (blackout)
+        pause: true,
+
+        // Flags if speaker notes should be visible to all viewers
+        showNotes: false,
+
+        // Global override for autoplaying embedded media (null/true/false)
+        autoPlayMedia: null,
+
+        // Global override for preloading lazy-loaded iframes (null/true/false)
+        preloadIframes: null,
+
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+
+        // Stop auto-sliding after user input
+        autoSlideStoppable: true,
+
+        // Use this method for navigation when auto-sliding
+        autoSlideMethod: null,
+
+        // Specify the average time in seconds that you think you will spend
+        // presenting each slide. This is used to show a pacing timer in the
+        // speaker view
+        defaultTiming: null,
+
+        // Enable slide navigation via mouse wheel
+        mouseWheel: false,
+
+        // The display mode that will be used to show slides
+        display: 'block',
+
+        // Hide cursor if inactive
+        hideInactiveCursor: true,
+
+        // Time before the cursor is hidden (in ms)
+        hideCursorTime: 5000,
+
+        // Opens links in an iframe preview overlay
+        previewLinks: false,
+
+        // Transition style (none/fade/slide/convex/concave/zoom)
+        transition: 'none',
+
+        // Transition speed (default/fast/slow)
+        transitionSpeed: 'default',
+
+        // Transition style for full page slide backgrounds
+        // (none/fade/slide/convex/concave/zoom)
+        backgroundTransition: 'none',
+
+        // Number of slides away from the current that are visible
+        viewDistance: 3,
+
+        // Number of slides away from the current that are visible on mobile
+        // devices. It is advisable to set this to a lower number than
+        // viewDistance in order to save resources.
+        mobileViewDistance: 2,
+
+        // The "normal" size of the presentation, aspect ratio will be preserved
+        // when the presentation is scaled to fit different resolutions. Can be
+        // specified using percentage units.
+        width: 1280,
+
+        height: 720,
+
+        // Factor of the display size that should remain empty around the content
+        margin: 5.0e-2,
+
+        math: {
+          mathjax: 'https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js',
+          config: 'TeX-AMS_HTML-full',
+          tex2jax: {
+            inlineMath: [['\\(','\\)']],
+            displayMath: [['\\[','\\]']],
+            balanceBraces: true,
+            processEscapes: false,
+            processRefs: true,
+            processEnvironments: true,
+            preview: 'TeX',
+            skipTags: ['script','noscript','style','textarea','pre','code'],
+            ignoreClass: 'tex2jax_ignore',
+            processClass: 'tex2jax_process'
+          },
+        },
+
+        // reveal.js plugins
+        plugins: [QuartoLineHighlight, PdfExport, RevealMenu, QuartoSupport,
+
+          RevealMath,
+          RevealNotes,
+          RevealSearch,
+          RevealZoom
+        ]
+      });
+    </script>
+    <script id="quarto-html-after-body" type="application/javascript">
+      window.document.addEventListener("DOMContentLoaded", function (event) {
+        const tabsets =  window.document.querySelectorAll(".panel-tabset-tabby")
+        tabsets.forEach(function(tabset) {
+          const tabby = new Tabby('#' + tabset.id);
+        });
+        const isCodeAnnotation = (el) => {
+          for (const clz of el.classList) {
+            if (clz.startsWith('code-annotation-')) {                     
+              return true;
+            }
+          }
+          return false;
+        }
+        const onCopySuccess = function(e) {
+          // button target
+          const button = e.trigger;
+          // don't keep focus
+          button.blur();
+          // flash "checked"
+          button.classList.add('code-copy-button-checked');
+          var currentTitle = button.getAttribute("title");
+          button.setAttribute("title", "Copied!");
+          let tooltip;
+          if (window.bootstrap) {
+            button.setAttribute("data-bs-toggle", "tooltip");
+            button.setAttribute("data-bs-placement", "left");
+            button.setAttribute("data-bs-title", "Copied!");
+            tooltip = new bootstrap.Tooltip(button, 
+              { trigger: "manual", 
+                customClass: "code-copy-button-tooltip",
+                offset: [0, -8]});
+            tooltip.show();    
+          }
+          setTimeout(function() {
+            if (tooltip) {
+              tooltip.hide();
+              button.removeAttribute("data-bs-title");
+              button.removeAttribute("data-bs-toggle");
+              button.removeAttribute("data-bs-placement");
+            }
+            button.setAttribute("title", currentTitle);
+            button.classList.remove('code-copy-button-checked');
+          }, 1000);
+          // clear code selection
+          e.clearSelection();
+        }
+        const getTextToCopy = function(trigger) {
+          const outerScaffold = trigger.parentElement.cloneNode(true);
+          const codeEl = outerScaffold.querySelector('code');
+          for (const childEl of codeEl.children) {
+            if (isCodeAnnotation(childEl)) {
+              childEl.remove();
+            }
+          }
+          return codeEl.innerText;
+        }
+        const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+          text: getTextToCopy
+        });
+        clipboard.on('success', onCopySuccess);
+        if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+          const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+            text: getTextToCopy,
+            container: window.document.getElementById('quarto-embedded-source-code-modal')
+          });
+          clipboardModal.on('success', onCopySuccess);
+        }
+          var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+          var mailtoRegex = new RegExp(/^mailto:/);
+            var filterRegex = new RegExp('/' + window.location.host + '/');
+          var isInternal = (href) => {
+              return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+          }
+          // Inspect non-navigation links and adorn them if external
+         var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+          for (var i=0; i<links.length; i++) {
+            const link = links[i];
+            if (!isInternal(link.href)) {
+              // undo the damage that might have been done by quarto-nav.js in the case of
+              // links that we want to consider external
+              if (link.dataset.originalHref !== undefined) {
+                link.href = link.dataset.originalHref;
+              }
+            }
+          }
+        function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+          const config = {
+            allowHTML: true,
+            maxWidth: 500,
+            delay: 100,
+            arrow: false,
+            appendTo: function(el) {
+                return el.closest('section.slide') || el.parentElement;
+            },
+            interactive: true,
+            interactiveBorder: 10,
+            theme: 'light-border',
+            placement: 'bottom-start',
+          };
+          if (contentFn) {
+            config.content = contentFn;
+          }
+          if (onTriggerFn) {
+            config.onTrigger = onTriggerFn;
+          }
+          if (onUntriggerFn) {
+            config.onUntrigger = onUntriggerFn;
+          }
+            config['offset'] = [0,0];
+            config['maxWidth'] = 700;
+          window.tippy(el, config); 
+        }
+        const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+        for (var i=0; i<noterefs.length; i++) {
+          const ref = noterefs[i];
+          tippyHover(ref, function() {
+            // use id or data attribute instead here
+            let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+            try { href = new URL(href).hash; } catch {}
+            const id = href.replace(/^#\/?/, "");
+            const note = window.document.getElementById(id);
+            if (note) {
+              return note.innerHTML;
+            } else {
+              return "";
+            }
+          });
+        }
+        const findCites = (el) => {
+          const parentEl = el.parentElement;
+          if (parentEl) {
+            const cites = parentEl.dataset.cites;
+            if (cites) {
+              return {
+                el,
+                cites: cites.split(' ')
+              };
+            } else {
+              return findCites(el.parentElement)
+            }
+          } else {
+            return undefined;
+          }
+        };
+        var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+        for (var i=0; i<bibliorefs.length; i++) {
+          const ref = bibliorefs[i];
+          const citeInfo = findCites(ref);
+          if (citeInfo) {
+            tippyHover(citeInfo.el, function() {
+              var popup = window.document.createElement('div');
+              citeInfo.cites.forEach(function(cite) {
+                var citeDiv = window.document.createElement('div');
+                citeDiv.classList.add('hanging-indent');
+                citeDiv.classList.add('csl-entry');
+                var biblioDiv = window.document.getElementById('ref-' + cite);
+                if (biblioDiv) {
+                  citeDiv.innerHTML = biblioDiv.innerHTML;
+                }
+                popup.appendChild(citeDiv);
+              });
+              return popup.innerHTML;
+            });
+          }
+        }
+      });
+      </script>
+    
+
+</body></html>

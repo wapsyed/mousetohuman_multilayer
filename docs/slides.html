@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mouse2Human — Slides</title>
-  <link rel="stylesheet" href="assets/style.css?v=805b54a2">
+  <link rel="stylesheet" href="assets/style.css?v=f954fe8d">
 </head>
 <body>
   <nav class="site-nav"><div class="inner">
@@ -18,7 +18,7 @@
   <main class="content">
     <p class="eyebrow">Mouse2Human · Project site</p>
     <h1>Slides</h1>
-    <p class="lede">Presentation decks about the project. Each entry gives the occasion the deck was built for, its date, its length and what it is good for — open one to present it straight from the browser.</p>
+    <p class="lede">Presentation decks about the project. Each entry gives the occasion the deck was built for, its date, its length and what it is good for — open one to present it straight from the browser, or download it to edit the file.</p>
 
     <ul class="deck-list">
 
@@ -30,7 +30,11 @@
         </div>
         <p class="deck-meta">DATE · N slides · LANGUAGE</p>
         <p class="deck-brief">One or two sentences on the content. <b>Good for:</b> the audience, setting and length this deck suits.</p>
-        <a class="btn" href="slides/FILE.html">Open presentation</a>
+        <div class="deck-links">
+          <a class="btn" href="slides/FILE.html">Open presentation (HTML)</a>
+          <a class="btn btn-alt" href="slides/FILE.pptx" download>Download PPTX</a>
+        </div>
+        <p class="deck-source">Source: <a href="slides/FILE.qmd">.qmd</a></p>
       </li>
       ──────────────────────────────────────────────────────────────── -->
 
@@ -39,14 +43,19 @@
           <h3><a href="slides/from-mice-to-humans-lab-meeting.html">From mice to humans — project overview</a></h3>
           <span class="deck-type is-lab">Lab meeting</span>
         </div>
-        <p class="deck-meta">22 September 2026 · 10 slides · English</p>
-        <p class="deck-brief">A concise, speaker-led walkthrough of the whole project: the translational question, the study design, the five main results (modular vs. gene-level conservation, stimulus intensity and kinetics, classification performance, sequence evolution and regulatory architecture, multilayer modelling), take-aways, limitations and how to apply the models. <b>Good for:</b> a 15–20 minute internal seminar or lab meeting — speaker notes included and figure placeholders ready for the published figures.</p>
-        <a class="btn" href="slides/from-mice-to-humans-lab-meeting.html">Open presentation</a>
+        <p class="deck-meta">22 September 2026 · 10 slides · English · 3 formats</p>
+        <p class="deck-brief">A concise, speaker-led walkthrough of the whole project: the translational question, the study design, the five main results (modular vs. gene-level conservation, stimulus intensity and kinetics, classification performance, sequence evolution and regulatory architecture, multilayer modelling), take-aways, limitations and how to apply the models. Figures from the manuscript are embedded, and every slide carries speaker notes. <b>Good for:</b> a 15–20 minute internal seminar or lab meeting.</p>
+        <div class="deck-links">
+          <a class="btn" href="slides/from-mice-to-humans-lab-meeting.html">Open presentation (HTML)</a>
+          <a class="btn btn-alt" href="slides/from-mice-to-humans-lab-meeting-quarto.html">Quarto / reveal.js</a>
+          <a class="btn btn-alt" href="slides/from-mice-to-humans-lab-meeting.pptx" download>Download PPTX</a>
+        </div>
+        <p class="deck-source">Source: <a href="slides/from-mice-to-humans-lab-meeting.qmd">.qmd</a> · theme <a href="slides/mouse2human.scss">.scss</a> · rendered with Quarto</p>
       </li>
 
     </ul>
 
-    <p class="deck-note">Each deck is a self-contained HTML file in <code>docs/slides/</code>. While presenting: <b>←</b> <b>→</b> to navigate, <b>N</b> for speaker notes, <b>F</b> for fullscreen. Type badges: <span class="deck-type is-lab">Lab meeting</span> <span class="deck-type is-conf">Conference</span> <span class="deck-type is-defense">Defense</span> <span class="deck-type is-poster">Poster session</span></p>
+    <p class="deck-note">Decks are self-contained HTML files in <code>docs/slides/</code>; the Quarto sources live next to them. While presenting: <b>←</b> <b>→</b> to navigate, <b>N</b> for speaker notes, <b>F</b> for fullscreen. Type badges: <span class="deck-type is-lab">Lab meeting</span> <span class="deck-type is-conf">Conference</span> <span class="deck-type is-defense">Defense</span> <span class="deck-type is-poster">Poster session</span></p>
   </main>
   <div class="foot"><span>Mouse2Human · multilayer</span><span>September 2026</span></div>
 </body>

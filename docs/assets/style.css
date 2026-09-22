@@ -115,3 +115,9 @@ li { margin: 0.25rem 0; }
 .deck-brief b { color: var(--ink); }
 .deck-empty { border: 1px dashed var(--rule-strong); border-radius: 8px; padding: 1.5rem; color: var(--soft); font-family: var(--font-sans); font-size: 0.82rem; text-align: center; }
 .deck-note { font-family: var(--font-sans); font-size: 0.72rem; color: var(--soft); border-top: 1px solid var(--rule); padding-top: 1.1rem; margin-top: 1.5rem; }
+.deck-links { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
+.btn-alt { background: #ffffff; color: var(--link); }
+.btn-alt:hover { background: var(--link); border-color: var(--link); color: #ffffff; }
+.deck-source { font-family: var(--font-mono); font-size: 0.68rem; color: var(--soft); margin: 0.85rem 0 0; }
+.deck-source a { color: var(--link); text-decoration: none; border-bottom: 1px solid var(--rule-strong); }
+.deck-source a:hover { border-bottom-color: var(--accent); }
