@@ -99,7 +99,6 @@
   <a class="brand" href="index.html">Mouse2Human</a>
   <a href="overview.html">Overview</a>
   <a href="methodology.html">Methodology</a>
-  <a href="modelling.html">Modelling</a>
   <a href="code-planning.html">Code planning</a>
 </div></nav>
 <main class="content">
@@ -987,7 +986,15 @@ MULTILAYER MACHINE-LEARNING MODELLING (<code>tidymodels</code>)</h2>
 (<code>Modelling/6_Statistical_Modelling.Rmd</code>) integrates
 evolutionary, regulatory and transcriptomic metrics to predict the
 <strong>human</strong> response gene by gene (manuscript <strong>Fig.
-7</strong>).</p>
+7</strong>). An alternative/sensitivity formulation for shared-LEG
+classification is provided in
+<code>Modelling/6_Statistical_Modelling_optionB.Rmd</code>.</p>
+<pre><code>Modelling/
+├── 6_Statistical_Modelling.Rmd            # main consolidated pipeline (LOCO)
+├── 6_Statistical_Modelling_optionB.Rmd    # alternative formulation (shared-LEG classification)
+├── Figures/                               # Fig7_multilayer_modelling.png, performance bars, coefficients
+├── Models/                                # metrics, coefficients, importances, out-of-fold predictions, butchered models
+└── Tables/                                # LOCO metric tables (CSV) and candidate lists</code></pre>
 <h3 id="ixa-feature-table-fig-7a">IX.A Feature Table (Fig. 7a)</h3>
 <p>A gene-wise feature table was assembled from:</p>
 <ol type="1">
@@ -1183,6 +1190,39 @@ can be reloaded and applied to new mouse experiments with
 <code>predict()</code>. To make the workflow reusable, a step-by-step R
 Markdown notebook applies the trained models to a new murine dataset
 (DGE input → GSEA → prediction → scores).</p>
+<h3 id="ixi-output-artefacts">IX.I Output Artefacts</h3>
+<ul>
+<li><strong>Metrics:</strong> <code>metrics_shared.rds</code>,
+<code>metrics_rank.rds</code>, <code>metrics_direction.rds</code>,
+<code>metrics_shared_optionB.rds</code></li>
+<li><strong>Coefficients:</strong> <code>coefs_shared.rds</code>,
+<code>coefs_lasso_shared.rds</code>, <code>coefs_rank.rds</code>,
+<code>coefs_direction.rds</code></li>
+<li><strong>Importance:</strong> <code>imp_shared.rds</code>,
+<code>imp_rank.rds</code>, <code>imp_direction.rds</code></li>
+<li><strong>Out-of-fold predictions:</strong>
+<code>pred_shared.rds</code>, <code>pred_rank.rds</code>,
+<code>pred_direction.rds</code></li>
+<li><strong>Trained models (butchered,
+<code>compress = "xz"</code>):</strong>
+<code>rf_model_{shared,rank,direction}.rds</code>,
+<code>nn_model_{shared,rank,direction}.rds</code>,
+<code>lasso_model_shared.rds</code></li>
+<li><strong>Consolidated tables:</strong>
+<code>score_table_v2.rds</code>, <code>master_class_*_v2.rds</code>,
+<code>master_reg_*_v2.rds</code></li>
+<li><strong>LOCO metric tables
+(<code>Modelling/Tables/</code>):</strong> <code>shared_loco.csv</code>,
+<code>shared_loco_optionB.csv</code>, <code>rank_loco.csv</code>,
+<code>direction_loco.csv</code>,
+<code>observed_vs_predicted.{csv,rds}</code>,
+<code>priority_relevant_convergent_top20.csv</code></li>
+<li><strong>Figures (<code>Modelling/Figures/</code>):</strong>
+<code>Fig7_multilayer_modelling.png</code>,
+<code>Shared_Performance_bars.png</code>,
+<code>Rank_Direction_Performance_bars.png</code>,
+<code>Models_Coeff_Contributions.png</code></li>
+</ul>
 <hr />
 <h2 id="x-limitations--future-directions">X. LIMITATIONS &amp; FUTURE
 DIRECTIONS</h2>
@@ -1235,7 +1275,7 @@ via <code>renv</code></h3>
 <p>All analyses were executed under <strong>R version 4.5.2</strong>
 (Bioconductor 3.22). Complete computational environments are pinned in
 <code>renv.lock</code>. The project environment can be restored via:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>renv<span class="sc">::</span><span class="fu">restore</span>()</span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>renv<span class="sc">::</span><span class="fu">restore</span>()</span></code></pre></div>
 <h3 id="xib-code--data-availability">XI.B Code &amp; Data
 Availability</h3>
 <ul>

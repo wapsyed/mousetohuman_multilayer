@@ -255,7 +255,16 @@ Continuous relationships between sequence/regulatory features (sequence identity
 
 ## IX. MULTILAYER MACHINE-LEARNING MODELLING (`tidymodels`)
 
-The consolidated **mouse-to-human transfer** pipeline (`Modelling/6_Statistical_Modelling.Rmd`) integrates evolutionary, regulatory and transcriptomic metrics to predict the **human** response gene by gene (manuscript **Fig. 7**).
+The consolidated **mouse-to-human transfer** pipeline (`Modelling/6_Statistical_Modelling.Rmd`) integrates evolutionary, regulatory and transcriptomic metrics to predict the **human** response gene by gene (manuscript **Fig. 7**). An alternative/sensitivity formulation for shared-LEG classification is provided in `Modelling/6_Statistical_Modelling_optionB.Rmd`.
+
+```
+Modelling/
+├── 6_Statistical_Modelling.Rmd            # main consolidated pipeline (LOCO)
+├── 6_Statistical_Modelling_optionB.Rmd    # alternative formulation (shared-LEG classification)
+├── Figures/                               # Fig7_multilayer_modelling.png, performance bars, coefficients
+├── Models/                                # metrics, coefficients, importances, out-of-fold predictions, butchered models
+└── Tables/                                # LOCO metric tables (CSV) and candidate lists
+```
 
 ### IX.A Feature Table (Fig. 7a)
 A gene-wise feature table was assembled from:
@@ -326,6 +335,16 @@ In addition, an **observed prioritisation score** multiplies cross-species conve
 
 ### IX.H Model Serialisation and Application
 The best workflows are reduced with `butcher()` and stored with `compress = "xz"` (`rf_model_*.rds`, `nn_model_*.rds` in `Modelling/Models/`) so they can be reloaded and applied to new mouse experiments with `predict()`. To make the workflow reusable, a step-by-step R Markdown notebook applies the trained models to a new murine dataset (DGE input → GSEA → prediction → scores).
+
+### IX.I Output Artefacts
+- **Metrics:** `metrics_shared.rds`, `metrics_rank.rds`, `metrics_direction.rds`, `metrics_shared_optionB.rds`
+- **Coefficients:** `coefs_shared.rds`, `coefs_lasso_shared.rds`, `coefs_rank.rds`, `coefs_direction.rds`
+- **Importance:** `imp_shared.rds`, `imp_rank.rds`, `imp_direction.rds`
+- **Out-of-fold predictions:** `pred_shared.rds`, `pred_rank.rds`, `pred_direction.rds`
+- **Trained models (butchered, `compress = "xz"`):** `rf_model_{shared,rank,direction}.rds`, `nn_model_{shared,rank,direction}.rds`, `lasso_model_shared.rds`
+- **Consolidated tables:** `score_table_v2.rds`, `master_class_*_v2.rds`, `master_reg_*_v2.rds`
+- **LOCO metric tables (`Modelling/Tables/`):** `shared_loco.csv`, `shared_loco_optionB.csv`, `rank_loco.csv`, `direction_loco.csv`, `observed_vs_predicted.{csv,rds}`, `priority_relevant_convergent_top20.csv`
+- **Figures (`Modelling/Figures/`):** `Fig7_multilayer_modelling.png`, `Shared_Performance_bars.png`, `Rank_Direction_Performance_bars.png`, `Models_Coeff_Contributions.png`
 
 ---
 
