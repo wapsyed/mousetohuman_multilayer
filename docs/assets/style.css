@@ -96,3 +96,22 @@ li { margin: 0.25rem 0; }
 
 /* ── top call to action (page header) ── */
 .cta-top { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin: 0 0 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--rule); }
+
+/* ── presentations index (slides.html) ── */
+.deck-list { list-style: none; margin: 0 0 1rem; padding: 0; display: flex; flex-direction: column; gap: 1rem; }
+.deck-item { background: var(--card); border: 1px solid var(--rule); border-radius: 8px; padding: 1.35rem 1.5rem; transition: border-color 0.15s ease; }
+.deck-item:hover { border-color: var(--accent); }
+.deck-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.6rem 0.9rem; }
+.deck-head h3 { margin: 0; font-family: var(--font-serif); font-weight: 700; font-size: 1.05rem; border: 0; padding: 0; margin-right: auto; }
+.deck-head h3 a { color: var(--ink); text-decoration: none; border-bottom: none; }
+.deck-head h3 a:hover { color: var(--link); }
+.deck-type { font-family: var(--font-sans); font-size: 0.63rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #ffffff; background: var(--link); border-radius: 999px; padding: 0.22rem 0.62rem; white-space: nowrap; }
+.deck-type.is-lab { background: var(--link); }
+.deck-type.is-conf { background: #000000; }
+.deck-type.is-defense { background: var(--accent); color: #000000; }
+.deck-type.is-poster { background: var(--rule-strong); color: #000000; }
+.deck-meta { font-family: var(--font-sans); font-size: 0.7rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--soft); margin: 0.6rem 0 0.7rem; }
+.deck-brief { margin: 0 0 1rem; color: var(--muted); font-size: 0.85rem; max-width: 78ch; }
+.deck-brief b { color: var(--ink); }
+.deck-empty { border: 1px dashed var(--rule-strong); border-radius: 8px; padding: 1.5rem; color: var(--soft); font-family: var(--font-sans); font-size: 0.82rem; text-align: center; }
+.deck-note { font-family: var(--font-sans); font-size: 0.72rem; color: var(--soft); border-top: 1px solid var(--rule); padding-top: 1.1rem; margin-top: 1.5rem; }

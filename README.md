@@ -8,7 +8,7 @@
 > *Submitted to Genes and Immunity — currently under review.*
 
 > **🌐 Project site:** [**wapsyed.github.io/mousetohuman_multilayer**](https://wapsyed.github.io/mousetohuman_multilayer/)\
-> Overview · Methodology (with the **multilayer modelling** pipeline) · Code planning (notebook map) — all in one page.
+> Overview · Methodology (with the **multilayer modelling** pipeline) · Code planning (notebook map) · Predict · **Slides** (presentation decks) — all in one page.
 
 ------------------------------------------------------------------------
 
