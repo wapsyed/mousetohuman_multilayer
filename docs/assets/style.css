@@ -93,3 +93,6 @@ li { margin: 0.25rem 0; }
 .cta-label { font-family: var(--font-sans); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--soft); }
 .btn { display: inline-flex; align-items: center; background: var(--link); color: #ffffff; border: 1px solid var(--link); border-radius: 6px; padding: 0.55rem 0.95rem; font-family: var(--font-sans); font-size: 0.75rem; text-decoration: none; border-bottom: 1px solid var(--link); transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
 .btn:hover { background: var(--accent); border-color: var(--accent); border-bottom-color: var(--accent); color: #000000; }
+
+/* ── top call to action (page header) ── */
+.cta-top { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin: 0 0 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--rule); }
