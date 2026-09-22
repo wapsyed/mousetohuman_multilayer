@@ -1,0 +1,315 @@
+/*-- scss:defaults --*/
+
+// ── Typography ──────────────────────────────────────────────────────────────
+// Same stack as the project site: Merriweather for headings, Arial for body
+// and labels, a system monospace only for code.
+$font-family-sans-serif: Arial, Helvetica, sans-serif !default;
+$font-family-monospace: ui-monospace, Menlo, Consolas, "Liberation Mono", monospace !default;
+$presentation-heading-font: "Merriweather", Georgia, "Times New Roman", serif !default;
+$presentation-heading-font-weight: 400 !default;
+$presentation-font-size-root: 27px !default;
+$presentation-title-slide-text-align: left !default;
+
+// ── Palette taken from the study's own figures ──────────────────────────────
+// #4DBBD5 (cyan) · #000000 (ink) · #4361ee (blue) · #A1B0F7 (periwinkle)
+$body-bg: #FBFBFD !default;
+$body-color: #1B2130 !default;
+$link-color: #4361ee !default;
+$presentation-heading-color: #000000 !default;
+$code-block-bg: #F4F6FC !default;
+$code-color: #000000 !default;
+
+/*-- scss:rules --*/
+
+@import url("https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&display=swap");
+
+:root {
+  --m2h-ink: #000000;
+  --m2h-body: #1B2130;
+  --m2h-muted: #5B6377;
+  --m2h-faint: #9AA3B8;
+  --m2h-cyan: #4DBBD5;
+  --m2h-blue: #4361ee;
+  --m2h-peri: #A1B0F7;
+  --m2h-rule: #D9DEEC;
+}
+
+// ── canvas ──────────────────────────────────────────────────────────────────
+.reveal-viewport,
+.reveal .backgrounds,
+.reveal .slide-background-content { background-color: #FBFBFD; }
+
+.reveal .slides { text-align: left; }
+
+.reveal .slides section {
+  background-image:
+    linear-gradient(to right, rgba(27, 33, 48, .035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(27, 33, 48, .035) 1px, transparent 1px);
+  background-size: 62px 62px;
+  padding: 0 46px;
+}
+
+// ── footer / slide number ───────────────────────────────────────────────────
+.reveal .footer {
+  font-family: $font-family-sans-serif;
+  font-size: .38em;
+  letter-spacing: .08em;
+  color: var(--m2h-muted);
+}
+.reveal .slide-number {
+  font-family: $font-family-sans-serif;
+  font-size: .38em;
+  color: var(--m2h-muted);
+  background: transparent;
+}
+
+// ── slide header: kicker (h2) + headline (h3) ───────────────────────────────
+.reveal h2 {
+  font-family: $font-family-sans-serif;
+  font-size: .46em;
+  font-weight: 500;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--m2h-muted);
+  margin: .1em 0 .9em;
+  line-height: 1.4;
+}
+.reveal h2::before {
+  content: "";
+  display: block;
+  width: 2.6em;
+  height: .17em;
+  margin-bottom: .95em;
+  background: linear-gradient(90deg,
+    var(--m2h-cyan) 0 33.33%,
+    var(--m2h-blue) 33.33% 66.66%,
+    var(--m2h-peri) 66.66% 100%);
+}
+
+.reveal .head {
+  font-family: $presentation-heading-font;
+  font-weight: 400;
+  font-size: 1.52em;
+  line-height: 1.12;
+  letter-spacing: -.012em;
+  color: var(--m2h-ink);
+  margin: 0 0 .55em;
+}
+.reveal .head p { font-size: inherit; line-height: inherit; margin: 0; }
+.reveal .head em { font-style: italic; color: var(--m2h-blue); }
+
+.reveal .ptitle,
+.reveal .ctitle {
+  font-family: $font-family-sans-serif;
+  font-size: .44em;
+  font-weight: 500;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--m2h-muted);
+  margin: 0 0 .8em;
+}
+.reveal .ctitle {
+  font-family: $presentation-heading-font;
+  font-size: 1.02em;
+  letter-spacing: -.01em;
+  text-transform: none;
+  color: var(--m2h-ink);
+  margin: .3em 0 .4em;
+}
+
+// ── body text ───────────────────────────────────────────────────────────────
+.reveal p, .reveal li { line-height: 1.45; }
+.reveal p { font-size: .8em; }
+.reveal ul { margin: .4em 0 0 .9em; }
+.reveal ul li { font-size: .74em; margin-bottom: .55em; }
+.reveal ul li::marker { color: var(--m2h-peri); }
+.reveal strong { color: var(--m2h-ink); font-weight: 600; }
+.reveal .mono { font-family: $font-family-sans-serif; font-size: .5em; color: var(--m2h-muted); letter-spacing: .02em; }
+.reveal span.mono { font-size: .58em; }
+
+// ── big numbers ─────────────────────────────────────────────────────────────
+.reveal .stats { display: flex; gap: 2.4em; margin-top: 1.1em; }
+.reveal .stat .num {
+  display: block;
+  font-family: $presentation-heading-font;
+  font-size: 3.05em;
+  line-height: 1;
+  letter-spacing: -.02em;
+  color: var(--m2h-blue);
+}
+.reveal .stat .num.ink { color: var(--m2h-ink); }
+.reveal .stat .num.cyan { color: #2E9DB7; }
+.reveal .stat .lab {
+  display: block;
+  font-family: $font-family-sans-serif;
+  font-size: .48em;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--m2h-muted);
+  margin-top: .7em;
+  max-width: 13em;
+  line-height: 1.55;
+}
+
+// Slide 01 — double the size of the two headline numbers and their labels
+.reveal .bigstats .stat .num { font-size: 4.7em; }
+.reveal .bigstats .stat .lab { font-size: .8em; max-width: 15em; margin-top: .55em; }
+
+// ── two-panel comparison ────────────────────────────────────────────────────
+.reveal .panel { border-top: 2px solid var(--m2h-ink); padding-top: .7em; }
+.reveal .panel.strong { border-top-color: var(--m2h-blue); }
+.reveal .panel.weak { border-top-color: var(--m2h-peri); }
+.reveal .panel .big {
+  font-family: $presentation-heading-font;
+  font-size: 1.45em;
+  line-height: 1;
+  color: var(--m2h-blue);
+  margin: .1em 0 .35em;
+}
+.reveal .panel .big.cyan { color: #2E9DB7; }
+.reveal .panel p { font-size: .62em; color: var(--m2h-body); margin: 0 0 .5em; }
+.reveal .panel ul li { font-size: .62em; margin-bottom: .45em; }
+
+// ── cards ───────────────────────────────────────────────────────────────────
+.reveal .card {
+  border: 1px solid var(--m2h-rule);
+  background: #ffffff;
+  padding: 1.1em 1.2em;
+  height: 100%;
+}
+.reveal .card .idx {
+  font-family: $font-family-sans-serif;
+  font-size: .52em;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--m2h-cyan);
+}
+.reveal .card h4 {
+  font-family: $presentation-heading-font;
+  font-size: 1.02em;
+  font-weight: 400;
+  letter-spacing: -.01em;
+  text-transform: none;
+  color: var(--m2h-ink);
+  margin: .3em 0 .4em;
+}
+.reveal .card .ctitle { margin: .3em 0 .4em; }
+.reveal .card p { font-size: .68em; color: var(--m2h-muted); line-height: 1.45; margin: 0 0 .8em; }
+.reveal .card .url { font-family: $font-family-sans-serif; font-size: .5em; color: var(--m2h-blue); word-break: break-all; }
+
+// ── figures ─────────────────────────────────────────────────────────────────
+.reveal figure { margin: .2em 0 0; }
+.reveal .fig img,
+.reveal figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 470px;
+  object-fit: contain;
+  object-position: center;
+}
+.reveal .thanks {
+  font-family: $presentation-heading-font;
+  font-size: 1.25em;
+  font-style: italic;
+  color: var(--m2h-ink);
+  margin-top: 1.1em;
+}
+.reveal figcaption,
+.reveal .cap,
+.reveal .figure-caption,
+.reveal .quarto-float-caption {
+  font-family: $font-family-sans-serif;
+  font-size: .38em;
+  line-height: 1.5;
+  color: var(--m2h-muted);
+  margin-top: .6em;
+  text-align: left;
+}
+.reveal .column > figure img { max-height: 470px; }
+
+// Near-square figures can use more vertical space on their own slide
+.reveal .tallfig .fig img { max-height: 495px; }
+
+// ── title slide ─────────────────────────────────────────────────────────────
+// Manual slide written in the .qmd (`## From mice to humans {.titleslide}`).
+// Two columns: text on the left, graphical abstract as a real image on the
+// right half of the slide.
+.reveal .slides > section.titleslide {
+  // reveal.js writes `display:block` inline on the active slide, so a plain
+  // rule can never win here — !important is required for the grid layout.
+  display: grid !important;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto auto auto;
+  column-gap: 2.6em;
+  align-content: center;
+  text-align: left;
+}
+.reveal .titleslide h2 {
+  grid-column: 1;
+  grid-row: 1;
+  font-family: $presentation-heading-font;
+  font-weight: 400;
+  font-size: 2.5em;
+  line-height: 1.02;
+  letter-spacing: -.015em;
+  text-transform: none;
+  color: var(--m2h-ink);
+  margin: 0 0 .35em;
+}
+.reveal .titleslide h2::before {
+  width: 3.4em;
+  height: .16em;
+  margin-bottom: .9em;
+  background: linear-gradient(90deg,
+    var(--m2h-cyan) 0 33.33%,
+    var(--m2h-blue) 33.33% 66.66%,
+    var(--m2h-peri) 66.66% 100%);
+}
+.reveal .titleslide .kicker {
+  grid-column: 1;
+  grid-row: 2;
+  font-family: $font-family-sans-serif;
+  font-weight: 300;
+  font-size: .92em;
+  line-height: 1.45;
+  color: var(--m2h-muted);
+  margin: 0 0 1.1em;
+}
+.reveal .titleslide .byline {
+  grid-column: 1;
+  grid-row: 3;
+  font-family: $font-family-sans-serif;
+  font-size: .42em;
+  letter-spacing: .04em;
+  color: var(--m2h-ink);
+  line-height: 1.7;
+  margin: 0 0 .35em;
+}
+.reveal .titleslide .affil {
+  grid-column: 1;
+  grid-row: 4;
+  font-family: $font-family-sans-serif;
+  font-size: .42em;
+  letter-spacing: .04em;
+  color: var(--m2h-muted);
+  line-height: 1.7;
+  margin: 0;
+}
+.reveal .titleslide .fig {
+  grid-column: 2;
+  grid-row: 1 / span 4;
+  align-self: center;
+  margin: 0;
+}
+.reveal .titleslide .fig img {
+  width: 100%;
+  height: auto;
+  max-height: 560px;
+  object-fit: contain;
+  border: 1px solid var(--m2h-rule);
+  background: #ffffff;
+}
+
+// code stays monospace (site convention: mono only for code)
+.reveal code, .reveal pre { font-family: $font-family-monospace; }
