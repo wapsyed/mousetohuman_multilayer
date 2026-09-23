@@ -91,7 +91,7 @@ genes_roc_allgenes_immunegenes = genes_roc_allgenes %>%
   filter(human_symbol %in% c(btm_annotation_genes %>%
                            clean_names() %>% 
                          filter(module_category == "immune") %>%
-                         pull(module_member_genes) %>%
+                         pull(symbol) %>%
                          unique()))
 #Filter DEGs human
 degs_genes_human = all_degs_human_mouse_matched_filtered %>% 

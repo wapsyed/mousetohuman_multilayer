@@ -222,7 +222,7 @@ mouse_fluad_log2fc_paired_ttest <- mouse_fluad_log2_hgnc_symbol_wide %>%
   pivot_longer(
     cols = starts_with(c("pval_", "padj_")),
     names_to = c(".value", "timepoint"),
-    names_pattern = "(pval|padj)_(day\d+)"
+    names_pattern = "(pval|padj)_(day\\d+)"
   ) %>% 
   mutate(condition = case_when(timepoint == "day1"	~ "Fluad_24_PBMC",
                                 timepoint == "day3"	~ "Fluad_72_PBMC",
@@ -257,7 +257,7 @@ mouse_fluad_log2fc_unpaired_ttest <- mouse_fluad_log2_hgnc_symbol_wide %>%
   pivot_longer(
     cols = starts_with(c("pval_", "padj_")),
     names_to = c(".value", "timepoint"),
-    names_pattern = "(pval|padj)_(day\d+)"
+    names_pattern = "(pval|padj)_(day\\d+)"
   ) %>% 
   mutate(condition = case_when(timepoint == "day1"	~ "Fluad_24_PBMC",
                                 timepoint == "day3"	~ "Fluad_72_PBMC",
@@ -720,7 +720,7 @@ human_fluad_log2fc_paired_ttest <- human_fluad_log2_hgnc_symbol_wide %>%
   pivot_longer(
     cols = starts_with(c("pval_", "padj_")),
     names_to = c(".value", "timepoint"),
-    names_pattern = "(pval|padj)_(day\d+)"
+    names_pattern = "(pval|padj)_(day\\d+)"
   ) %>% 
   mutate(condition = case_when(timepoint == "day1"	~ "Fluad_24_PBMC",
                                 timepoint == "day3"	~ "Fluad_72_PBMC",
@@ -759,7 +759,7 @@ human_fluad_log2fc_unpaired_ttest <- human_fluad_log2_hgnc_symbol_wide %>%
   pivot_longer(
     cols = starts_with(c("pval_", "padj_")),
     names_to = c(".value", "timepoint"),
-    names_pattern = "(pval|padj)_(day\d+)"
+    names_pattern = "(pval|padj)_(day\\d+)"
   ) %>% 
   mutate(condition = case_when(timepoint == "day1"	~ "Fluad_24_PBMC",
                                 timepoint == "day3"	~ "Fluad_72_PBMC",

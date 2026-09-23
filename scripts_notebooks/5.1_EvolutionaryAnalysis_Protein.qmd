@@ -523,8 +523,8 @@ alignments_human2mouse_pointrange_group_btm = alignments_human2mouse %>%
                fatten = 0.5,
                color = "black", show.legend = F) +
   # Scales
-  scale_fill_manual(values = immune_colors) +
-  scale_color_manual(values = immune_colors) +
+  scale_fill_manual(values = colors$immune_colors) +
+  scale_color_manual(values = colors$immune_colors) +
   scale_y_discrete(expand = c(0.05, 0.05)) +
   scale_x_continuous(expand = c(0.01, 0.01)) +
   # Theme

@@ -43,6 +43,25 @@
     });
   }
 
+  /* ── text size (A- / A+) ───────────────────────────────────────────────── */
+  var FONT_KEY = "m2h-font-scale";
+  var FONT_MIN = 0.85, FONT_MAX = 1.6, FONT_STEP = 0.1;
+  function applyFontScale(s) {
+    s = Math.min(FONT_MAX, Math.max(FONT_MIN, Math.round(s * 100) / 100));
+    document.documentElement.style.setProperty("--a-scale", String(s));
+    try { localStorage.setItem(FONT_KEY, String(s)); } catch (e) { /* ignore */ }
+  }
+  var fontScale = 1;
+  try {
+    var savedScale = parseFloat(localStorage.getItem(FONT_KEY));
+    if (!isNaN(savedScale)) fontScale = savedScale;
+  } catch (e) { /* ignore */ }
+  applyFontScale(fontScale);
+  var fontMinus = document.getElementById("fontMinus");
+  var fontPlus = document.getElementById("fontPlus");
+  if (fontMinus) fontMinus.addEventListener("click", function () { fontScale -= FONT_STEP; applyFontScale(fontScale); });
+  if (fontPlus) fontPlus.addEventListener("click", function () { fontScale += FONT_STEP; applyFontScale(fontScale); });
+
   /* ── contents rail ────────────────────────────────────────────────────── */
   var toc = document.getElementById("articleToc");
   var tocToggle = document.getElementById("tocToggle");
@@ -50,6 +69,12 @@
     tocToggle.addEventListener("click", function () {
       var open = toc.classList.toggle("open");
       tocToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && toc.classList.contains("open")) {
+        toc.classList.remove("open");
+        tocToggle.setAttribute("aria-expanded", "false");
+      }
     });
   }
 

@@ -250,7 +250,7 @@ human_mouse_log2fc_avg_wide_degs_all_immune_nonimmune =
   #Classify as immune or non_immune 
   human_mouse_log2fc_avg_wide_interspecies_bionull %>% 
   mutate(gene_set = if_else(human_symbol %in% c(btm_annotation_genes  %>% 
-                               pull(module_member_genes)),
+                               pull(symbol)),
                              "Immune",
                              "Not-immune")) %>% 
   filter(p_adj_human <= 0.05 & p_adj_mouse <= 0.05)
@@ -2194,7 +2194,7 @@ human_mouse_log2fc_avg_wide_labels_filters =
   filter(human_symbol %in% c(btm_annotation_genes %>% 
                                clean_names() %>% 
                                filter(module_category == "immune") %>% 
-                               pull(module_member_genes)),
+                               pull(symbol)),
          p_adj_human <= 0.05 & p_adj_mouse <= 0.05) %>% 
   mutate(color_group = "Immune")
   ) %>% 
