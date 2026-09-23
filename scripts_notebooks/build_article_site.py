@@ -768,6 +768,43 @@ def build_bibtex(meta) -> str:
     )
 
 
+# ── figure trimming (remove the white A4 page around each figure) ────────────
+def trim_whitespace(data: bytes, pad: int = 14, threshold: int = 250) -> bytes:
+    """Crop the white page around a figure. Falls back to the original bytes
+    when Pillow/numpy are unavailable or the image is fully white."""
+    try:
+        import io
+        import numpy as np
+        from PIL import Image
+    except Exception:
+        return data
+    try:
+        im = Image.open(io.BytesIO(data))
+        if im.mode in ("RGBA", "LA", "P"):
+            im = im.convert("RGBA")
+            bg = Image.new("RGBA", im.size, (255, 255, 255, 255))
+            im = Image.alpha_composite(bg, im)
+        im = im.convert("RGB")
+        arr = np.asarray(im)
+        # a pixel is "content" when any channel is clearly below white
+        mask = (arr < threshold).any(axis=2)
+        if not mask.any():
+            return data
+        ys, xs = np.where(mask)
+        x0, y0 = int(xs.min()), int(ys.min())
+        x1, y1 = int(xs.max()) + 1, int(ys.max()) + 1
+        w, h = im.size
+        x0 = max(0, x0 - pad); y0 = max(0, y0 - pad)
+        x1 = min(w, x1 + pad); y1 = min(h, y1 + pad)
+        if (x0, y0, x1, y1) == (0, 0, w, h):
+            return data
+        out = io.BytesIO()
+        im.crop((x0, y0, x1, y1)).save(out, format="PNG", optimize=True)
+        return out.getvalue()
+    except Exception:
+        return data
+
+
 # ── Quarto (.qmd) rendering ──────────────────────────────────────────────────
 def strip_html(text: str) -> str:
     text = re.sub(r"<br\s*/?>", " ", text)
@@ -855,6 +892,8 @@ def main(argv=None):
                     help="figures folder name inside --out")
     ap.add_argument("--no-quarto", action="store_true",
                     help="write article.qmd but do not render it with Quarto")
+    ap.add_argument("--no-crop", action="store_true",
+                    help="keep the original figure images (do not trim white page)")
     args = ap.parse_args(argv)
 
     docx_path = Path(args.docx)
@@ -876,6 +915,8 @@ def main(argv=None):
                 data = zf.read(blk.fig_media)
             except KeyError:
                 continue
+            if not args.no_crop:
+                data = trim_whitespace(data)
             name = figure_filename(blk.fig_kind, blk.fig_num)
             (figures_dir / name).write_bytes(data)
             written.append(name)
