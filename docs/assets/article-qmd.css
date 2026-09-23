@@ -1,0 +1,72 @@
+/* =============================================================================
+ * article-qmd.css — theme for the Quarto-rendered edition (article.qmd)
+ * Mirrors the Mouse2Human project tokens: palette taken from the study's
+ * figures (#4DBBD5 cyan · #4361ee blue · #A1B0F7 periwinkle) and the site
+ * typography (Merriweather headings + Arial body).
+ * ========================================================================== */
+@import url("https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,400&display=swap");
+
+:root {
+  --paper: #ffffff;
+  --card-2: #f2f5ff;
+  --ink: #000000;
+  --muted: #3b4358;
+  --soft: #7b86a8;
+  --rule: #d6dcfa;
+  --rule-strong: #a1b0f7;
+  --accent: #4dbbd5;
+  --link: #4361ee;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  color: var(--muted);
+  line-height: 1.7;
+  font-size: 16px;
+}
+
+h1, h2, h3, h4, h5, .title {
+  font-family: "Merriweather", Georgia, "Times New Roman", serif;
+  color: var(--ink);
+}
+h2 { font-size: 1.3rem; border-bottom: 2px solid var(--rule-strong); padding-bottom: .4rem; margin-top: 2.6rem; }
+h3 { font-size: 1.08rem; margin-top: 1.9rem; }
+h4 { font-family: Arial, Helvetica, sans-serif; font-size: .82rem; font-weight: 700;
+     letter-spacing: .05em; text-transform: uppercase; color: var(--soft); margin-top: 1.5rem; }
+
+a { color: var(--link); text-decoration: none; border-bottom: 1px solid var(--rule); }
+a:hover { border-bottom-color: var(--accent); }
+
+a.cite { font-weight: 700; border: 0; }
+a.cite:hover { text-decoration: underline; }
+
+p { margin: .95rem 0; }
+
+blockquote, .callout { border-left: 3px solid var(--accent); background: var(--card-2); }
+
+figure img, img { max-width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 8px; }
+figure { margin: 1.8rem 0; }
+figcaption, .figure-caption {
+  font-size: .8rem; color: var(--muted); margin-top: .55rem; line-height: 1.55;
+}
+
+sup, sub { font-size: .72em; line-height: 0; }
+
+table { font-size: .78rem; }
+thead th { color: var(--soft); font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; }
+td { color: var(--muted); }
+
+.ref-list { font-size: .84rem; line-height: 1.6; padding-left: 1.6rem; }
+.ref-list li { margin: .4rem 0; scroll-margin-top: 80px; }
+.ref-list li:target { background: #fff6cc; box-shadow: -3px 0 0 var(--accent); padding: .2rem .5rem; border-radius: 0 4px 4px 0; color: var(--ink); }
+
+/* Quarto sidebar table of contents, in the project palette */
+#TOC a, .sidebar nav[role="doc-toc"] a { color: var(--muted); border: 0; }
+#TOC a.active, .sidebar nav[role="doc-toc"] a.active { color: var(--link); font-weight: 700; }
+.sidebar-title, #TOC .toc-title { font-family: Arial, Helvetica, sans-serif; font-size: .66rem;
+  letter-spacing: .18em; text-transform: uppercase; color: var(--soft); }
+
+@media print {
+  #TOC, .sidebar, .callout { display: none !important; }
+  figure { break-inside: avoid; }
+}

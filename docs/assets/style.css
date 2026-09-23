@@ -119,6 +119,7 @@ li { margin: 0.25rem 0; }
 .deck-links { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
 .btn-alt { background: #ffffff; color: var(--link); }
 .btn-alt:hover { background: var(--link); border-color: var(--link); color: #ffffff; }
+.btn.is-disabled, .btn[aria-disabled="true"] { cursor: not-allowed; opacity: .55; pointer-events: none; }
 .deck-source { font-family: var(--font-mono); font-size: 0.68rem; color: var(--soft); margin: 0.85rem 0 0; }
 .deck-source a { color: var(--link); text-decoration: none; border-bottom: 1px solid var(--rule-strong); }
 .deck-source a:hover { border-bottom-color: var(--accent); }

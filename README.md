@@ -10,6 +10,8 @@
 > **🌐 Project site:** [**wapsyed.github.io/mousetohuman_multilayer**](https://wapsyed.github.io/mousetohuman_multilayer/)\
 > Overview · Methodology (with the **multilayer modelling** pipeline) · Code planning (notebook map) · Predict · **Slides** (presentation decks) — all in one page.
 
+> **📄 Read the paper:** [**interactive HTML edition**](https://wapsyed.github.io/mousetohuman_multilayer/read-paper.html) — the complete manuscript, designed for the web (the bioRxiv preprint and the peer-reviewed version are linked here as they become available).
+
 ------------------------------------------------------------------------
 
 ## Overview

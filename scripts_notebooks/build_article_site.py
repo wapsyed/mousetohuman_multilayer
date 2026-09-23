@@ -66,8 +66,8 @@ NAV = """<nav class="site-nav"><div class="inner">
   <a href="methodology.html">Methodology</a>
   <a href="code-planning.html">Code planning</a>
   <a href="predict.html">Predict</a>
-  <a href="article.html" class="active">Article</a>
-  <a href="slides.html">Other resources</a>
+  <a href="read-paper.html" class="active">Read paper</a>
+  <a href="slides.html">Slides</a>
 </div></nav>"""
 
 SHELL = """<!DOCTYPE html>
@@ -429,8 +429,10 @@ def parse_manuscript(docx_path: Path):
         elif not authors_html and text.upper().startswith("AUTHORS:"):
             authors_html = link_affs(b["html"].split(":", 1)[1].lstrip())
             authors_plain = text.split(":", 1)[1].strip()
-            authors_plain = re.sub(r"[0-9]+(?:,[0-9]+)*", "", authors_plain)
-            authors_plain = re.sub(r"\s+", " ", authors_plain).strip().rstrip(",")
+            authors_plain = re.sub(r"\s*,?\s*[0-9]+(?:,[0-9]+)*", "", authors_plain)
+            authors_plain = authors_plain.replace("*", "").replace("\u00b0", "")
+            authors_plain = re.sub(r"\s*,\s*", ", ", authors_plain)
+            authors_plain = re.sub(r"\s+", " ", authors_plain).strip(" ,")
         elif text.count("@") >= 3 and "," in text:
             emails = text
         elif text.startswith("\u00b0"):
@@ -596,6 +598,7 @@ def render_header(meta) -> str:
       <div class="article-actions">
         <button class="btn" id="btnCite" type="button">Copy citation (BibTeX)</button>
         <button class="btn btn-alt" id="btnPrint" type="button">Print / PDF</button>
+        <a class="btn btn-alt" href="article-quarto.html">Quarto version</a>
         <a class="btn btn-alt" href="#references">Jump to references</a>
       </div>
     </header>"""
@@ -765,6 +768,84 @@ def build_bibtex(meta) -> str:
     )
 
 
+# ── Quarto (.qmd) rendering ──────────────────────────────────────────────────
+def strip_html(text: str) -> str:
+    text = re.sub(r"<br\s*/?>", " ", text)
+    text = re.sub(r"<[^>]+>", "", text)
+    text = html.unescape(text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def render_qmd(blocks, meta, figures_dir_rel: str) -> str:
+    """Build a Quarto document that renders the same manuscript to HTML."""
+    yaml = (
+        "---\n"
+        f'title: "{meta["title"].replace(chr(34), chr(39))}"\n'
+        f'author: "{meta["authors_plain"].replace(chr(34), chr(39))}"\n'
+        'date: "2026-09-23"\n'
+        "format:\n"
+        "  html:\n"
+        "    toc: true\n"
+        "    toc-depth: 3\n"
+        "    toc-location: right\n"
+        "    toc-title: Contents\n"
+        "    theme: cosmo\n"
+        "    css: assets/article-qmd.css\n"
+        "    output-file: article-quarto.html\n"
+        "    embed-resources: true\n"
+        "    fig-cap-location: bottom\n"
+        "    number-sections: false\n"
+        "    lang: en\n"
+        "---\n\n"
+    )
+    out = [yaml]
+    out.append(
+        '::: {.callout-note}\n'
+        "Submitted to *Genes and Immunity* — currently under review. "
+        "This HTML edition is generated from `article.qmd`; the fully "
+        'interactive edition is [article.html](article.html).\n'
+        ":::\n"
+    )
+
+    for blk in blocks:
+        if blk.kind == "heading":
+            out.append("#" * blk.level + " " + blk.text + "\n")
+        elif blk.kind == "para":
+            out.append(blk.html + "\n")
+        elif blk.kind == "list":
+            out.append("- " + blk.html + "\n")
+        elif blk.kind == "figure":
+            src = f"{figures_dir_rel}/{figure_filename(blk.fig_kind, blk.fig_num)}"
+            cap = strip_html(blk.fig_caption)
+            alt = f"{blk.fig_label} | {cap}" if cap else blk.fig_label
+            out.append(f"![{alt}]({src}){{#{blk.anchor} width=100%}}\n")
+        elif blk.kind == "table":
+            out.append(render_table(blk) + "\n")
+
+    if meta["refs"]:
+        out.append('<ol class="ref-list">')
+        for i, ref in enumerate(meta["refs"], start=1):
+            out.append(f'<li id="ref-{i}">{ref}</li>')
+        out.append("</ol>\n")
+    return "\n".join(out)
+
+
+def run_quarto(qmd_path: Path) -> int:
+    """Render the .qmd with Quarto, trying a bundled binary if not on PATH."""
+    import shutil as _shutil
+    import subprocess
+    exe = _shutil.which("quarto") or str(Path.home() / ".local/quarto/bin/quarto")
+    if not Path(exe).exists():
+        print("[quarto] not found — skipping HTML render (qmd written anyway)")
+        return 1
+    print(f"[quarto] rendering {qmd_path.name} …")
+    res = subprocess.run([exe, "render", qmd_path.name],
+                         cwd=str(qmd_path.parent))
+    if res.returncode != 0:
+        print(f"[quarto] render failed (exit {res.returncode})")
+    return res.returncode
+
+
 # ── main ─────────────────────────────────────────────────────────────────────
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Build the Mouse2Human article site.")
@@ -772,6 +853,8 @@ def main(argv=None):
     ap.add_argument("--out", default="docs", help="output directory (default: docs)")
     ap.add_argument("--figures-dir", default="article-figures",
                     help="figures folder name inside --out")
+    ap.add_argument("--no-quarto", action="store_true",
+                    help="write article.qmd but do not render it with Quarto")
     args = ap.parse_args(argv)
 
     docx_path = Path(args.docx)
@@ -814,6 +897,15 @@ def main(argv=None):
     out_file = out_dir / "article.html"
     out_file.write_text(page, encoding="utf-8")
     print(f"[build] written  {out_file}")
+
+    # ── Quarto edition ─────────────────────────────────────────────────────
+    qmd_text = render_qmd(blocks, meta, args.figures_dir)
+    qmd_file = out_dir / "article.qmd"
+    qmd_file.write_text(qmd_text, encoding="utf-8")
+    print(f"[build] written  {qmd_file}")
+    if not args.no_quarto:
+        run_quarto(qmd_file)
+
     print(f"[build] sections {len(toc)} · references {len(meta['refs'])}")
     return 0
 

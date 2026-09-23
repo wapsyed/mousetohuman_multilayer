@@ -270,6 +270,10 @@ body.theme-dark .lightbox { background: rgba(0, 0, 0, .96); }
   .article-main p { font-size: .97rem; }
 }
 
+@media (min-width: 941px) {
+  #tocToggle { display: none; }
+}
+
 /* ── print / PDF ────────────────────────────────────────────────────────── */
 @media print {
   .site-nav, .article-toolbar, .read-progress, .article-toc, .article-actions,
