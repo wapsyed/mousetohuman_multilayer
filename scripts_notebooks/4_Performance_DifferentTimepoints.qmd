@@ -1,0 +1,1782 @@
+---
+title: "4_Performance_Biocontrol"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-location: left
+    code-fold: true
+    code-summary: "Show code"
+    code-tools: true
+    embed-resources: true
+    fig-cap-location: bottom
+    theme: [cosmo, mouse2human-html.scss]
+---
+```{r}
+#| message: false
+#| warning: false
+# install.packages("here") if needed
+library(here)
+source(here("scripts_notebooks", "required.R"))
+```
+
+# Performance tests 
+
+
+# Classification: Genes
+
+```{r}
+
+# Import BTM annotation genes
+btm_annotation_genes <- read_csv(file = here("tables", "Gene sets", "btm_annotation_genes.csv"))
+
+# Import and clean DEGs table with control
+all_degs_human_mouse_matched_bionull = 
+  readRDS(file = here("tables", "Differential gene expression", "all_human_mouse_dge_limma_degs_matched_control.rds")) %>% 
+  mutate(timepoint = if_else(pathogen %in% c("Burn", "Trauma") & timepoint %in% c("2h", "Early hours"), "Early hours", timepoint)) 
+
+# Check original counts
+all_degs_human_mouse_matched_bionull %>% dplyr::count(pathogen, organism, timepoint)
+
+
+
+# FILTER COMPARISONS BY CORRELATION
+conditions_filtered <- readRDS(file = here("tables", "Differential gene expression", "all_human_mouse_correlation_filtered_inter_weighted_filtered.rds")) %>% 
+  mutate(pathogen_human = case_when(pathogen_human == "Hepatitis B" ~ "HepB",
+                              pathogen_human == "Staphylococcus aureus" ~ "S. aureus",
+                              pathogen_human == "Escherichia coli" ~ "E. coli",
+                              T ~pathogen_human),
+          pathogen_human = fct_relevel(pathogen_human, "Influenza", "HepB", "S. aureus", "E. coli", "Burn", "Trauma")) %>% 
+  select(treatment_human, treatment_mouse, pathogen_human, pathogen_mouse,
+         pathogen_comparison, timepoint_comparison,
+         timepoint_human, timepoint_mouse) %>% 
+  distinct() %>% 
+  pivot_longer(
+    cols = contains("_human") | contains("_mouse"), 
+    names_to = c(".value", "organism"),             
+    names_sep = "_",                                
+    values_drop_na = TRUE
+  ) %>% 
+  mutate(
+    organism = str_to_title(organism),
+    timepoint = str_replace_all(timepoint, "\n", " ")
+  )
+
+# Filter paired data
+all_degs_human_mouse_matched_filtered <- all_degs_human_mouse_matched_bionull %>% 
+  select(organism:human_symbol, mean_l2fc:sd, timepoint_comparison, n) %>% 
+  inner_join(conditions_filtered %>% 
+               select(-timepoint, -organism), by = c("pathogen", "treatment", "timepoint_comparison")) %>%
+  
+  #Define control
+  mutate(organism = if_else(organism == "DMD", "Control", organism))
+
+# Check filtered counts
+all_degs_human_mouse_matched_filtered %>% 
+  dplyr::count(treatment, pathogen, organism, timepoint_comparison)
+
+#############################
+# Input
+#############################
+
+#All genes
+genes_roc_allgenes = all_degs_human_mouse_matched_filtered %>%
+  select(pathogen, treatment, organism, human_symbol, timepoint_comparison, mean_l2fc, adj_p_val, everything())
+
+genes_roc_allgenes %>% dplyr::count(pathogen, organism,  timepoint_comparison)
+genes_roc_allgenes
+
+#Filter immune genes
+genes_roc_allgenes_immunegenes = genes_roc_allgenes %>%
+  filter(human_symbol %in% c(btm_annotation_genes %>%
+                           clean_names() %>% 
+                         filter(module_category == "immune") %>%
+                         pull(module_member_genes) %>%
+                         unique()))
+#Filter DEGs human
+degs_genes_human = all_degs_human_mouse_matched_filtered %>% 
+  filter(organism == "Human",
+        adj_p_val <= 0.05) %>% 
+  select(organism, human_symbol, pathogen, timepoint_comparison) %>% 
+  distinct()
+
+#Check
+genes_roc_allgenes %>%
+  dplyr::count(pathogen, organism, timepoint_comparison)
+```
+
+
+```{r}
+set.seed(123)
+######## Input =======
+filename = "all_human_mouse_alternative_unicaudal"
+
+genes_df_input = bind_rows(
+  genes_roc_allgenes,
+  genes_roc_allgenes_immunegenes %>% mutate(organism = "Immune")
+)
+
+######## Run analysis ======
+classification_performance_results = classification_performance_compute_genes_degs(
+  df = genes_df_input, degs_genes_human = degs_genes_human)
+
+#Extract results
+roc_auc_df = classification_performance_results$roc_auc_df
+roc_auc_df_DEGs = classification_performance_results$roc_auc_df_DEGs
+roc_curve_auc_df = classification_performance_results$roc_curve_auc_df
+roc_curve_auc_df_DEGs = classification_performance_results$roc_curve_auc_df_DEGs
+pr_auc_df = classification_performance_results$pr_auc_df
+pr_auc_DEGs_df = classification_performance_results$pr_auc_DEGs_df
+pr_curve_auc_df = classification_performance_results$pr_curve_auc_df
+pr_curve_auc_df_DEGs = classification_performance_results$pr_curve_auc_df_DEGs
+
+#Refactor
+#ROC
+roc_curve_auc_df = roc_curve_auc_df %>% 
+    mutate(model = fct_relevel(model, "Human", "Mouse", "Control", "Immune", "Permutation"),
+         comparison = fct_relevel(comparison, "Up", "Down"),
+         pathogen = fct_relevel(pathogen, "Influenza", "HepB", "S. aureus", "E. coli", "Burn", "Trauma")) %>% 
+  mutate(auc = round(auc, 2) %>% as.character())
+
+roc_curve_auc_df_DEGs = roc_curve_auc_df_DEGs %>% 
+    mutate(model = fct_relevel(model, "Human", "Mouse", "Control", "Immune", "Permutation"),
+         comparison = fct_relevel(comparison, "Up", "Down"),
+         pathogen = fct_relevel(pathogen, "Influenza", "HepB", "S. aureus", "E. coli", "Burn", "Trauma")) %>% 
+  mutate(auc = round(auc, 2) %>% as.character())
+
+roc_auc_df = roc_auc_df%>% 
+  mutate(model = fct_relevel(model, "Human", "Mouse", "Immune", "Permutation", "Control", "FIT"),
+         comparison = fct_relevel(comparison, "Up", "Down"),
+         pathogen = fct_relevel(pathogen, "Influenza", "HepB", "S. aureus", "E. coli", "Burn", "Trauma"),
+         treatment = case_when(pathogen %in% c("HepB", "Influenza") ~ "Vaccination",
+                               pathogen %in% c( "S. aureus", "E. coli") ~ "Infection",
+                               pathogen %in% c( "Burn", "Trauma") ~ "Injury",
+                               T ~ pathogen),
+         treatment = fct_relevel(treatment, "Vaccination", "Infection", "Injury")
+         ) 
+
+roc_auc_df_DEGs = roc_auc_df_DEGs %>% 
+  mutate(model = fct_relevel(model, "Human", "Mouse", "Immune", "Permutation", "Control", "FIT"),
+         comparison = fct_relevel(comparison, "Up", "Down"),
+         pathogen = fct_relevel(pathogen, "Influenza", "HepB", "S. aureus", "E. coli", "Burn", "Trauma"),
+         treatment = case_when(pathogen %in% c("HepB", "Influenza") ~ "Vaccination",
+                               pathogen %in% c( "S. aureus", "E. coli") ~ "Infection",
+                               pathogen %in% c( "Burn", "Trauma") ~ "Injury",
+                               T ~ pathogen),
+         treatment = fct_relevel(treatment, "Vaccination", "Infection", "Injury")
+         ) 
+
+#PR
+pr_curve_auc_df = pr_curve_auc_df %>% 
+    mutate(model = fct_relevel(model, "Mouse", "Immune", "Permutation", "Human", "FIT", "Control"),
+         comparison = fct_relevel(comparison, "Up", "Down"),
+         pathogen = fct_relevel(pathogen, "Influenza", "HepB", "S. aureus", "E. coli", "Burn", "Trauma")) %>% 
+  mutate(pr_auc = round(pr_auc, 2) %>% as.character())
+
+pr_curve_auc_df_DEGs = pr_curve_auc_df_DEGs  %>% 
+    mutate(model = fct_relevel(model, "Mouse", "Immune", "Permutation", "Human", "FIT", "Control"),
+         comparison = fct_relevel(comparison, "Up", "Down"),
+         pathogen = fct_relevel(pathogen, "Influenza", "HepB", "S. aureus", "E. coli", "Burn", "Trauma")) %>% 
+  mutate(pr_auc = round(pr_auc, 2) %>% as.character())
+
+pr_auc_df = pr_auc_df %>% 
+  mutate(model = fct_relevel(model, "Human", "Mouse", "Immune", "Permutation", "Control", "FIT"),
+         comparison = fct_relevel(comparison, "Up", "Down"),
+         pathogen = fct_relevel(pathogen, "Influenza", "HepB", "S. aureus", "E. coli", "Burn", "Trauma"),
+         treatment = case_when(pathogen %in% c("HepB", "Influenza") ~ "Vaccination",
+                               pathogen %in% c( "S. aureus", "E. coli") ~ "Infection",
+                               pathogen %in% c( "Burn", "Trauma") ~ "Injury",
+                               T ~ pathogen),
+         treatment = fct_relevel(treatment, "Vaccination", "Infection", "Injury")
+         ) 
+
+pr_auc_DEGs_df = pr_auc_DEGs_df %>% 
+  mutate(model = fct_relevel(model, "Human", "Mouse", "Immune", "Permutation", "Control", "FIT"),
+         comparison = fct_relevel(comparison, "Up", "Down"),
+         pathogen = fct_relevel(pathogen, "Influenza", "HepB", "S. aureus", "E. coli", "Burn", "Trauma"),
+         treatment = case_when(pathogen %in% c("HepB", "Influenza") ~ "Vaccination",
+                               pathogen %in% c( "S. aureus", "E. coli") ~ "Infection",
+                               pathogen %in% c( "Burn", "Trauma") ~ "Injury",
+                               T ~ pathogen),
+         treatment = fct_relevel(treatment, "Vaccination", "Infection", "Injury")
+         ) 
+
+```
+
+
+
+### Plot ROC curve
+
+#### All genes
+```{r}
+#| fig-height: 6
+#| fig-width: 8
+#Plot curves ------------------
+#PLOT ROC Curve
+roc_curve_plot = roc_curve_auc_df %>% 
+  arrange(pathogen) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = 1 - specificity, 
+             y = sensitivity, 
+             color = model,
+             linetype = comparison)) +
+  geom_path(linewidth = 0.75, alpha = 1) +
+  geom_abline(lty = 3) +
+  theme_vaxgo() +
+  facet_nested_wrap(~pathogen+timepoint_comparison, nrow = 2, axes = "x",
+                    strip = strip_nested(size = "variable")) +
+  #Mouse
+  geom_text(data = . %>% 
+              filter(model == "Mouse", comparison == "Up") %>% 
+              select(pathogen, model, comparison, timepoint_comparison, auc) %>% 
+              distinct(),
+            mapping = aes(label = paste(comparison, auc),
+                color = model,
+                x = 1,
+                y = 0.4),
+            size = 3,
+            hjust = 1) +
+  geom_text(data = . %>% 
+              filter(model == "Mouse", comparison == "Down") %>% 
+              select(pathogen, model, comparison, timepoint_comparison, auc) %>% 
+              distinct(),
+            mapping = aes(label = paste(comparison, auc),
+                color = model,
+                x = 1,
+                y = 0.3),
+            size = 3,
+            hjust = 1) +
+  #Immune
+  geom_text(data = . %>% 
+              filter(model == "Immune", comparison == "Up") %>% 
+              select(pathogen, model, comparison, timepoint_comparison, auc) %>% 
+              distinct(),
+            mapping = aes(label = paste(comparison, auc),
+                color = model,
+                x = 1,
+                y = 0.2),
+            size = 3,
+            hjust = 1) +
+   geom_text(data = . %>% 
+              filter(model == "Immune", comparison == "Down") %>% 
+              select(pathogen, model, comparison, timepoint_comparison, auc) %>% 
+              distinct(),
+            mapping = aes(label = paste(comparison, auc),
+                color = model,
+                x = 1,
+                y = 0.1),
+            size = 3,
+            hjust = 1) +
+  scale_linetype_manual(values = c("Up" = 1,
+                                   "Down" = 2)) +
+  # coord_equal() +
+  scale_color_manual(values = colors$organism) +
+  labs(
+  x = "FPR",
+  y = "TPR",
+  color = "Model",
+  title = "All genes",
+  linetype = "Comparison") + 
+  guides(fill = guide_legend(override.aes = list(size = 4)),
+         color = guide_legend(override.aes = list(linewidth = 4, shape = 1))
+         ) +
+  theme(legend.position = "top",
+          panel.spacing.y = unit(0, "lines"), 
+          panel.spacing.x = unit(1, "lines"), 
+          plot.margin = margin(0, 0.3, 0, 0, unit = "cm"),
+          ) +
+  scale_x_continuous(n.breaks = 3) +
+  scale_y_continuous(n.breaks = 3) +
+  guides(linetype = guide_legend(override.aes = list(linewidth = 0.5, size = 1),
+                                 order = 2), 
+         fill = "none",
+         color = guide_legend(override.aes = list(linewidth = 3)))
+
+roc_curve_plot
+
+roc_curve_auc_df %>% 
+  dplyr::count(pathogen, timepoint_comparison, comparison, model)
+
+#Save
+# roc_curve_plot %>%
+#   ggsave(filename = here("Figures", paste0(filename, "_performance_roc_All_OnlyImmune.png")),
+#          width = 8,
+#          height = 6)
+```
+
+
+#### DEGs
+```{r}
+#| fig-height: 6
+#| fig-width: 8
+#Plot curves ------------------
+#PLOT ROC Curve
+roc_curve_degs_plot = roc_curve_auc_df_DEGs %>% 
+  arrange(pathogen) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = 1 - specificity, 
+             y = sensitivity, 
+             color = model,
+             linetype = comparison)) +
+  geom_path(size = 0.75, alpha = 1) +
+  geom_abline(lty = 3) +
+  theme_vaxgo() +
+  facet_nested_wrap(~pathogen+timepoint_comparison, nrow = 2, axes = "x",
+                    strip = strip_nested(size = "variable")) +
+  #Mouse
+  geom_text(data = . %>% 
+              filter(model == "Mouse", comparison == "Up") %>% 
+              select(pathogen, model, comparison, timepoint_comparison, auc) %>% 
+              distinct(),
+            mapping = aes(label = paste(comparison, auc),
+                color = model,
+                x = 1,
+                y = 0.4),
+            size = 3,
+            hjust = 1) +
+  geom_text(data = . %>% 
+              filter(model == "Mouse", comparison == "Down") %>% 
+              select(pathogen, model, comparison, timepoint_comparison, auc) %>% 
+              distinct(),
+            mapping = aes(label = paste(comparison, auc),
+                color = model,
+                x = 1,
+                y = 0.3),
+            size = 3,
+            hjust = 1) +
+  #Immune
+  geom_text(data = . %>% 
+              filter(model == "Immune", comparison == "Up") %>% 
+              select(pathogen, model, comparison, timepoint_comparison, auc) %>% 
+              distinct(),
+            mapping = aes(label = paste(comparison, auc),
+                color = model,
+                x = 1,
+                y = 0.2),
+            size = 3,
+            hjust = 1) +
+   geom_text(data = . %>% 
+              filter(model == "Immune", comparison == "Down") %>% 
+              select(pathogen, model, comparison, timepoint_comparison, auc) %>% 
+              distinct(),
+            mapping = aes(label = paste(comparison, auc),
+                color = model,
+                x = 1,
+                y = 0.1),
+            size = 3,
+            hjust = 1) +
+  scale_linetype_manual(values = c("Up" = 1,
+                                   "Down" = 2)) +
+  # coord_equal() +
+  scale_color_manual(values = colors$organism) +
+  labs(
+  x = "FPR",
+  y = "TPR",
+  color = "Model",
+  title = "DEGs",
+  linetype = "Comparison") + 
+  guides(fill = guide_legend(override.aes = list(size = 4)),
+         color = guide_legend(override.aes = list(linewidth = 4, shape = 1))
+         ) +
+  theme(legend.position = "top",
+          panel.spacing.y = unit(0, "lines"), 
+          panel.spacing.x = unit(1, "lines"), 
+          plot.margin = margin(0, 0.3, 0, 0, unit = "cm"),
+          ) +
+  scale_x_continuous(n.breaks = 3) +
+  scale_y_continuous(n.break = 3) +
+  guides(linetype = guide_legend(override.aes = list(linewidth = 0.5, size = 1),
+                                 order = 2), 
+         fill = "none",
+         color = guide_legend(override.aes = list(linewidth = 3)))
+
+roc_curve_degs_plot
+
+# roc_curve_degs_plot %>%
+#   ggsave(filename = here("Figures", paste0(filename, "_performance_roc_DEGs_OnlyImmune.png")),
+#          width = 8,
+#          height = 6)
+```
+
+
+
+### Plot AUC 
+#### All Genes: Heatmap
+```{r}
+#| fig-height: 3
+#| fig-width: 8
+roc_auc_heatmap = roc_auc_df %>% 
+  ggplot() +
+   aes(x = comparison,
+      y = model %>% fct_rev(),
+      fill = auc,
+      color = model %>% fct_rev(),
+      group = model %>% fct_rev()) + 
+  
+  facet_nested_wrap(~treatment+pathogen+timepoint_comparison,
+                    # scales = "free",
+                    nrow = 1,
+                    strip = strip_nested(size = "variable")
+                    ) +
+  
+  geom_tile(color = "black",
+             stroke = 0.5) + 
+  
+  #Add labels
+  geom_text(aes(label = round(auc, 2)), size = 3,
+             color = "black",
+             fontface = "bold",
+             vjust = 0.25,
+            data = . %>% filter(auc <= 0.7)) +
+  geom_text(aes(label = round(auc, 2)), size = 3,
+             color = "white",
+             fontface = "bold",
+             vjust = 0.25,
+            data = . %>% filter(auc > 0.7)) +
+   geom_text(aes(label = paste0("n=", n_genes)), size = 2.5,
+             color = "black",
+             vjust = 2,
+             data = . %>% filter(auc <= 0.7)) +
+  
+   geom_text(aes(label = paste0("n=", n_genes)), size = 2.5,
+             color = "white",
+             vjust = 2,
+             data = . %>% filter(auc > 0.7)) +
+ 
+
+  scale_x_discrete(expand = c(0.01, 0.01)) +
+  scale_y_discrete(expand = c(0.01, 0.01)) +
+  theme_vaxgo() +
+    scale_fill_gradientn(
+        colors = c("#4DBBD5FF", "white","#4361ee"),
+        values = scales::rescale(seq(0, 1, length.out = 10)),
+        limits = c(0, 1), 
+        name = "ROC AUC",
+        guide = guide_colorbar(
+          barwidth = 15,
+          barheight = 1,
+          nbin = 10,
+          raster = FALSE
+        )
+      ) +
+  labs(
+    x = "Comparison",
+    y = "Model",
+    fill = "ROC-AUC",
+    title = "All genes"
+  ) +
+  theme(legend.position = "top",
+          panel.spacing.y = unit(0, "lines"), 
+          panel.spacing.x = unit(1, "lines"), 
+          plot.margin = margin(0, 0.3, 0, 0, unit = "cm"),
+          ) 
+#Display
+roc_auc_heatmap
+
+
+# roc_auc_heatmap %>%
+#   ggsave(filename = here("Figures", paste0(filename, "_performance_roc_auc_heatmap_All_OnlyImmune.png")),
+#          width = 8,
+#          height = 3)
+```
+
+
+#### DEGs: Heatmap
+
+```{r}
+#| fig-height: 3
+#| fig-width: 8
+#### DEGs: Heatmap
+roc_auc_DEGs_heatmap = roc_auc_df_DEGs %>% 
+  ggplot() +
+   aes(x = comparison,
+      y = model %>% fct_rev(),
+      fill = auc,
+      color = model %>% fct_rev(),
+      group = model %>% fct_rev()) + 
+  
+  facet_nested_wrap(~treatment+pathogen+timepoint_comparison,
+                    # scales = "free",
+                    nrow = 1,
+                    strip = strip_nested(size = "variable")
+                    ) +
+  
+  geom_tile(color = "black",
+             stroke = 0.5) + 
+  
+  #Add labels
+  geom_text(aes(label = round(auc, 2)), size = 3,
+             color = "black",
+             fontface = "bold",
+             vjust = 0.25,
+            data = . %>% filter(auc <= 0.9)) +
+  geom_text(aes(label = round(auc, 2)), size = 3,
+             color = "white",
+             fontface = "bold",
+             vjust = 0.25,
+            data = . %>% filter(auc > 0.9)) +
+   geom_text(aes(label = paste0("n=", n_genes)), size = 2.5,
+             color = "black",
+             vjust = 2,
+             data = . %>% filter(auc <= 0.9)) +
+  
+   geom_text(aes(label = paste0("n=", n_genes)), size = 2.5,
+             color = "white",
+             vjust = 2,
+             data = . %>% filter(auc > 0.9)) +
+ 
+
+  scale_x_discrete(expand = c(0.01, 0.01)) +
+  scale_y_discrete(expand = c(0.01, 0.01)) +
+  theme_vaxgo() +
+    scale_fill_gradientn(
+        colors = c("#4DBBD5FF", "white","#4361ee"),
+        values = scales::rescale(seq(0, 1, length.out = 10)),
+        limits = c(0, 1), 
+        name = "ROC AUC",
+        guide = guide_colorbar(
+          barwidth = 15,
+          barheight = 1,
+          nbin = 10,
+          raster = FALSE
+        )
+      ) +
+  labs(
+    x = "Comparison",
+    y = "Model",
+    fill = "ROC-AUC",
+  ) +
+  theme(legend.position = "top",
+          panel.spacing.y = unit(0, "lines"), 
+          panel.spacing.x = unit(1, "lines"), 
+          plot.margin = margin(0, 0.3, 0, 0, unit = "cm"),
+          ) 
+
+roc_auc_DEGs_heatmap
+  
+#Save
+# roc_auc_DEGs_heatmap %>%
+#   ggsave(filename = here("Figures", paste0(filename, "_performance_roc_auc_heatmap_DEGs_OnlyImmune.png")),
+#          width = 8,
+#          height = 3)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###Plot PR curve
+
+
+#### All genes
+```{r}
+#| fig-height: 6
+#| fig-width: 8
+#Plot curves ------------------
+#PLOT PR Curve
+pr_curve_plot = pr_curve_auc_df %>% 
+  arrange(pathogen) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = recall, 
+             y = precision, 
+             color = model,
+             linetype = comparison)) +
+  geom_path(size = 0.75, alpha = 1) +
+  theme_vaxgo() +
+  facet_nested_wrap(~pathogen+timepoint_comparison, nrow = 2, axes = "x",
+                    strip = strip_nested(size = "variable")) +
+  #Mouse
+  geom_text(data = . %>% 
+              filter(model == "Mouse", comparison == "Up") %>% 
+              select(pathogen, model, comparison, timepoint_comparison, pr_auc) %>% 
+              distinct(),
+            mapping = aes(label = paste(comparison, pr_auc),
+                color = model,
+                x = 0.95,
+                y = 0.9),
+            size = 3,
+            hjust = 1) +
+  geom_text(data = . %>% 
+              filter(model == "Mouse", comparison == "Down") %>% 
+              select(pathogen, model, comparison, timepoint_comparison,pr_auc ) %>% 
+              distinct(),
+            mapping = aes(label = paste(comparison, pr_auc),
+                color = model,
+                x = 0.95,
+                y = 0.8),
+            size = 3,
+            hjust = 1) +
+  #Immune
+  geom_text(data = . %>% 
+              filter(model == "Immune", comparison == "Up") %>% 
+              select(pathogen, model, comparison, timepoint_comparison, pr_auc) %>% 
+              distinct(),
+            mapping = aes(label = paste(comparison, pr_auc),
+                color = model,
+                x = 0.95,
+                y = 0.7),
+            size = 3,
+            hjust = 1) +
+   geom_text(data = . %>% 
+              filter(model == "Immune", comparison == "Down") %>% 
+              select(pathogen, model, comparison, timepoint_comparison,pr_auc ) %>% 
+              distinct(),
+            mapping = aes(label = paste(comparison, pr_auc),
+                color = model,
+                x = 0.95,
+                y = 0.6),
+            size = 3,
+            hjust = 1) +
+  scale_linetype_manual(values = c("Up" = 1,
+                                   "Down" = 2)) +
+  # coord_equal() +
+  scale_color_manual(values = colors$organism) +
+  labs(
+  x = "Recall",
+  y = "Precision",
+  title = "All genes",
+  color = "Model",
+  linetype = "Comparison") + 
+  guides(fill = guide_legend(override.aes = list(size = 4)),
+         color = guide_legend(override.aes = list(linewidth = 4, shape = 1))
+         ) +
+  theme(legend.position = "top",
+          panel.spacing.y = unit(0, "lines"), 
+          panel.spacing.x = unit(1, "lines"), 
+          plot.margin = margin(0, 0.3, 0, 0, unit = "cm"),
+          ) +
+  scale_x_continuous(n.breaks = 3) +
+  scale_y_continuous(n.break = 3) +
+  guides(linetype = guide_legend(override.aes = list(linewidth = 0.5, size = 1),
+                                 order = 2), 
+         fill = "none",
+         color = guide_legend(override.aes = list(linewidth = 3)))
+
+#Print
+pr_curve_plot
+
+# pr_curve_plot %>%
+#   ggsave(filename = here("Figures", paste0(filename, "_performance_pr_All_OnlyImmune.png")),
+#          width = 8,
+#          height = 6)
+```
+
+
+
+#### DEGs
+
+```{r}
+#| fig-height: 6
+#| fig-width: 10
+#Plot curves ------------------
+#PLOT PR Curve
+pr_curve_DEGs_plot = pr_curve_auc_df_DEGs %>% 
+  arrange(pathogen) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = recall, 
+             y = precision, 
+             color = model,
+             linetype = comparison)) +
+  geom_path(size = 0.75, alpha = 1) +
+  theme_vaxgo() +
+  facet_nested_wrap(~pathogen+timepoint_comparison, nrow = 2, axes = "x",
+                    strip = strip_nested(size = "variable")) +
+  #Mouse
+  geom_text(data = . %>% 
+              filter(model == "Mouse", comparison == "Up") %>% 
+              select(pathogen, model, comparison, timepoint_comparison, pr_auc) %>% 
+              distinct(),
+            mapping = aes(label = paste(comparison, pr_auc),
+                color = model,
+                x = 0.95,
+                y = 0.9),
+            size = 3,
+            hjust = 1) +
+  geom_text(data = . %>% 
+              filter(model == "Mouse", comparison == "Down") %>% 
+              select(pathogen, model, comparison, timepoint_comparison,pr_auc ) %>% 
+              distinct(),
+            mapping = aes(label = paste(comparison, pr_auc),
+                color = model,
+                x = 0.95,
+                y = 0.8),
+            size = 3,
+            hjust = 1) +
+  #Immune
+  geom_text(data = . %>% 
+              filter(model == "Immune", comparison == "Up") %>% 
+              select(pathogen, model, comparison, timepoint_comparison, pr_auc) %>% 
+              distinct(),
+            mapping = aes(label = paste(comparison, pr_auc),
+                color = model,
+                x = 0.95,
+                y = 0.7),
+            size = 3,
+            hjust = 1) +
+   geom_text(data = . %>% 
+              filter(model == "Immune", comparison == "Down") %>% 
+              select(pathogen, model, comparison, timepoint_comparison,pr_auc ) %>% 
+              distinct(),
+            mapping = aes(label = paste(comparison, pr_auc),
+                color = model,
+                x = 0.95,
+                y = 0.6),
+            size = 3,
+            hjust = 1) +
+  scale_linetype_manual(values = c("Up" = 1,
+                                   "Down" = 2)) +
+  # coord_equal() +
+  scale_color_manual(values = colors$organism) +
+  labs(
+  x = "Recall",
+  y = "Precision",
+  title = "DEGs",
+  color = "Model",
+  linetype = "Comparison") + 
+  guides(fill = guide_legend(override.aes = list(size = 4)),
+         color = guide_legend(override.aes = list(linewidth = 4, shape = 1))
+         ) +
+  theme(legend.position = "top",
+          panel.spacing.y = unit(0, "lines"), 
+          panel.spacing.x = unit(1, "lines"), 
+          plot.margin = margin(0, 0.3, 0, 0, unit = "cm"),
+          ) +
+  scale_x_continuous(n.breaks = 3) +
+  scale_y_continuous(n.break = 3) +
+  guides(linetype = guide_legend(override.aes = list(linewidth = 0.5, size = 1),
+                                 order = 2), 
+         fill = "none",
+         color = guide_legend(override.aes = list(linewidth = 3)))
+
+#Print
+pr_curve_DEGs_plot
+
+#Save
+# pr_curve_DEGs_plot %>%
+#   ggsave(filename = here("Figures", paste0(filename, "_performance_pr_DEGS_OnlyImmune.png")),
+#          width = 8,
+#          height = 6)
+```
+
+
+
+
+### Plot AUC
+#### All genes: Heatmap
+PR-AUC as heatmap
+```{r}
+#| fig-height: 3
+#| fig-width: 8
+#PR-AUC as heatmap
+pr_auc_heatmap = pr_auc_df %>% 
+  ggplot() +
+   aes(x = comparison,
+      y = model %>% fct_rev(),
+      fill = pr_auc,
+      color = model %>% fct_rev(),
+      group = model %>% fct_rev()) + 
+  
+  facet_nested_wrap(~treatment+pathogen+timepoint_comparison,
+                    # scales = "free",
+                    nrow = 1,
+                    strip = strip_nested(size = "variable")
+                    ) +
+  
+  geom_tile(color = "black",
+             stroke = 0.5) + 
+  
+  #Add labels
+  geom_text(aes(label = round(pr_auc, 2)), size = 3,
+             color = "black",
+             fontface = "bold",
+             vjust = 0.25,
+            data = . %>% filter(pr_auc <= 0.7)) +
+  geom_text(aes(label = round(pr_auc, 2)), size = 3,
+             color = "white",
+             fontface = "bold",
+             vjust = 0.25,
+            data = . %>% filter(pr_auc > 0.7)) +
+   geom_text(aes(label = paste0("n=", n_genes)), size = 2.5,
+             color = "black",
+             vjust = 2,
+             data = . %>% filter(pr_auc <= 0.7)) +
+  
+   geom_text(aes(label = paste0("n=", n_genes)), size = 2,
+             color = "white",
+             vjust = 2,
+             data = . %>% filter(pr_auc > 0.7)) +
+ 
+
+    scale_x_discrete(expand = c(0.01, 0.01)) +
+  scale_y_discrete(expand = c(0.01, 0.01)) +
+  theme_vaxgo() +
+    scale_fill_gradientn(
+        colors = c("white", "#4DBBD5FF","#4361ee"),
+        values = scales::rescale(seq(0, 1, length.out = 10)),
+        limits = c(0, 1),
+        name = "PR_AUC",
+        guide = guide_colorbar(
+          barwidth = 15,
+          barheight = 1,
+          nbin = 10,
+          raster = FALSE
+        )
+      ) +
+  labs(
+    x = "Comparison",
+    y = "Model",
+    title = "All genes",
+    fill = "PR-AUC",
+  ) +
+theme(legend.position = "top",
+          panel.spacing.y = unit(0, "lines"), 
+          panel.spacing.x = unit(1, "lines"), 
+          plot.margin = margin(0, 0.3, 0, 0, unit = "cm")
+          ) 
+
+#Print
+pr_auc_heatmap
+  
+# #Save
+# pr_auc_heatmap %>%
+#   ggsave(filename = here("Figures", 
+#                          paste0(filename, 
+#                                "_performance_pr_auc_heatmap_All_OnlyImmune.png")),
+#          width = 8,
+#          height = 3)
+
+```
+
+
+#### DEGs: Heatmap
+PR-AUC as heatmap
+```{r}
+#| fig-height: 3
+#| fig-width: 8
+#PR-AUC as heatmap
+pr_auc_DEGs_heatmap = pr_auc_DEGs_df %>% 
+  ggplot() +
+   aes(x = comparison,
+      y = model %>% fct_rev(),
+      fill = pr_auc,
+      color = model %>% fct_rev(),
+      group = model %>% fct_rev()) + 
+  
+  facet_nested_wrap(~treatment+pathogen+timepoint_comparison,
+                    # scales = "free",
+                    nrow = 1,
+                    strip = strip_nested(size = "variable")
+                    ) +
+  
+  geom_tile(color = "black",
+             stroke = 0.5) + 
+  
+  #Add labels
+  geom_text(aes(label = round(pr_auc, 2)), size = 3,
+             color = "black",
+             fontface = "bold",
+             vjust = 0.25,
+            data = . %>% filter(pr_auc <= 0.9)) +
+  geom_text(aes(label = round(pr_auc, 2)), size = 3,
+             color = "white",
+             fontface = "bold",
+             vjust = 0.25,
+            data = . %>% filter(pr_auc > 0.9)) +
+   geom_text(aes(label = paste0("n=", n_genes)), size = 2.5,
+             color = "black",
+             vjust = 2,
+             data = . %>% filter(pr_auc <= 0.9)) +
+  
+   geom_text(aes(label = paste0("n=", n_genes)), size = 2,
+             color = "white",
+             vjust = 2,
+             data = . %>% filter(pr_auc > 0.9)) +
+ 
+
+    scale_x_discrete(expand = c(0.01, 0.01)) +
+  scale_y_discrete(expand = c(0.01, 0.01)) +
+  theme_vaxgo() +
+    scale_fill_gradientn(
+        colors = c("white", "#4DBBD5FF","#4361ee"),,
+        values = scales::rescale(seq(0, 1, length.out = 10)),
+        limits = c(0, 1),
+        name = "PR_AUC",
+        guide = guide_colorbar(
+          barwidth = 15,
+          barheight = 1,
+          nbin = 10,
+          raster = FALSE
+        )
+      ) +
+  labs(
+    x = "Comparison",
+    y = "Model",
+    title = "DEGs",
+    fill = "PR-AUC",
+  ) +
+       theme(
+          plot.margin = margin(0, 0.5, 0, 0, unit = "cm"),
+          legend.position = "top",
+          legend.direction = "horizontal",
+          ggh4x.facet.nestline = element_line(colour = "black", linetype = 1, size = 0.5)
+    ) 
+
+#Print
+pr_auc_DEGs_heatmap
+  
+#Save
+# pr_auc_DEGs_heatmap %>%
+#   ggsave(filename = here("Figures", 
+#                          paste0(filename, "_performance_pr_auc_heatmap_DEGs_OnlyImmune.png")),
+#          width = 8,
+#          height = 3)
+
+```
+
+
+
+
+
+#====================
+
+
+# BTMs
+
+### Means
+
+```{r}
+#Import ========================
+gsea_btm_results_all_matched = readRDS(here("tables", "Functional analysis", "all_human_mouse_gsea_btm_results_matched.rds"))
+
+
+# ==============================================================================
+# FILTER COMPARISONS BY CORRELATION
+# ==============================================================================
+
+conditions_filtered <- readRDS(file = here("tables", "Differential gene expression", "all_human_mouse_correlation_filtered_inter_weighted_filtered.rds")) %>% 
+  mutate(pathogen_human = case_when(pathogen_human == "Hepatitis B" ~ "HepB",
+                              pathogen_human == "Staphylococcus aureus" ~ "S. aureus",
+                              pathogen_human == "Escherichia coli" ~ "E. coli",
+                              T ~pathogen_human),
+          pathogen_human = fct_relevel(pathogen_human, "Influenza", "HepB", "S. aureus", "E. coli", "Burn", "Trauma")) %>% 
+  select(treatment_human, treatment_mouse, pathogen_human, pathogen_mouse,
+         pathogen_comparison, timepoint_comparison,
+         timepoint_human, timepoint_mouse) %>% 
+  distinct() %>% 
+  pivot_longer(
+    cols = contains("_human") | contains("_mouse"), 
+    names_to = c(".value", "organism"),             
+    names_sep = "_",                                
+    values_drop_na = TRUE
+  ) %>% 
+  mutate(
+    organism = str_to_title(organism),
+    timepoint = str_replace_all(timepoint, "\n", " ")
+  )
+
+# Filter paired data by timepoint comparison
+dge_btm_mean_process_all_matched_filtered <- gsea_btm_results_all_matched %>% 
+  inner_join(conditions_filtered %>% 
+               select(-timepoint, -organism), by = c("pathogen", "timepoint_comparison")) %>%
+  #Define control
+  mutate(organism = if_else(organism == "DMD", "Control", organism)) %>% 
+  group_by(pathogen, organism) %>% 
+  fill(timepoint, .direction = "down")
+
+# Check filtered counts
+dge_btm_mean_process_all_matched_filtered %>% 
+  dplyr::count(pathogen, organism, timepoint_comparison)
+
+```
+
+
+```{r}
+#Input ======================
+set.seed(123)
+filename = "all_human_mouse"
+gene_set_filename = "BTMs"
+
+btms_df_input = dge_btm_mean_process_all_matched_filtered %>% 
+  rename(human_symbol = process)
+
+######## Run analysis ======
+classification_performance_genes_modules_results = classification_performance_compute_modules(btms_df_input, effect_var = mean_log2fc)
+
+#Extract results
+roc_auc_df = classification_performance_genes_modules_results$roc_auc_df
+roc_curve_auc_df = classification_performance_genes_modules_results$roc_curve_auc_df
+pr_auc_df = classification_performance_genes_modules_results$pr_auc_df
+pr_curve_auc_df = classification_performance_genes_modules_results$pr_curve_auc_df
+
+#Refactor
+roc_curve_auc_df = roc_curve_auc_df %>% 
+    mutate(model = fct_relevel(model, "Human", "Mouse", "Control"),
+         comparison = fct_relevel(comparison, "Up", "Down"),
+         pathogen = fct_relevel(pathogen, "Influenza", "HepB", "S. aureus", "E. coli", "Burn", "Trauma"))
+
+roc_auc_df = roc_auc_df%>% 
+  mutate(model = fct_relevel(model, "Human", "Mouse", "Control"),
+         comparison = fct_relevel(comparison, "Up", "Down"),
+         pathogen = fct_relevel(pathogen, "Influenza", "HepB", "S. aureus", "E. coli", "Burn", "Trauma"),
+         treatment = case_when(pathogen %in% c("HepB", "Influenza") ~ "Vaccination",
+                               pathogen %in% c( "S. aureus", "E. coli") ~ "Infection",
+                               pathogen %in% c( "Burn", "Trauma") ~ "Injury",
+                               T ~ pathogen),
+         treatment = fct_relevel(treatment, "Vaccination", "Infection", "Injury")
+         )   %>% 
+  mutate(auc = round(auc, 2) %>% as.character())
+
+
+pr_curve_auc_df = pr_curve_auc_df %>% 
+    mutate(model = fct_relevel(model, "Mouse", "Human", "Control"),
+         comparison = fct_relevel(comparison, "Up", "Down"),
+         pathogen = fct_relevel(pathogen, "Influenza", "HepB", "S. aureus", "E. coli", "Burn", "Trauma")) %>% 
+  mutate(pr_auc = round(pr_auc, 2) %>% as.character())
+
+pr_auc_df = pr_auc_df %>% 
+  mutate(model = fct_relevel(model, "Human", "Mouse", "Control"),
+         comparison = fct_relevel(comparison, "Up", "Down"),
+         pathogen = fct_relevel(pathogen, "Influenza", "HepB", "S. aureus", "E. coli", "Burn", "Trauma"),
+         treatment = case_when(pathogen %in% c("HepB", "Influenza") ~ "Vaccination",
+                               pathogen %in% c( "S. aureus", "E. coli") ~ "Infection",
+                               pathogen %in% c( "Burn", "Trauma") ~ "Injury",
+                               T ~ pathogen),
+         treatment = fct_relevel(treatment, "Vaccination", "Infection", "Injury")
+         )  %>% 
+  mutate(pr_auc = round(pr_auc, 2) %>% as.character())
+
+```
+
+
+#### ROC curve
+```{r}
+#| fig-height: 6
+#| fig-width: 8
+#Plot curves ------------------
+#PLOT ROC Curve
+roc_curve_plot = roc_curve_auc_df %>% 
+  arrange(pathogen) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = 1 - specificity, 
+             y = sensitivity, 
+             color = model,
+             linetype = comparison)) +
+  geom_path(size = 0.75, alpha = 1) +
+  geom_abline(lty = 3) +
+  theme_vaxgo() +
+  facet_nested_wrap(~pathogen+timepoint_comparison, nrow = 2, axes = "x",
+                    strip = strip_nested(size = "variable")) +
+  #Mouse
+  geom_text(data = . %>% 
+              filter(model == "Mouse", comparison == "Up") %>% 
+              select(pathogen, model, comparison, timepoint_comparison, auc) %>% 
+              distinct(),
+            mapping = aes(label = paste(comparison, auc),
+                color = model,
+                x = 1,
+                y = 0.2),
+            size = 3,
+            hjust = 1) +
+  geom_text(data = . %>% 
+              filter(model == "Mouse", comparison == "Down") %>% 
+              select(pathogen, model, comparison, timepoint_comparison, auc) %>% 
+              distinct(),
+            mapping = aes(label = paste(comparison, auc),
+                color = model,
+                x = 1,
+                y = 0.05),
+            size = 3,
+            hjust = 1) +
+
+  scale_linetype_manual(values = c("Up" = 1,
+                                   "Down" = 2)) +
+  # coord_equal() +
+  scale_color_manual(values = colors$organism) +
+  labs(
+  x = "FPR",
+  y = "TPR",
+  color = "Model",
+  linetype = "Comparison") + 
+  guides(fill = guide_legend(override.aes = list(size = 4)),
+         color = guide_legend(override.aes = list(linewidth = 4, shape = 1))
+         ) +
+theme(legend.position = "top",
+          panel.spacing.y = unit(0, "lines"), 
+          panel.spacing.x = unit(1, "lines"), 
+          plot.margin = margin(0, 0.3, 0, 0, unit = "cm"),
+          ) +
+  scale_x_continuous(n.breaks = 3) +
+  scale_y_continuous(n.break = 3) +
+  guides(linetype = guide_legend(override.aes = list(linewidth = 0.5,
+                                                     size = 1),
+                                 order = 2,
+                                 nrow = 2), 
+         fill = "none",
+         color = guide_legend(override.aes = list(linewidth = 3),
+                              nrow = 2))
+#Print
+roc_curve_plot
+
+#Save
+# roc_curve_plot %>%
+#   ggsave(filename = here("Figures", paste0(filename, "_performance_roc_BTMs.png")),
+#          width = 8,
+#          height = 6)
+```
+
+#### ROC AUC Heatmap
+```{r}
+#| fig-height: 3
+#| fig-width: 8
+#### All Genes: Heatmap
+roc_auc_heatmap = roc_auc_df %>% 
+  mutate(auc = as.numeric(auc)) %>% 
+  ggplot() +
+   aes(x = comparison,
+      y = model %>% fct_rev(),
+      fill = auc,
+      color = model %>% fct_rev(),
+      group = model %>% fct_rev()) + 
+  
+  facet_nested_wrap(~treatment+pathogen+timepoint_comparison,
+                    # scales = "free",
+                    nrow = 1,
+                    strip = strip_nested(size = "variable")
+                    ) +
+  
+  geom_tile(color = "black",
+             stroke = 0.5) + 
+  
+  #Add labels
+  geom_text(aes(label = round(auc, 2)), size = 3,
+             color = "black",
+             fontface = "bold",
+             vjust = 0.25,
+            data = . %>% filter(auc <= 0.7)) +
+  geom_text(aes(label = round(auc, 2)), size = 3,
+             color = "white",
+             fontface = "bold",
+             vjust = 0.25,
+            data = . %>% filter(auc > 0.7)) +
+   geom_text(aes(label = paste0("n=", n_genes)), size = 2.5,
+             color = "black",
+             vjust = 2,
+             data = . %>% filter(auc <= 0.7)) +
+  
+   geom_text(aes(label = paste0("n=", n_genes)), size = 2.5,
+             color = "white",
+             vjust = 2,
+             data = . %>% filter(auc > 0.7)) +
+ 
+
+  scale_x_discrete(expand = c(0.01, 0.01)) +
+  scale_y_discrete(expand = c(0.01, 0.01)) +
+  theme_vaxgo() +
+    scale_fill_gradientn(
+        colors = c("#4DBBD5FF", "white","#4361ee"),
+        values = scales::rescale(seq(0, 1, length.out = 10)),
+        limits = c(0, 1), 
+        name = "ROC AUC",
+        guide = guide_colorbar(
+          barwidth = 15,
+          barheight = 1,
+          nbin = 10,
+          raster = FALSE
+        )
+      ) +
+  labs(
+    x = "Comparison",
+    y = "Model",
+    fill = "ROC-AUC",
+    title = "BTMs"
+  ) +
+    theme(axis.text.x = element_text(angle = 0,  hjust = 0.5, vjust = 1, size = 8),
+          axis.text.y = element_text(size = 8, hjust = 1),
+          axis.title.x = element_text(size = 8),
+          axis.title.y = element_text(size = 8),
+          strip.text = element_text(size = 8, margin = margin(1, 0, 1, 0)),
+          strip.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5, size = 8),
+          strip.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5, size = 8),
+          panel.spacing = unit(1, "lines"),
+          plot.margin = margin(0, 0.5, 0, 0, unit = "cm"),
+          legend.position = "top",
+          legend.direction = "horizontal",
+          legend.margin=margin(0,0,0,0),
+          legend.box.margin=margin(0,0,-10,0),
+          legend.text = element_text(size = 8, hjust = 0),
+          legend.title = element_text(size = 8),
+          ggh4x.facet.nestline = element_line(colour = "black", linetype = 1, size = 0.5)
+    ) 
+
+#Print
+roc_auc_heatmap
+  
+# # Save
+# roc_auc_heatmap %>%
+#   ggsave(filename = here("Figures", paste0(filename, "_performance_roc_auc_heatmap_BTMs.png")),
+#          width = 8,
+#          height = 3)
+```
+
+
+
+
+#### PR curve
+
+```{r}
+#| fig-height: 6
+#| fig-width: 8
+#Plot curves ------------------
+#PLOT PR Curve
+pr_curve_plot = pr_curve_auc_df %>% 
+  arrange(pathogen) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = recall, 
+             y = precision, 
+             color = model,
+             linetype = comparison)) +
+  geom_path(size = 0.75, alpha = 1) +
+  theme_vaxgo() +
+  facet_nested_wrap(~pathogen+timepoint_comparison, nrow = 2, axes = "x",
+                    strip = strip_nested(size = "variable")) +
+  scale_linetype_manual(values = c("Up" = 1,
+                                   "Down" = 2)) +
+  # coord_equal() +
+  scale_color_manual(values = colors$organism) +
+  labs(
+  x = "Recall",
+  y = "Precision",
+  title = "BTMs",
+  color = "Model",
+  linetype = "Comparison") + 
+  guides(fill = guide_legend(override.aes = list(size = 4)),
+         color = guide_legend(override.aes = list(linewidth = 4, shape = 1))
+         ) +
+theme(legend.position = "top",
+          panel.spacing.y = unit(0, "lines"), 
+          panel.spacing.x = unit(1, "lines"), 
+          plot.margin = margin(0, 0.3, 0, 0, unit = "cm"),
+          ) +
+  scale_x_continuous(n.breaks = 3) +
+  scale_y_continuous(n.break = 3) +
+  guides(linetype = guide_legend(override.aes = list(linewidth = 0.5, size = 1),
+                                 order = 2), 
+         fill = "none",
+         color = guide_legend(override.aes = list(linewidth = 3)))
+
+pr_curve_plot
+#Save
+pr_curve_plot %>%
+  ggsave(filename = here("Figures", paste0(filename, "_performance_pr_BTMs_NES.png")),
+         width = 8,
+         height = 6)
+```
+
+
+```{r}
+#| fig-height: 3
+#| fig-width: 8
+#PR-AUC as heatmap
+pr_auc_heatmap = pr_auc_df %>% 
+  mutate(pr_auc = as.numeric(pr_auc)) %>% 
+  ggplot() +
+   aes(x = comparison,
+      y = model %>% fct_rev(),
+      fill = pr_auc,
+      color = model %>% fct_rev(),
+      group = model %>% fct_rev()) + 
+  
+  facet_nested_wrap(~treatment+pathogen+timepoint_comparison,
+                    # scales = "free",
+                    nrow = 1,
+                    strip = strip_nested(size = "variable")
+                    ) +
+  
+  geom_tile(color = "black",
+             stroke = 0.5) + 
+  
+  #Add labels
+  geom_text(aes(label = round(pr_auc, 2)), size = 3,
+             color = "black",
+             fontface = "bold",
+             vjust = 0.25,
+            data = . %>% filter(pr_auc <= 0.7)) +
+  geom_text(aes(label = round(pr_auc, 2)), size = 3,
+             color = "white",
+             fontface = "bold",
+             vjust = 0.25,
+            data = . %>% filter(pr_auc > 0.7)) +
+   geom_text(aes(label = paste0("n=", n_genes)), size = 2.5,
+             color = "black",
+             vjust = 2,
+             data = . %>% filter(pr_auc <= 0.7)) +
+  
+   geom_text(aes(label = paste0("n=", n_genes)), size = 2,
+             color = "white",
+             vjust = 2,
+             data = . %>% filter(pr_auc > 0.7)) +
+ 
+
+    scale_x_discrete(expand = c(0.01, 0.01)) +
+  scale_y_discrete(expand = c(0.01, 0.01)) +
+  theme_vaxgo() +
+    scale_fill_gradientn(
+        colors = c("white", "#4DBBD5FF","#4361ee"),
+        values = scales::rescale(seq(0, 1, length.out = 10)),
+        limits = c(0, 1),
+        name = "PR_AUC",
+        guide = guide_colorbar(
+          barwidth = 15,
+          barheight = 1,
+          nbin = 10,
+          raster = FALSE
+        )
+      ) +
+  labs(
+    x = "Comparison",
+    y = "Model",
+    title = "BTMs",
+    fill = "PR-AUC",
+  ) +
+    theme(axis.text.x = element_text(angle = 0,  hjust = 0.5, vjust = 1, size = 8),
+          axis.text.y = element_text(size = 8, hjust = 1),
+          axis.title.x = element_text(size = 8),
+          axis.title.y = element_text(size = 8),
+          strip.text = element_text(size = 8, margin = margin(1, 0, 1, 0)),
+          strip.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5, size = 8),
+          strip.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5, size = 8),
+          panel.spacing = unit(1, "lines"),
+          plot.margin = margin(0, 0.5, 0, 0, unit = "cm"),
+          legend.position = "top",
+          legend.direction = "horizontal",
+          legend.margin=margin(0,0,0,0),
+          legend.box.margin=margin(0,0,-10,0),
+          legend.text = element_text(size = 8, hjust = 0),
+          legend.title = element_text(size = 8),
+          ggh4x.facet.nestline = element_line(colour = "black", linetype = 1, size = 0.5)
+    ) 
+
+#Print
+pr_auc_heatmap
+  
+# #Save
+# pr_auc_heatmap %>%
+#   ggsave(filename = here("Figures",
+#                          paste0(filename,
+#                                "_performance_pr_auc_heatmap_DEGs.png")),
+#          width = 8,
+#          height = 3)
+
+```
+
+
+
+
+
+### NES
+
+```{r}
+#Input ======================
+set.seed(123)
+filename = "all_human_mouse"
+gene_set_filename = "BTMs_NES"
+
+btms_df_input = dge_btm_mean_process_all_matched_filtered %>% 
+  rename(human_symbol = process)
+
+######## Run analysis ======
+classification_performance_genes_modules_results = classification_performance_compute_modules(btms_df_input, effect_var = nes)
+
+#Extract results
+roc_auc_df = classification_performance_genes_modules_results$roc_auc_df
+roc_curve_auc_df = classification_performance_genes_modules_results$roc_curve_auc_df
+pr_auc_df = classification_performance_genes_modules_results$pr_auc_df
+pr_curve_auc_df = classification_performance_genes_modules_results$pr_curve_auc_df
+
+#Refactor
+roc_curve_auc_df = roc_curve_auc_df %>% 
+    mutate(model = fct_relevel(model, "Human", "Mouse", "Control"),
+         comparison = fct_relevel(comparison, "Up", "Down"),
+         pathogen = fct_relevel(pathogen, "Influenza", "HepB", "S. aureus", "E. coli", "Burn", "Trauma"))
+
+roc_auc_df = roc_auc_df%>% 
+  mutate(model = fct_relevel(model, "Human", "Mouse", "Control"),
+         comparison = fct_relevel(comparison, "Up", "Down"),
+         pathogen = fct_relevel(pathogen, "Influenza", "HepB", "S. aureus", "E. coli", "Burn", "Trauma"),
+         treatment = case_when(pathogen %in% c("HepB", "Influenza") ~ "Vaccination",
+                               pathogen %in% c( "S. aureus", "E. coli") ~ "Infection",
+                               pathogen %in% c( "Burn", "Trauma") ~ "Injury",
+                               T ~ pathogen),
+         treatment = fct_relevel(treatment, "Vaccination", "Infection", "Injury")
+         )   %>% 
+  mutate(auc = round(auc, 2) %>% as.character())
+
+
+pr_curve_auc_df = pr_curve_auc_df %>% 
+    mutate(model = fct_relevel(model, "Mouse", "Human", "Control"),
+         comparison = fct_relevel(comparison, "Up", "Down"),
+         pathogen = fct_relevel(pathogen, "Influenza", "HepB", "S. aureus", "E. coli", "Burn", "Trauma")) %>% 
+  mutate(pr_auc = round(pr_auc, 2) %>% as.character())
+
+pr_auc_df = pr_auc_df %>% 
+  mutate(model = fct_relevel(model, "Human", "Mouse", "Control"),
+         comparison = fct_relevel(comparison, "Up", "Down"),
+         pathogen = fct_relevel(pathogen, "Influenza", "HepB", "S. aureus", "E. coli", "Burn", "Trauma"),
+         treatment = case_when(pathogen %in% c("HepB", "Influenza") ~ "Vaccination",
+                               pathogen %in% c( "S. aureus", "E. coli") ~ "Infection",
+                               pathogen %in% c( "Burn", "Trauma") ~ "Injury",
+                               T ~ pathogen),
+         treatment = fct_relevel(treatment, "Vaccination", "Infection", "Injury")
+         )  %>% 
+  mutate(pr_auc = round(pr_auc, 2) %>% as.character())
+
+```
+
+
+#### ROC curve
+```{r}
+#| fig-height: 6
+#| fig-width: 8
+#Plot curves ------------------
+#PLOT ROC Curve
+roc_curve_plot = roc_curve_auc_df %>% 
+  arrange(pathogen) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = 1 - specificity, 
+             y = sensitivity, 
+             color = model,
+             linetype = comparison)) +
+  geom_path(size = 0.75, alpha = 1) +
+  geom_abline(lty = 3) +
+  theme_vaxgo() +
+  facet_nested_wrap(~pathogen+timepoint_comparison, nrow = 2, axes = "x",
+                    strip = strip_nested(size = "variable")) +
+  #Mouse
+  geom_text(data = . %>% 
+              mutate(auc = round(auc, 2)) %>% 
+              filter(model == "Mouse", comparison == "Up") %>% 
+              select(pathogen, model, comparison, timepoint_comparison, auc) %>% 
+              distinct(),
+            mapping = aes(label = paste(comparison, auc),
+                color = model,
+                x = 1,
+                y = 0.2),
+            size = 3,
+            hjust = 1) +
+  geom_text(data = . %>% 
+              mutate(auc = round(auc, 2)) %>% 
+              filter(model == "Mouse", comparison == "Down") %>% 
+              select(pathogen, model, comparison, timepoint_comparison, auc) %>% 
+              distinct(),
+            mapping = aes(label = paste(comparison, auc),
+                color = model,
+                x = 1,
+                y = 0.05),
+            size = 3,
+            hjust = 1) +
+
+  scale_linetype_manual(values = c("Up" = 1,
+                                   "Down" = 2)) +
+  # coord_equal() +
+  scale_color_manual(values = colors$organism) +
+  labs(
+  x = "FPR",
+  y = "TPR",
+  color = "Model",
+  linetype = "Comparison") + 
+  guides(fill = guide_legend(override.aes = list(size = 4)),
+         color = guide_legend(override.aes = list(linewidth = 4, shape = 1))
+         ) +
+theme(legend.position = "top",
+          panel.spacing.y = unit(0, "lines"), 
+          panel.spacing.x = unit(1, "lines"), 
+          plot.margin = margin(0, 0.3, 0, 0, unit = "cm"),
+          ) +
+  scale_x_continuous(n.breaks = 3) +
+  scale_y_continuous(n.break = 3) +
+  guides(linetype = guide_legend(override.aes = list(linewidth = 0.5,
+                                                     size = 1),
+                                 order = 2,
+                                 nrow = 2), 
+         fill = "none",
+         color = guide_legend(override.aes = list(linewidth = 3),
+                              nrow = 2))
+#Print
+roc_curve_plot
+
+# #Save
+# roc_curve_plot %>%
+#   ggsave(filename = here("Figures", paste0(filename, "_performance_roc_BTMs_NES.png")),
+#          width = 8,
+#          height = 6)
+```
+
+#### ROC AUC Heatmap
+```{r}
+#| fig-height: 3
+#| fig-width: 8
+#### All Genes: Heatmap
+roc_auc_heatmap = roc_auc_df %>% 
+  mutate(auc = as.numeric(auc)) %>% 
+  ggplot() +
+   aes(x = comparison,
+      y = model %>% fct_rev(),
+      fill = auc,
+      color = model %>% fct_rev(),
+      group = model %>% fct_rev()) + 
+  
+  facet_nested_wrap(~treatment+pathogen+timepoint_comparison,
+                    # scales = "free",
+                    nrow = 1,
+                    strip = strip_nested(size = "variable")
+                    ) +
+  
+  geom_tile(color = "black",
+             stroke = 0.5) + 
+  
+  #Add labels
+  geom_text(aes(label = round(auc, 2)), size = 3,
+             color = "black",
+             fontface = "bold",
+             vjust = 0.25,
+            data = . %>% filter(auc <= 0.7)) +
+  geom_text(aes(label = round(auc, 2)), size = 3,
+             color = "white",
+             fontface = "bold",
+             vjust = 0.25,
+            data = . %>% filter(auc > 0.7)) +
+   geom_text(aes(label = paste0("n=", n_genes)), size = 3,
+             color = "black",
+             vjust = 2,
+             data = . %>% filter(auc <= 0.7)) +
+  
+   geom_text(aes(label = paste0("n=", n_genes)), size = 3,
+             color = "white",
+             vjust = 2,
+             data = . %>% filter(auc > 0.7)) +
+ 
+
+  scale_x_discrete(expand = c(0.01, 0.01)) +
+  scale_y_discrete(expand = c(0.01, 0.01)) +
+  theme_vaxgo() +
+    scale_fill_gradientn(
+        colors = c("#4DBBD5FF", "white","#4361ee"),
+        values = scales::rescale(seq(0, 1, length.out = 10)),
+        limits = c(0, 1), 
+        name = "ROC AUC",
+        guide = guide_colorbar(
+          barwidth = 15,
+          barheight = 1,
+          nbin = 10,
+          raster = FALSE
+        )
+      ) +
+  labs(
+    x = "Comparison",
+    y = "Model",
+    fill = "ROC-AUC",
+    title = "BTMs"
+  ) +
+    theme(
+          plot.margin = margin(0, 0.5, 0, 0, unit = "cm"),
+          legend.position = "top",
+          legend.direction = "horizontal",
+          ggh4x.facet.nestline = element_line(colour = "black", linetype = 1, size = 0.5)
+    ) 
+
+#Print
+roc_auc_heatmap
+  
+# # Save
+# roc_auc_heatmap %>%
+#   ggsave(filename = here("Figures", paste0(filename, "_performance_roc_auc_heatmap_BTMs_NES.png")),
+#          width = 10,
+#          height = 3)
+```
+
+
+#### PR curve
+
+```{r}
+#| fig-height: 6
+#| fig-width: 8
+#Plot curves ------------------
+#PLOT PR Curve
+pr_curve_plot = pr_curve_auc_df %>% 
+  arrange(pathogen) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = recall, 
+             y = precision, 
+             color = model,
+             linetype = comparison)) +
+  geom_path(size = 0.75, alpha = 1) +
+  theme_vaxgo() +
+  facet_nested_wrap(~pathogen+timepoint_comparison, nrow = 2, axes = "x",
+                    strip = strip_nested(size = "variable")) +
+  scale_linetype_manual(values = c("Up" = 1,
+                                   "Down" = 2)) +
+  # coord_equal() +
+  scale_color_manual(values = colors$organism) +
+  labs(
+  x = "Recall",
+  y = "Precision",
+  title = "BTMs",
+  color = "Model",
+  linetype = "Comparison") + 
+  guides(fill = guide_legend(override.aes = list(size = 4)),
+         color = guide_legend(override.aes = list(linewidth = 4, shape = 1))
+         ) +
+theme(legend.position = "top",
+          panel.spacing.y = unit(0, "lines"), 
+          panel.spacing.x = unit(1, "lines"), 
+          plot.margin = margin(0, 0.3, 0, 0, unit = "cm"),
+          ) +
+  scale_x_continuous(n.breaks = 3) +
+  scale_y_continuous(n.break = 3) +
+  guides(linetype = guide_legend(override.aes = list(linewidth = 0.5, size = 1),
+                                 order = 2), 
+         fill = "none",
+         color = guide_legend(override.aes = list(linewidth = 3)))
+
+pr_curve_plot
+#Save
+# pr_curve_plot %>%
+#   ggsave(filename = here("Figures", paste0(filename, "_performance_pr_BTMs_NES.png")),
+#          width = 8,
+#          height = 6)
+```
+
+#### PR AUC heatmap
+```{r}
+#| fig-height: 3
+#| fig-width: 10
+#PR-AUC as heatmap
+pr_auc_heatmap = pr_auc_df %>% 
+  mutate(pr_auc = as.numeric(pr_auc)) %>% 
+  ggplot() +
+   aes(x = comparison,
+      y = model %>% fct_rev(),
+      fill = pr_auc,
+      color = model %>% fct_rev(),
+      group = model %>% fct_rev()) + 
+  
+  facet_nested_wrap(~treatment+pathogen+timepoint_comparison,
+                    # scales = "free",
+                    nrow = 1,
+                    strip = strip_nested(size = "variable")
+                    ) +
+  
+  geom_tile(color = "black",
+             stroke = 0.5) + 
+  
+  #Add labels
+  geom_text(aes(label = round(pr_auc, 2)), 
+             size = 3,
+             color = "black",
+             fontface = "bold",
+             vjust = 0.25,
+            data = . %>% filter(pr_auc <= 0.7)) +
+  geom_text(aes(label = round(pr_auc, 2)), 
+            size = 3,
+             color = "white",
+             fontface = "bold",
+             vjust = 0.25,
+            data = . %>% filter(pr_auc > 0.7)) +
+   geom_text(aes(label = paste0("n=", n_genes)), 
+             size = 3,
+             color = "black",
+             vjust = 2,
+             data = . %>% filter(pr_auc <= 0.7)) +
+  
+   geom_text(aes(label = paste0("n=", n_genes)), 
+             size = 3,
+             color = "white",
+             vjust = 2,
+             data = . %>% filter(pr_auc > 0.7)) +
+ 
+
+    scale_x_discrete(expand = c(0.01, 0.01)) +
+  scale_y_discrete(expand = c(0.01, 0.01)) +
+  theme_vaxgo() +
+    scale_fill_gradientn(
+        colors = c("white", "#4DBBD5FF","#4361ee"),
+        values = scales::rescale(seq(0, 1, length.out = 10)),
+        limits = c(0, 1),
+        name = "PR_AUC",
+        guide = guide_colorbar(
+          barwidth = 15,
+          barheight = 1,
+          nbin = 10,
+          raster = FALSE
+        )
+      ) +
+  labs(
+    x = "Comparison",
+    y = "Model",
+    title = "BTMs",
+    fill = "PR-AUC",
+  ) +
+    theme(
+          plot.margin = margin(0, 0.5, 0, 0, unit = "cm"),
+          legend.position = "top",
+          legend.direction = "horizontal",
+          ggh4x.facet.nestline = element_line(colour = "black", linetype = 1, size = 0.5)
+    ) 
+
+pr_auc_heatmap
+  
+# #Save
+# pr_auc_heatmap %>%
+#   ggsave(filename = here("Figures",
+#                          paste0(filename,
+#                                "_performance_pr_auc_heatmap_BTMs_NES.png")),
+#          width = 10,
+#          height = 3)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

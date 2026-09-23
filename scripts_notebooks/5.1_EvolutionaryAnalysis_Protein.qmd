@@ -1,0 +1,1085 @@
+---
+title: "5_EvolutionaryAnalysis"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-location: left
+    code-fold: true
+    code-summary: "Show code"
+    code-tools: true
+    embed-resources: true
+    fig-cap-location: bottom
+    theme: [cosmo, mouse2human-html.scss]
+editor: 
+  markdown: 
+    wrap: 72
+---
+# Evolutionary analysis
+
+# Setup
+
+```{r}
+#| message: false
+#| warning: false
+# Load core packages for the analysis session
+library(here)
+
+# Source project-wide functions, themes, and colour palettes
+source(here("scripts_notebooks", "required.R"))
+```
+
+# Protein identity
+
+## Annotate with sequence identity
+
+Import human-to-mouse sequence identity data from Ensembl BioMart and
+annotate BTM core enrichment genes with homology information. This
+annotation enables correlation of sequence conservation with
+cross-species transcriptional concordance.
+
+```{r}
+#| fig-height: 5
+#| fig-width: 12
+# Download sequence identity data from Ensembl BioMart
+# http://www.ensembl.org/biomart/martview/cdbaeb7d08ea2dbc5bae9a1b0d6ad871?VIRTUALSCHEMANAME=default&ATTRIBUTES=hsapiens_gene_ensembl.default.homologs.ensembl_gene_id|hsapiens_gene_ensembl.default.homologs.ensembl_gene_id_version|hsapiens_gene_ensembl.default.homologs.ensembl_transcript_id|hsapiens_gene_ensembl.default.homologs.ensembl_transcript_id_version|hsapiens_gene_ensembl.default.homologs.mmusculus_homolog_perc_id_r1|hsapiens_gene_ensembl.default.homologs.mmusculus_homolog_perc_id|hsapiens_gene_ensembl.default.homologs.mmusculus_homolog_associated_gene_name|hsapiens_gene_ensembl.default.homologs.mmusculus_homolog_orthology_type|hsapiens_gene_ensembl.default.homologs.mmusculus_homolog_canonical_transcript_protein|hsapiens_gene_ensembl.default.homologs.mmusculus_homolog_ensembl_gene&FILTERS=&VISIBLEPANEL=attributepanel
+# Import and annotate
+
+# Import BTM core enrichment results
+gsea_btm_results_core_joined =
+  readRDS(file = here("tables", "Functional analysis", "all_human_mouse_gsea_btm_results_core_joined.rds")) %>%
+  distinct()
+
+#Import modules and LEGs
+dge_btm_process_module_diff_and_legs = 
+  readRDS(file = here("tables", "Functional analysis", "all_human_mouse_gsea_btm_legs.rds"))
+
+# Import BTM gene-level correlation data
+dge_btm_process_genes_diff_bygene_clean_filtered =  readRDS(file = here("tables", "Functional analysis", "dge_btm_process_genes_diff_bygene_clean_filtered.rds"))
+
+# Import homolog alignment data
+all_alignments = read_csv(here("tables", "Gene and Protein sequences", "human_to_mouse_alignment_mart_export.txt"))
+
+# Import BTM gene annotations
+btm_annotation_genes = read_csv(file = here("tables", "Gene sets", "btm_annotation_genes.csv"))
+
+# Annotate genes with sequence identity and BTM membership
+# Build alignment-annotated dataset for core enrichment gene
+
+# Reference: all high-confidence orthologs in the database (unfiltered)
+alignments_human2mouse_all = all_alignments %>%
+  clean_names() %>%
+  filter(mouse_orthology_confidence_0_low_1_high == 1) %>%
+  drop_na(mouse_gene_name) %>%
+  select(gene = mouse_gene_name, mouse_homology_type,
+         identity_human2mouse = percent_id_query_gene_identical_to_target_mouse_gene,
+         identity_mouse2human = percent_id_target_mouse_gene_identical_to_query_gene) %>%
+  mutate(gene = str_to_upper(gene)) %>%
+  # Resolve multiple identity scores by taking the median per gene
+  group_by(gene) %>%
+  summarise(identity_human2mouse = median(identity_human2mouse)) %>%
+  ungroup()
+
+alignments_human2mouse_all %>% 
+  saveRDS(file = here("tables", "Gene and Protein sequences", "alignments_human2mouse_all.rds"))
+
+# Filter to only BTM core enrichment genes and append process membership
+alignments_human2mouse = alignments_human2mouse_all %>% 
+  inner_join(dge_btm_process_module_diff_and_legs,
+             by = join_by(gene == symbol))  %>% 
+  mutate(status = if_else(status == "Shared", status, "Not-shared"))
+
+#Group by process
+protein_identity_process = alignments_human2mouse %>% 
+  group_by(treatment, pathogen, timepoint_comparison, process, status) %>% 
+  summarise(facet_label = dplyr::first(facet_label), group = dplyr::first(group),
+            mean_identity = mean(identity_human2mouse, na.rm = T))
+
+# Import pre-computed human gene information and join with alignment data
+gene_info_human =
+  alignments_human2mouse_all %>% 
+  #Add difference in log2FC
+  inner_join(dge_btm_process_genes_diff_bygene_clean_filtered,
+             by = join_by(gene == hgnc_symbol)) 
+
+gene_info_human %>% 
+  dplyr::count(pathogen, status)
+
+
+```
+
+### Protein id% vs. Diff. in means
+
+```{r}
+#| fig-height: 3
+#| fig-width: 8
+#| message: false
+#| warning: false
+#### Difference in means vs. status
+gene_info_human_clean_dge <- gene_info_human %>%
+  # filter(treatment != "Vaccination") %>% 
+  select(treatment, pathogen, status, timepoint_comparison, gene, identity_human2mouse, abs_log2fc_diff, inverse_se_mouse) %>% 
+  distinct()
+
+#Save
+gene_info_human_clean_dge %>% 
+  saveRDS(here("tables", "Gene and Protein sequences", "human_mouse_gene_info_dge_clean.rds"))
+```
+
+```{r}
+#| fig-height: 3
+#| fig-width: 8
+#| message: false
+#| warning: false
+#Import
+gene_info_human_clean_dge =
+  readRDS(here("tables", "Gene and Protein sequences", "human_mouse_gene_info_dge_clean.rds"))
+
+#Plot
+alignments_human2mouse_legs_identity_log2fc_plot = gene_info_human_clean_dge %>% 
+
+  filter(status != "Not LEG",
+         treatment %in% c("Infection", "Injury")) %>% 
+  bind_rows(gene_info_human_clean_dge %>% 
+
+  filter(status != "Not LEG",
+         treatment %in% c("Infection", "Injury")) %>% 
+    mutate(treatment = "Pooled",
+           pathogen = "")) %>% 
+
+    ggplot() +
+  aes(
+    x = identity_human2mouse,
+    y = abs_log2fc_diff,
+    color = status,
+    fill = status
+  ) +
+  
+  facet_nested_wrap(~treatment+pathogen, nrow = 1) +
+  
+  # Regression
+  geom_smooth(
+    method = "lm",
+    mapping = aes(color = status, fill = status),
+    se = TRUE
+  ) +
+  #Marginal Boxplot
+  # TOP  
+  geom_violin(
+    mapping = aes(
+      x = identity_human2mouse,         
+      y = 3,
+    ),
+    data = . %>% filter(status == "All genes"),
+    outliers = FALSE,
+    outlier.shape = NA,
+    alpha = 0.5,
+    width = 0.5,
+    color = NA,
+    show.legend = FALSE
+  ) +
+  geom_boxplot(
+        data = . %>% filter(status == "All genes"),
+    mapping = aes(
+      x = identity_human2mouse,         
+      y = 3,
+    ),
+    outliers = FALSE,
+    outlier.shape = NA,
+    alpha = 0, linewidth = 0.2,
+    color = "black",
+    width = 0.5,
+    show.legend = FALSE
+  ) +
+
+  scale_fill_manual(values = colors$comparison) +
+  scale_color_manual(values = colors$comparison) +
+  scale_x_continuous(expand = c(0,0)) +
+  labs(
+    x = "%Protein identity",
+    y = "|ΔLog2FC|",
+    fill = "LEG status"
+  ) +
+  theme_vaxgo() +
+  theme(
+    legend.position = "top",
+  ) +
+  guides(
+    color = "none",
+    fill = guide_legend(
+      title.position = "left", 
+      byrow = TRUE, 
+      nrow = 1,
+      override.aes = list(shape = 22, alpha = 1, size = 3, linetype = 0)
+    )
+  )
+
+alignments_human2mouse_legs_identity_log2fc_plot 
+
+
+# Save to file
+alignments_human2mouse_legs_identity_log2fc_plot %>%
+  ggsave(filename = here("Figures", "all_human_mouse_gsea_LEGs_alignment_btms_human2mouse_legs_identity_vs_meanlog2fc.png"),
+         width = 8,
+         height = 3)
+
+```
+
+```{r}
+#| fig-height: 3
+#| fig-width: 3
+#| message: false
+#| warning: false
+
+
+#Plot
+alignments_human2mouse_legs_identity_log2fc_pooled_plot = gene_info_human_clean_dge %>% 
+    filter(status == "All genes",
+         treatment %in% c("Infection", "Injury")) %>% 
+    ggplot() +
+  aes(
+    x = identity_human2mouse,
+    y = abs_log2fc_diff,
+    color = status,
+    fill = status
+  ) +
+  
+  # Regression
+  geom_smooth(
+    method = "lm",
+    mapping = aes(color = status, fill = status),
+    se = TRUE,
+  ) +
+    #Marginal Boxplot
+  # TOP  
+  geom_violin(
+    mapping = aes(
+      x = identity_human2mouse,         
+      y = 1,
+    ),
+    outliers = FALSE,
+    outlier.shape = NA,
+    alpha = 0.5,
+    width = 0.1,
+    color = NA,
+    show.legend = T
+  ) +
+  geom_boxplot(
+    mapping = aes(
+      x = identity_human2mouse,         
+      y = 1,
+    ),
+    outliers = FALSE,
+    outlier.shape = NA,
+    alpha = 0, 
+    linewidth = 0.2,
+    color = "black",
+    width = 0.1,
+    show.legend = FALSE
+  ) +
+    #Add correlation stats
+  stat_cor( 
+    method = "spearman",
+    cor.coef.name = "rho", 
+    parse = TRUE,      
+    label.y = 0.10,
+    label.x = 52,
+    size = 3.5, 
+    show.legend = F
+  ) +
+  # Line equation
+  stat_regline_equation(
+    aes(label = ..eq.label..),
+    label.y = 0.20,
+    label.x = 52,       
+    size = 3.5
+  ) +
+  scale_fill_manual(values = colors$comparison) +
+  scale_color_manual(values = colors$comparison) +
+  scale_x_continuous(expand = c(0,0)) +
+  scale_y_continuous(limits = c(0, NA)) +
+  labs(
+    x = "%Protein identity",
+    y = "|ΔLog2FC|",
+    fill = ""
+  ) +
+  theme_vaxgo() +
+  theme(
+    legend.position = "top",
+    legend.location = "plot"
+  ) +
+  guides(
+    color = "none",
+    fill = guide_legend(
+      title.position = "left", 
+      byrow = TRUE, 
+      nrow = 1,
+      override.aes = list(shape = 22, alpha = 1, size = 3, linetype = 0)
+    )
+  ) 
+
+alignments_human2mouse_legs_identity_log2fc_pooled_plot 
+
+# Save 
+alignments_human2mouse_legs_identity_log2fc_pooled_plot %>%
+  ggsave(filename = here("Figures", "all_human_mouse_gsea_btms_legs_identity_vs_meanlog2fc_pooled.png"),
+         width = 3,
+         height = 3)
+
+```
+
+### Protein id% by Shared/NotShared: Boxplot
+
+All
+
+```{r}
+#| fig-height: 3
+#| fig-width: 8
+# Protein identity by Shared/NotShared: Boxplot
+protein_identity_genes_distribution = gene_info_human_clean_dge %>% 
+  filter(status != "Not LEG",
+         treatment %in% c("Infection", "Injury")) %>% 
+  bind_rows(gene_info_human_clean_dge %>% 
+  filter(status != "Not LEG",
+         treatment %in% c("Infection", "Injury")) %>% 
+    mutate(treatment = "Pooled",
+           pathogen = "")) %>% 
+  ggplot() +
+  aes(
+    x     = status,
+    y     = identity_human2mouse,
+    color = status,
+    fill  = status
+  ) +
+  
+  facet_nested_wrap(~treatment+pathogen, nrow = 1) +
+
+  geom_violin(alpha = 0, ) +
+  # Render boxplot layer without outliers
+  geom_boxplot(
+    width    = 0.3,
+    alpha    = 0,
+    outliers = FALSE,
+    # color    = "black"
+  ) +
+  # Apply project custom palettes and labels
+  scale_fill_manual(values = colors$comparison) +
+  scale_color_manual(values = colors$comparison) +
+  
+  scale_x_discrete(expand = expansion(mult = c(0.2, 0.2))) +
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.05)),
+                     limits = c(50, 110)) +
+  
+  # Labels (Corrected X and Y axis mappings)
+    labs(
+    x     = "Status",
+    y     = "% Identity",
+    color = "",
+    fill  = ""
+  ) +
+  
+  # Theme and Legend Styling
+  theme_vaxgo() +
+  theme(
+    legend.position = "top", legend.location = "plot",
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+    # STATISTICAL TEST LAYER
+  stat_compare_means(
+    comparisons = list(c("Shared", "Not-shared"),
+                       c("Shared", "All genes"),
+                       c("Not-shared", "All genes")),
+    method = "wilcox.test",
+    label = "p.adj", 
+    vjust = 1.5,
+    label.y.np = "top",
+    size = 3, tip.length = 0,
+    hide.ns = F
+  ) 
+
+
+
+protein_identity_genes_distribution
+
+
+#Save
+protein_identity_genes_distribution %>%
+  ggsave(filename = here("Figures", "all_human_mouse_gsea_btms_legs_proteinsequenceidentity.png"),
+         width = 8,
+         height = 3)
+```
+
+Statistical analysis
+
+```{r}
+#| fig-width: 8
+#| fig-height: 4
+# # NON-PARAMETRIC TEST (Wilcoxon) + EFFECT SIZE (r)
+# # Calculate Wilcoxon test + manual r effect size
+# # 1. Run the Wilcoxon test
+# stat_test <- protein_identity_process %>%
+#   group_by(treatment, pathogen, timepoint_comparison) %>%
+#   wilcox_test(mean_identity ~ status) %>%
+#   add_significance()
+# 
+# # 2. Calculate the Effect Size (r)
+# eff_size <- protein_identity_process %>%
+#   group_by(treatment, pathogen, timepoint_comparison) %>%
+#   wilcox_effsize(mean_identity ~ status)
+# 
+# # 3. Combine both results and create the custom label
+# stat_test_group <- stat_test %>%
+#   left_join(
+#     eff_size %>% select(treatment, pathogen, timepoint_comparison, effsize, magnitude),
+#     by = c("treatment", "pathogen", "timepoint_comparison")
+#   ) %>%
+#   mutate(
+#     label_custom = paste0(p.signif, " (r = ", round(effsize, 2), ")")
+#   )
+# 
+# # NON-PARAMETRIC TEST (Wilcoxon) + EFFECT SIZE (r)
+# # Calculate Wilcoxon test + manual r effect size
+# # 1. Run the Wilcoxon test
+# stat_test <- protein_identity_process %>%
+#   group_by(treatment, pathogen, timepoint_comparison) %>%
+#   wilcox_test(mean_identity ~ status) %>%
+#   add_significance()
+# 
+# # 2. Calculate the Effect Size (r)
+# eff_size <- protein_identity_process %>%
+#   group_by(treatment, pathogen, timepoint_comparison) %>%
+#   wilcox_effsize(mean_identity ~ status)
+# 
+# # 3. Combine both results and create the custom label
+# stat_test_group <- stat_test %>%
+#   left_join(
+#     eff_size %>% select(treatment, pathogen, timepoint_comparison, effsize, magnitude),
+#     by = c("treatment", "pathogen", "timepoint_comparison")
+#   ) %>%
+#   mutate(
+#     label_custom = paste0(p.signif, " (r = ", round(effsize, 2), ")")
+#   )
+
+
+```
+
+Integrate sequence identity with cross-species gene correlation,
+organized by functional hierarchy. This prepares data for comparing
+sequence conservation with gene-level expression concordance.
+
+```{r}
+#| fig-height: 5
+#| fig-width: 12
+# Establish process order based on median sequence identity
+process_order_median = alignments_human2mouse %>%
+  select(process, group, gene, identity_human2mouse) %>%
+  group_by(process) %>%
+  summarise(median = median(identity_human2mouse)) %>%
+  arrange(median)
+
+group_order_median = alignments_human2mouse %>%
+  select(process, group, gene, identity_human2mouse) %>%
+  group_by(group) %>%
+  summarise(median = median(identity_human2mouse)) %>%
+  arrange(median)
+
+# Prepare the detailed process-level dataframe with correlation stats
+alignments_human2mouse_process = alignments_human2mouse %>%
+  mutate(process = fct_relevel(process, process_order_median$process),
+         group = fct_relevel(group, group_order_median$group) %>% fct_rev()
+         ) %>%
+  distinct()
+
+```
+
+Compare sequence identity distributions across high-level functional
+groups (BTM groups). A violin-boxplot-pointrange composite visualizes
+the density, quartiles, and bootstrapped mean of human-to-mouse sequence
+identity per group.
+
+```{r}
+#| fig-height: 6
+#| fig-width: 4
+# Create the distribution plot (Violin + Boxplot + Pointrange)
+alignments_human2mouse_pointrange_group_btm = alignments_human2mouse %>%
+  mutate(group = fct_relevel(group, group_order_median$group)) %>%
+  distinct() %>% 
+  # Data aesthetics
+  ggplot() +
+  aes(x = identity_human2mouse,
+      y = group,
+      fill = group,
+      color = group) +
+  # Geoms
+  geom_violin() +
+  geom_boxplot(alpha = 0.1,
+               width = 0.1,
+               fill = NA,
+               color = "white") +
+  stat_summary(fun.data = "mean_cl_boot",
+               geom = "pointrange",
+               size = 1,
+               fatten = 0.5,
+               color = "black", show.legend = F) +
+  # Scales
+  scale_fill_manual(values = immune_colors) +
+  scale_color_manual(values = immune_colors) +
+  scale_y_discrete(expand = c(0.05, 0.05)) +
+  scale_x_continuous(expand = c(0.01, 0.01)) +
+  # Theme
+  theme_vaxgo() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 1, size = 10),
+        axis.text.y = element_text(size = 10),
+        strip.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5, size = 10),
+        strip.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5, size = 10),
+        panel.spacing = unit(0, "lines"),
+        plot.margin = margin(0, 0.3, 0, 0, unit = "cm"),
+        legend.position = "none",
+        legend.direction = "horizontal",
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(0, 0, -10, 0),
+        legend.text = element_text(size = 10, hjust = 0),
+        legend.title = element_text(size = 10),
+        ggh4x.facet.nestline = element_line(colour = "black", linetype = 1)
+  ) +
+  # Labels
+  labs(x = "% Identity (Human-to-Mouse)",
+       y = NULL,
+       color = "Group",
+       fill = "Group")
+
+# Render plot
+alignments_human2mouse_pointrange_group_btm
+
+# Save to file
+alignments_human2mouse_pointrange_group_btm %>%
+  ggsave(filename = here("Figures", "all_human_mouse_gsea_LEGs_alignment_btms_human2mouse_violinplot_group.png"),
+         width = 4,
+         height = 6)
+```
+
+
+
+
+
+
+## Evolution of protein sequence
+
+### Download sequences
+
+```{r}
+# ---- 1. Prerequisites & Installation ----
+# Ensure all required packages are installed
+# Gene expression
+dge_btm_process_genes_diff_bygene_clean_filtered =  readRDS(file = here("tables", "Functional analysis", "dge_btm_process_genes_diff_bygene_clean_filtered.rds"))
+
+gene_info_human_clean_dge = 
+  readRDS(here("tables", "Gene and Protein sequences", "human_mouse_gene_info_dge_clean.rds"))
+
+# ---- 3. Connect to Ensembl BioMart ----
+message("Connecting to Ensembl BioMart...")
+human_mart <- biomaRt::useEnsembl(
+  biomart = "genes",
+  dataset = "hsapiens_gene_ensembl",
+  mirror  = "www" 
+)
+
+mouse_mart <- biomaRt::useEnsembl(
+  biomart = "genes",
+  dataset = "mmusculus_gene_ensembl",
+  mirror  = "www" 
+)
+
+
+# listAttributes(human_mart) %>% view()
+
+# ---- 4. Retrieve Human-Mouse 1:1 Orthologs Map ----
+message("Fetching orthology mapping...")
+ortholog_map <- getBM(
+  attributes = c("ensembl_gene_id", 
+                 "external_gene_name", 
+                 "mmusculus_homolog_ensembl_gene", 
+                 "mmusculus_homolog_associated_gene_name",
+                 "mmusculus_homolog_orthology_type"),
+  mart = human_mart
+) %>% 
+  as_tibble() %>%
+  filter(mmusculus_homolog_orthology_type == "ortholog_one2one") %>%
+  filter(mmusculus_homolog_ensembl_gene != "" & ensembl_gene_id != "")
+
+# Filter genes
+target_map <- ortholog_map %>% 
+  filter(external_gene_name %in% c(dge_btm_process_genes_diff_bygene %>% pull(human_symbol) %>% unique()))
+```
+
+Functions
+
+```{r}
+#Functions =============
+# Helper function to process gene chunks safely
+fetch_cds_chunked <- function(df_part, part_label, chunk_size = 100) {
+  message(stringr::str_c("=== Starting Part ", part_label, " ==="))
+  
+  df_chunked <- df_part %>%
+    dplyr::mutate(chunk = (dplyr::row_number() - 1) %/% chunk_size + 1)
+  
+  total_chunks <- max(df_chunked$chunk)
+  
+  res_tb <- df_chunked %>%
+    dplyr::group_split(chunk) %>%
+    purrr::map_dfr(function(df_chunk) {
+      chunk_id <- df_chunk$chunk[1]
+      message(stringr::str_c("Part ", part_label, " | Fetching chunk ", chunk_id, " of ", total_chunks, "..."))
+      
+      # Set useCache = FALSE to prevent dbDisconnect / .lock2 SQLite errors
+      biomaRt::getSequence(
+        id       = df_chunk$ensembl_gene_id,
+        type     = "ensembl_gene_id",
+        seqType  = "coding",
+        mart     = human_mart,
+        useCache = FALSE
+      ) %>%
+        as_tibble()
+    })
+  
+  return(res_tb)
+}
+
+# Helper function to process mouse CDS gene chunks safely
+fetch_mouse_cds_chunked <- function(df_part, part_label, chunk_size = 100) {
+  message(stringr::str_c("=== Starting Mouse Part ", part_label, " ==="))
+  
+  df_chunked <- df_part %>%
+    dplyr::mutate(chunk = (dplyr::row_number() - 1) %/% chunk_size + 1)
+  
+  total_chunks <- max(df_chunked$chunk)
+  
+  res_tb <- df_chunked %>%
+    dplyr::group_split(chunk) %>%
+    purrr::map_dfr(function(df_chunk) {
+      chunk_id <- df_chunk$chunk[1]
+      message(stringr::str_c("Mouse Part ", part_label, " | Fetching chunk ", chunk_id, " of ", total_chunks, "..."))
+      
+      biomaRt::getSequence(
+        id      = df_chunk$mmusculus_homolog_ensembl_gene,
+        type    = "ensembl_gene_id",
+        seqType = "coding",
+        mart    = mouse_mart,
+        useCache = FALSE
+      ) %>%
+        as_tibble()
+    })
+  
+  return(res_tb)
+}
+```
+
+Download sequences
+
+```{r}
+#Download Human sequences ====================
+message("Downloading Mouse coding sequences in 3 batches")
+# Split target map into 3 balanced partition objects
+target_map_split <- target_map %>%
+  dplyr::mutate(part_id = dplyr::ntile(dplyr::row_number(), 3)) %>%
+  dplyr::group_split(part_id)
+
+target_map_part1 <- target_map_split[[1]]
+target_map_part2 <- target_map_split[[2]]
+target_map_part3 <- target_map_split[[3]]
+
+# Download 
+human_cds_raw_part1 <- fetch_cds_chunked(target_map_part1, part_label = "1/3")
+human_cds_raw_part2 <- fetch_cds_chunked(target_map_part2, part_label = "2/3")
+human_cds_raw_part3 <- fetch_cds_chunked(target_map_part3, part_label = "3/3")
+
+#Save temporarily. Connection may be lost during the process
+human_cds_raw_part1 %>% saveRDS(file = here("tables", "human_cds_raw_part1.rds"))
+human_cds_raw_part2 %>% saveRDS(file = here("tables", "human_cds_raw_part2.rds"))
+human_cds_raw_part3 %>% saveRDS(file = here("tables", "human_cds_raw_part3.rds"))
+
+human_cds_raw_part1  =  readRDS(file = here("tables", "human_cds_raw_part1.rds"))
+human_cds_raw_part2  =  readRDS(file = here("tables", "human_cds_raw_part2.rds"))
+human_cds_raw_part3 = readRDS(file = here("tables", "human_cds_raw_part3.rds"))
+
+# Consolidate raw CDS partitions into single master table
+human_cds_raw <- dplyr::bind_rows(
+  human_cds_raw_part1,
+  human_cds_raw_part2,
+  human_cds_raw_part3
+)
+
+notify(
+  title = "Human CDS downloaded!",
+  msg   = c("All 3 parts processed and saved successfully.")
+)
+
+# Filter for Longest Canonical/Isoform CDS per Gene ----
+# BioMart returns multiple rows per gene due to alternative splicing transcripts.
+# We pick the longest sequence per stable gene ID to avoid truncation artifacts.
+human_cds_clean <- human_cds_raw %>%
+  filter(coding != "Sequence unavailable") %>%
+  mutate(seq_len = nchar(coding)) %>%
+  group_by(ensembl_gene_id) %>%
+  slice_max(seq_len, n = 1, with_ties = FALSE) %>%
+  ungroup() %>%
+  select(ensembl_gene_id, human_cds = coding)
+
+# Save
+saveRDS(human_cds_clean, file = here::here("tables", "Gene and Protein sequences", "human_cds_clean.rds"))
+```
+
+```{r}
+#Download Mouse ==========================
+# Prepare valid mouse homolog target map and split into 3 balanced partitions
+message("Downloading Mouse coding sequences in 3 batches...")
+
+target_map_mouse_clean <- target_map %>%
+  dplyr::filter(!is.na(mmusculus_homolog_ensembl_gene) & mmusculus_homolog_ensembl_gene != "") %>%
+  dplyr::distinct(mmusculus_homolog_ensembl_gene, .keep_all = TRUE)
+
+target_map_mouse_split <- target_map_mouse_clean %>%
+  dplyr::mutate(part_id = dplyr::ntile(dplyr::row_number(), 3)) %>%
+  dplyr::group_split(part_id)
+
+target_map_mouse_part1 <- target_map_mouse_split[[1]]
+target_map_mouse_part2 <- target_map_mouse_split[[2]]
+target_map_mouse_part3 <- target_map_mouse_split[[3]]
+
+# Download 
+mouse_cds_raw_part1 <- fetch_mouse_cds_chunked(target_map_mouse_part1, part_label = "1/3", chunk_size = 100)
+mouse_cds_raw_part2 <- fetch_mouse_cds_chunked(target_map_mouse_part2, part_label = "2/3", chunk_size = 100)
+mouse_cds_raw_part3 <- fetch_mouse_cds_chunked(target_map_mouse_part3, part_label = "3/3", chunk_size = 100)
+
+#Save temporarily. Connection may be lost during the process
+mouse_cds_raw_part1 %>% saveRDS(file = here("tables", "mouse_cds_raw_part1.rds"))
+mouse_cds_raw_part2 %>% saveRDS(file = here("tables", "mouse_cds_raw_part2.rds"))
+mouse_cds_raw_part3 %>% saveRDS(file = here("tables", "mouse_cds_raw_part3.rds"))
+
+mouse_cds_raw_part1  =  readRDS(file = here("tables", "mouse_cds_raw_part1.rds"))
+mouse_cds_raw_part2  =  readRDS(file = here("tables", "mouse_cds_raw_part2.rds"))
+mouse_cds_raw_part3 = readRDS(file = here("tables", "mouse_cds_raw_part3.rds"))
+
+# Consolidate raw Mouse CDS partitions into single master table
+mouse_cds_raw <- dplyr::bind_rows(
+  mouse_cds_raw_part1,
+  mouse_cds_raw_part2,
+  mouse_cds_raw_part3
+)
+
+# Filter for Longest Canonical/Isoform CDS per Gene ----
+# BioMart returns multiple rows per gene due to alternative splicing transcripts.
+# We pick the longest sequence per stable gene ID to avoid truncation artifacts.
+
+mouse_cds_clean <- mouse_cds_raw %>%
+  filter(coding != "Sequence unavailable") %>%
+  mutate(seq_len = nchar(coding)) %>%
+  group_by(ensembl_gene_id) %>%
+  slice_max(seq_len, n = 1, with_ties = FALSE) %>%
+  ungroup() %>%
+  select(mmusculus_homolog_ensembl_gene = ensembl_gene_id, mouse_cds = coding)
+
+# Save
+saveRDS(mouse_cds_clean, file = here::here("tables", "Gene and Protein sequences", "mouse_cds_clean.rds"))
+
+# Send completion notification
+notify(
+  title = "Mouse CDS downloaded!",
+  msg   = c("All 3 mouse parts processed and saved successfully.")
+)
+```
+
+```{r}
+#Import
+mouse_cds_clean = readRDS(file = here::here("tables", "Gene and Protein sequences", "mouse_cds_clean.rds"))
+human_cds_clean = readRDS(file = here::here("tables", "Gene and Protein sequences", "human_cds_clean.rds"))
+
+# -Calculate distance ----
+mouse_human_cds_clean <- ortholog_map %>%
+  inner_join(human_cds_clean, by = "ensembl_gene_id") %>%
+  inner_join(mouse_cds_clean, by = "mmusculus_homolog_ensembl_gene")
+
+mouse_human_cds_distance_matrix <- mouse_human_cds_clean %>%
+  dplyr::mutate(
+    dna_metrics = purrr::map2(
+      human_cds, 
+      mouse_cds, 
+      ~ calculate_pairwise_dna_distance(.x, .y)
+    )
+  ) %>%
+  tidyr::unnest(dna_metrics)
+
+human_mouse_cds_distance <- mouse_human_cds_distance_matrix %>%
+  dplyr::select(
+    hgnc_symbol    = external_gene_name,
+    mgi_symbol = mmusculus_homolog_associated_gene_name,
+    human_ensembl  = ensembl_gene_id,
+    mouse_ensembl  = mmusculus_homolog_ensembl_gene,
+    dist_jc69,
+    dist_k80 
+  )
+
+print(head(human_mouse_cds_distance))
+
+#Save
+saveRDS(human_mouse_cds_distance, file = here::here("tables", "Gene and Protein sequences", "human_mouse_cds_distance.rds"))
+notify(title = "Alignment done", msg = "Check it out!")
+
+```
+
+### Is LEG status explaned by the evolutionary distance in the CDS?
+
+```{r}
+#| fig-height: 3
+#| fig-width: 3
+#Import
+# Gene expression
+dge_btm_process_genes_diff_bygene_clean_filtered =  readRDS(file = here("tables", "Functional analysis", "dge_btm_process_genes_diff_bygene_clean_filtered.rds"))
+
+human_mouse_cds_distance = 
+  readRDS(file = here::here("tables", "Gene and Protein sequences", "human_mouse_cds_distance.rds"))
+
+#Merge
+human_mouse_cds_distance_dge = 
+  #LEGs
+  human_mouse_cds_distance %>% 
+  inner_join(dge_btm_process_genes_diff_bygene_clean_filtered,
+             by = "hgnc_symbol")
+
+human_mouse_cds_distance_dge %>% 
+  dplyr::count(pathogen, status)
+
+```
+
+Is LEG status explaned by the evolutionary distance in the CDS?
+
+```{r}
+#| fig-height: 3
+#| fig-width: 8
+#Is LEG status explaned by the evolutionary distance in the CDS?
+distance_legs_plot =  human_mouse_cds_distance_dge %>% 
+  filter(status != "Not LEG",
+         treatment %in% c("Infection", "Injury")) %>% 
+  bind_rows(human_mouse_cds_distance_dge %>% 
+  filter(status != "Not LEG",
+         treatment %in% c("Infection", "Injury")) %>% 
+    mutate(treatment = "Pooled",
+           pathogen = "")) %>% 
+  
+  ggplot() +
+  aes(
+    x     = status,
+    y     = dist_k80,
+    color = status,
+    fill  = status
+  ) +
+  
+  facet_nested_wrap(~treatment+pathogen, nrow = 1) +
+
+  geom_violin(alpha = 0, ) +
+  # Render boxplot layer without outliers
+  geom_boxplot(
+    width    = 0.3,
+    alpha    = 0,
+    outliers = FALSE,
+    # color    = "black"
+  ) +
+  # Apply project custom palettes and labels
+  scale_fill_manual(values = colors$comparison) +
+  scale_color_manual(values = colors$comparison) +
+  labs(
+    x     = "Status",
+    y     = "Kimura distance",
+    color = "",
+    fill  = ""
+  ) +
+  # Set Y-axis view boundaries
+  coord_cartesian(ylim = c(0, NA)) +
+  theme_vaxgo() +
+  theme(
+    legend.position = "top", legend.location = "plot",
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+    # STATISTICAL TEST LAYER
+  stat_compare_means(
+    comparisons = list(c("Shared", "Not-shared"),
+                       c("Shared", "All genes"),
+                       c("Not-shared", "All genes")),
+    method = "wilcox.test",
+    label = "p.adj", 
+    vjust = 1.5,
+    label.y.np = "top",
+    size = 3, tip.length = 0,
+    hide.ns = F
+  ) 
+
+#Save
+distance_legs_plot
+
+#Save
+distance_legs_plot %>%
+  ggsave(filename = here("Figures", "all_human_mouse_gsea_btms_legs_kimuradistance.png"),
+         width = 8,
+         height = 3)
+
+```
+
+Is the absolute difference in Log2FC explained by sequence distance?
+
+```{r}
+#| fig-height: 3
+#| fig-width: 3
+difflog2fc_distance_scatter_plot <- human_mouse_cds_distance_dge %>%
+  filter(status == "All genes") %>% 
+  ggplot2::ggplot() +
+  ggplot2::aes(
+    x     = dist_k80,
+    y     = abs_log2fc_diff,
+    color = status,
+    fill  = status
+  ) +
+  geom_smooth(method = "lm", se = TRUE,
+              show.legend = F) +
+    #Marginal Boxplot
+  # TOP  
+  geom_violin(
+    mapping = aes(
+      x = dist_k80,         
+      y = 1,
+    ),
+    outliers = FALSE,
+    outlier.shape = NA,
+    alpha = 0.5,
+    width = 0.1,
+    color = NA,
+    show.legend = T
+  ) +
+  geom_boxplot(
+    mapping = aes(
+      x = dist_k80,         
+      y = 1,
+    ),
+    outliers = FALSE,
+    outlier.shape = NA,
+    alpha = 0, linewidth = 0.2,
+    color = "black",
+    width = 0.1,
+    show.legend = FALSE
+  ) +
+  #Add correlation stats
+  stat_cor( 
+    method = "spearman",
+    cor.coef.name = "rho", 
+    parse = TRUE,      
+    label.y = 0.10,
+    label.x = 0.05,
+    size = 3.5, 
+    show.legend = F
+  ) +
+  # Line equation
+  stat_regline_equation(
+    aes(label = ..eq.label..),
+    label.y = 0.20,
+    label.x = 0.05,       
+    size = 3.5
+  ) +
+  scale_fill_manual(values = colors$comparison) +
+  scale_color_manual(values = colors$comparison) +
+  scale_x_continuous(expand = c(0.01, 0.01)) +
+  scale_y_continuous(limits = c(0, 1.2)) +
+  labs(
+    x     = "Kimura Distance",
+    y     = "|ΔLog2FC|",
+    fill  = "",
+    color = ""
+  ) +
+  theme_vaxgo() +
+  theme(legend.position = "top",
+        legend.location = "plot") +
+  guides(fill = guide_legend(override.aes = list(alpha = 1)))
+
+difflog2fc_distance_scatter_plot  +
+  scale_y_continuous(limits = c(0, 1.1)) 
+  
+
+
+#Save
+difflog2fc_distance_scatter_plot %>%
+  ggsave(filename = here("Figures", "all_human_mouse_gsea_btms_legs_kimuradistance_divergence.png"),
+         width = 3,
+         height = 3)
+
+```
+
+```{r}
+#| fig-height: 3
+#| fig-width: 8
+difflog2fc_distance_scatter_condition_plot <- human_mouse_cds_distance_dge %>% 
+  filter(status != "Not LEG",
+         treatment %in% c("Infection", "Injury")) %>% 
+  bind_rows(human_mouse_cds_distance_dge %>% 
+  filter(status != "Not LEG",
+         treatment %in% c("Infection", "Injury")) %>% 
+    mutate(treatment = "Pooled",
+           pathogen = "")) %>% 
+  ggplot() +
+  aes(
+    x     = dist_k80,
+    y     = abs_log2fc_diff,
+    color = status,
+    fill  = status
+  ) +
+  facet_nested_wrap(~treatment+pathogen, nrow = 1) +
+  geom_smooth(method = "lm", se = TRUE) +
+    #Marginal Boxplot
+  # TOP  
+  geom_violin(
+    mapping = aes(
+      x = dist_k80,         
+      y = 3,
+    ),
+    outliers = FALSE,
+    outlier.shape = NA,
+    alpha = 0.5,
+    width = 0.5,
+    color = NA,
+    show.legend = FALSE
+  ) +
+  geom_boxplot(
+    mapping = aes(
+      x = dist_k80,         
+      y = 3,
+    ),
+    outliers = FALSE,
+    outlier.shape = NA,
+    alpha = 0, linewidth = 0.2,
+    color = "black",
+    width = 0.5,
+    show.legend = FALSE
+  ) +
+  scale_fill_manual(values = colors$comparison) +
+  scale_color_manual(values = colors$comparison) +
+  scale_x_continuous(expand = c(0.01, 0.01)) +
+  scale_y_continuous(expand = c(0.01, 0.01)) +
+  labs(
+    x     = "Kimura Distance",
+    y     = "|ΔLog2FC|",
+    fill  = "",
+    color = ""
+  ) +
+  theme_vaxgo() +
+  theme(legend.position = "top",
+        legend.location = "plot") +
+  guides(fill = guide_legend(override.aes = list(alpha = 1)))
+
+difflog2fc_distance_scatter_condition_plot 
+
+#Save
+difflog2fc_distance_scatter_condition_plot %>%
+  ggsave(filename = here("Figures", "all_human_mouse_gsea_btms_legs_kimuradistance_divergence_byCondition.png"),
+         width = 8,
+         height = 3)
+
+```

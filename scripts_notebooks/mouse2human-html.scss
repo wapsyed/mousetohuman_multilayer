@@ -1,0 +1,68 @@
+/*-- scss:defaults --*/
+
+// ── Typography ──────────────────────────────────────────────────────────────
+// Same stack as the project site (docs/assets/style.css) and the reveal.js
+// decks: Merriweather for headings, Arial for body/labels, system monospace
+// only for code.
+$font-family-sans-serif: Arial, Helvetica, sans-serif !default;
+$font-family-monospace: ui-monospace, Menlo, Consolas, "Liberation Mono", monospace !default;
+$headings-font-family: "Merriweather", Georgia, "Times New Roman", serif !default;
+$font-size-root: 16px !default;
+
+// ── Palette taken from the study's own figures ──────────────────────────────
+// #4DBBD5 (cyan) · #000000 (ink) · #4361ee (blue) · #A1B0F7 (periwinkle)
+$body-bg: #FBFBFD !default;
+$body-color: #1B2130 !default;
+$link-color: #4361ee !default;
+$headings-color: #000000 !default;
+$code-block-bg: #F4F6FC !default;
+$code-color: #000000 !default;
+$navbar-bg: #000000 !default;
+$navbar-fg: #ffffff !default;
+$toc-color: #5B6377 !default;
+
+/*-- scss:rules --*/
+
+@import url("https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&display=swap");
+
+:root {
+  --m2h-ink: #000000;
+  --m2h-body: #1B2130;
+  --m2h-muted: #5B6377;
+  --m2h-faint: #9AA3B8;
+  --m2h-cyan: #4DBBD5;
+  --m2h-blue: #4361ee;
+  --m2h-peri: #A1B0F7;
+  --m2h-rule: #D9DEEC;
+}
+
+// ── headings ────────────────────────────────────────────────────────────────
+h1, h2, h3, h4, h5, h6 { font-family: "Merriweather", Georgia, "Times New Roman", serif; }
+h1.title { font-weight: 700; color: var(--m2h-ink); }
+h2 { font-weight: 700; margin-top: 2.2rem; padding-bottom: .35rem; border-bottom: 1px solid var(--m2h-rule); }
+h3 { font-weight: 700; }
+h4 { font-weight: 400; color: var(--m2h-muted); }
+
+// ── accents ─────────────────────────────────────────────────────────────────
+a { text-decoration: none; border-bottom: 1px solid var(--m2h-peri); }
+a:hover { color: var(--m2h-cyan); border-bottom-color: var(--m2h-cyan); }
+
+// colour bar under the document title, echoing the site/figures
+.quarto-title-block .title::after {
+  content: "";
+  display: block;
+  width: 4.2em;
+  height: .18em;
+  margin-top: .7em;
+  background: linear-gradient(90deg,
+    var(--m2h-cyan) 0 33.33%,
+    var(--m2h-blue) 33.33% 66.66%,
+    var(--m2h-peri) 66.66% 100%);
+}
+
+// ── code ────────────────────────────────────────────────────────────────────
+code, pre, kbd { font-family: $font-family-monospace; }
+pre.sourceCode { background: $code-block-bg; border: 1px solid var(--m2h-rule); }
+
+// sidebar TOC
+#TOC a.active { color: var(--m2h-blue); border-left: 2px solid var(--m2h-cyan); }
