@@ -62,7 +62,43 @@
     };
   }
   var instances = [];
+  var FONT = "Arial, Helvetica, sans-serif";
+  function decorate(opt) {
+    if (!opt) return opt;
+    function axis(a) {
+      if (!a) return;
+      if (Array.isArray(a)) { a.forEach(axis); return; }
+      if (a.axisLabel) {
+        a.axisLabel.fontFamily = FONT;
+        if (a.axisLabel.show === undefined || a.axisLabel.show !== false) a.axisLabel.show = true;
+        if (mode === "dark") a.axisLabel.color = "#ffffff";
+      }
+      if (a.nameTextStyle) {
+        a.nameTextStyle.fontFamily = FONT;
+        if (mode === "dark") a.nameTextStyle.color = "#ffffff";
+      }
+    }
+    axis(opt.xAxis); axis(opt.yAxis);
+    if (opt.legend) {
+      opt.legend = [].concat(opt.legend).map(function (l) {
+        l.textStyle = Object.assign({}, l.textStyle, { fontFamily: FONT });
+        if (mode === "dark") l.textStyle.color = "#ffffff";
+        return l;
+      });
+      if (opt.legend.length === 1) opt.legend = opt.legend[0];
+    }
+    if (opt.title) {
+      [].concat(opt.title).forEach(function (t) {
+        if (t.textStyle) t.textStyle.fontFamily = FONT;
+        if (t.subtextStyle) t.subtextStyle.fontFamily = FONT;
+      });
+    }
+    if (opt.tooltip && opt.tooltip.textStyle) opt.tooltip.textStyle.fontFamily = FONT;
+    return opt;
+  }
+
   function render(el, option) {
+    option = decorate(option);
     if (el._chart && !el._chart.isDisposed()) el._chart.dispose();
     var inst = echarts.init(el, null, { renderer: "canvas" });
     inst.setOption(option);
@@ -350,7 +386,7 @@
           };
         }).concat([{
           name: "y = x", type: "line", symbol: "none", silent: true,
-          lineStyle: { color: "rgba(255,255,255,.35)", type: "dashed" }, data: [[-4, -4], [4, 4]]
+          lineStyle: { color: mode === "dark" ? "rgba(225,230,245,.6)" : "rgba(0,0,0,.5)", type: "dashed", width: 1.5 }, data: [[-4, -4], [4, 4]]
         }])
       });
       opt.tooltip.formatter = function (p) {
@@ -400,28 +436,75 @@
     var bins = (el._bins || []).filter(function (b) { return b.var === el.dataset.var; })
       .sort(function (a, b) { return a.x - b.x; });
     var xv = el.dataset.var;
+    var name = xv === "dist_k80" ? "Kimura K80 distance" : "protein sequence identity (%)";
     var points = d.filter(function (r) { return finite(r[xv]) && finite(r.abs_log2fc_diff); });
     var fit = slope(points.map(function (r) { return r[xv]; }), points.map(function (r) { return r.abs_log2fc_diff; }));
-    var name = xv === "dist_k80" ? "Kimura K80 distance" : "protein sequence identity (%)";
-    var series = [
-      { name: "genes", type: "scatter", symbolSize: 5,
-        itemStyle: { color: C.peri, opacity: .45 },
-        data: points.map(function (r) { return { value: [r[xv], r.abs_log2fc_diff], name: r.gene }; }) },
-      { name: "binned mean", type: "line", smooth: true, symbolSize: 7, lineStyle: { color: C.cyan, width: 3 }, itemStyle: { color: C.cyan }, data: bins.map(function (b) { return [b.x, b.y]; }) }
-    ];
-    if (fit) series.push({ name: "trend", type: "line", symbol: "none", silent: true, lineStyle: { color: mode === "dark" ? "rgba(200,210,235,.5)" : "rgba(60,70,100,.45)", type: "dashed" }, data: [[Math.min.apply(null, points.map(function (r) { return r[xv]; })), 0], [Math.max.apply(null, points.map(function (r) { return r[xv]; })), 0]].map(function (p) { return [p[0], fit.m * p[0] + fit.b]; }) });
-    var opt = Object.assign(base(), {
-      title: title(name + " vs expression divergence", "each point = a gene · hover to see its symbol"),
-      xAxis: Object.assign(axis(name), { type: "value", scale: true }),
-      yAxis: Object.assign(axis("|Δlog2FC|"), { type: "value", scale: true, max: 4 }),
-      series: series
+    var xmin = Math.min.apply(null, points.map(function (r) { return r[xv]; }));
+    var xmax = Math.max.apply(null, points.map(function (r) { return r[xv]; }));
+
+    el.innerHTML =
+      '<div class="x-controls"><input class="x-search" type="search" ' +
+      'placeholder="Highlight a gene (e.g. MMP8)…" aria-label="Search a gene">' +
+      '<span class="x-table-note"></span></div><div class="x-canvas"></div>';
+    var canvas = el.querySelector(".x-canvas"), note = el.querySelector(".x-table-note");
+    var state = { q: "" };
+
+    function build() {
+      var series = [
+        { name: "genes", type: "scatter", symbolSize: 5,
+          itemStyle: { color: C.peri, opacity: .45 },
+          data: points.map(function (r) { return { value: [r[xv], r.abs_log2fc_diff], name: r.gene }; }) },
+        { name: "binned mean", type: "line", smooth: true, symbolSize: 7,
+          lineStyle: { color: C.cyan, width: 3 }, itemStyle: { color: C.cyan },
+          data: bins.map(function (b) { return [b.x, b.y]; }) }
+      ];
+      if (fit) series.push({ name: "trend", type: "line", symbol: "none", silent: true,
+        lineStyle: { color: mode === "dark" ? "rgba(200,210,235,.5)" : "rgba(60,70,100,.45)", type: "dashed" },
+        data: [[xmin, fit.m * xmin + fit.b], [xmax, fit.m * xmax + fit.b]] });
+
+      var q = state.q.trim().toUpperCase();
+      var matches = q ? points.filter(function (r) { return String(r.gene).toUpperCase().indexOf(q) === 0; }) : [];
+      if (matches.length) {
+        series.push({ name: "match", type: "effectScatter", symbolSize: 15, itemStyle: { color: C.lime },
+          data: matches.slice(0, 500).map(function (r) { return { value: [r[xv], r.abs_log2fc_diff], name: r.gene }; }) });
+      }
+
+      var opt = Object.assign(base(), {
+        title: title(name + " vs expression divergence", "each point = a gene · hover or search for its symbol"),
+        xAxis: Object.assign(axis(name), { type: "value", scale: true }),
+        yAxis: Object.assign(axis("|Δlog2FC|"), { type: "value", scale: true, max: 4 }),
+        series: series
+      });
+      opt.tooltip.formatter = function (p) {
+        if (p.seriesName === "trend") return "";
+        if (p.seriesName === "binned mean") return "binned mean<br>" + name + ": " + nfmt(p.value[0]) + "<br>|Δlog2FC|: " + nfmt(p.value[1]);
+        return "<b>" + (p.data && p.data.name ? p.data.name : "") + "</b><br>" + name + ": " + nfmt(p.value[0]) +
+          "<br>|Δlog2FC|: " + nfmt(p.value[1]);
+      };
+      return opt;
+    }
+
+    function draw() {
+      var opt = build();
+      if (canvas._chart && !canvas._chart.isDisposed()) { canvas._chart.setOption(opt, true); canvas._chart.resize(); }
+      else render(canvas, opt);
+      var q = state.q.trim().toUpperCase();
+      if (!q) note.textContent = "Search a gene to highlight it.";
+      else {
+        var m = points.filter(function (r) { return String(r.gene).toUpperCase().indexOf(q) === 0; });
+        note.textContent = m.length
+          ? m.length + " match" + (m.length > 1 ? "es" : "") + ": " + m.slice(0, 6).map(function (x) { return x.gene; }).join(", ") + (m.length > 6 ? " …" : "")
+          : "No gene starts with \u201c" + state.q.trim() + "\u201d.";
+      }
+    }
+
+    draw();
+    var timer = null;
+    el.querySelector(".x-search").addEventListener("input", function (e) {
+      state.q = e.target.value;
+      clearTimeout(timer);
+      timer = setTimeout(draw, 200);
     });
-    opt.tooltip.formatter = function (p) {
-      if (p.seriesName === "trend") return "";
-      if (p.seriesName === "binned mean") return "binned mean<br>" + name + ": " + nfmt(p.value[0]) + "<br>|Δlog2FC|: " + nfmt(p.value[1]);
-      return "<b>" + (p.data && p.data.name ? p.data.name : "") + "</b><br>" + name + ": " + nfmt(p.value[0]) + "<br>|Δlog2FC|: " + nfmt(p.value[1]);
-    };
-    render(el, opt);
   };
 
   R.regBars = function (el, d) {
@@ -456,7 +539,7 @@
       var yName = metric === "rsq" ? "R²" : "ROC-AUC";
 
       titles.push({
-        text: task + "  ·  " + yName, left: "0%", width: "100%", textAlign: "center",
+        text: task + "  ·  " + yName, left: "50%", textAlign: "center",
         top: idx * cellH + 6,
         textStyle: { color: C.ink, fontSize: 12, fontWeight: 700 }
       });
@@ -522,7 +605,7 @@
         var sub = all.filter(function (x) { return x.pathogen === p; });
         var ok = sub.filter(isConc), bad = sub.filter(function (x) { return !isConc(x); });
         titles.push({
-          text: p + "  (" + sub.length + " genes)", left: (c * cellW) + "%", width: (cellW - 4) + "%",
+          text: p + "  (" + sub.length + " genes)", left: (c * cellW + cellW / 2) + "%",
           textAlign: "center", top: r * cellH + 24,
           textStyle: { color: C.ink, fontSize: 12, fontWeight: 700 }
         });
@@ -669,12 +752,12 @@
     if (el._loaded) return;
     el._loaded = true;
     var name = el.dataset.chart;
-    var dataFile = el.dataset.data;
-    var binsFile = el.dataset.bins;
-    var jobs = [fetch(dataFile).then(function (r) { return r.json(); })];
-    if (binsFile) jobs.push(fetch(binsFile).then(function (r) { return r.json(); }));
+    var jobs = [fetch(el.dataset.data).then(function (r) { return r.json(); })];
+    var extras = [];
+    if (el.dataset.bins) { jobs.push(fetch(el.dataset.bins).then(function (r) { return r.json(); })); extras.push("_bins"); }
+    if (el.dataset.meta) { jobs.push(fetch(el.dataset.meta).then(function (r) { return r.json(); })); extras.push("_meta"); }
     Promise.all(jobs).then(function (res) {
-      if (res[1]) el._bins = res[1];
+      extras.forEach(function (key, i) { el[key] = res[i + 1]; });
       el._data = res[0];
       if (R[name]) R[name](el, res[0]);
     }).catch(function (err) {

@@ -197,4 +197,36 @@ try({
   if (nrow(reg)) write_json_df(reg, "fig6-regulation.json", 4)
 })
 
+# ── 9 · Fig. 4 — gene-level correlation (human vs mouse log2FC) --------------
+try({
+  wide <- read_rds("tables/Differential gene expression/all_human_mouse_log2fc_avg_wide_labels.rds")
+  gc <- wide %>%
+    transmute(pathogen = pathogen_human, timepoint = timepoint_comparison, gene = human_symbol,
+              lfc_human = mean_log2fc_human, lfc_mouse = mean_log2fc_mouse,
+              same = diff_sign_binary == "Same") %>%
+    filter(is.finite(lfc_human), is.finite(lfc_mouse))
+  meta <- gc %>% group_by(pathogen) %>%
+    summarise(n = n(),
+              rho = suppressWarnings(cor(lfc_mouse, lfc_human, use = "complete.obs")),
+              .groups = "drop")
+  write_json_df(meta, "fig4-genecorr-meta.json", 4)
+  set.seed(2)
+  write_json_df(gc %>% sample_n(min(20000, nrow(gc))), "fig4-genecorr.json", 3)
+})
+
+# ── 10 · Fig. 6 — CRE types and CTCF (not split by same/different) -----------
+try({
+  cres <- read_rds("tables/Regulation/cres_type_homology_comparison_dge_legs_stats.rds") %>%
+    filter(is.finite(abs_log2fc_diff))
+  cre <- bind_rows(
+    cres %>% filter(!is.na(type_human)) %>% group_by(category = type_human) %>%
+      summarise(n = n(), mean_abs_diff = mean(abs_log2fc_diff, na.rm = TRUE), .groups = "drop") %>%
+      mutate(group = "CRE type"),
+    cres %>% filter(!is.na(ctcf_human)) %>% group_by(category = ctcf_human) %>%
+      summarise(n = n(), mean_abs_diff = mean(abs_log2fc_diff, na.rm = TRUE), .groups = "drop") %>%
+      mutate(group = "CTCF")
+  )
+  if (nrow(cre)) write_json_df(cre, "fig6-cre.json", 4)
+})
+
 cat("\nDone —", length(wrote), "files written to docs/article-data/\n")
