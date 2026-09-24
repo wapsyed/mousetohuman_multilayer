@@ -146,6 +146,20 @@ try({
   keep <- intersect(keep, names(legs))
   btm <- legs %>% select(all_of(keep)) %>% distinct()
   write_json_df(btm, "fig4-btm.json", 4)
+
+  # module-level table (one row per module × condition) with significance class
+  mod_cols <- intersect(
+    c("pathogen", "timepoint_comparison", "process", "group", "treatment",
+      "nes_mouse", "nes_human", "p_adjust_mouse_gsea", "p_adjust_human_gsea", "percent"),
+    names(legs))
+  btm_mod <- legs %>%
+    select(all_of(mod_cols)) %>%
+    distinct() %>%
+    mutate(sig = case_when(
+      p_adjust_mouse_gsea < 0.05 & p_adjust_human_gsea < 0.05 ~ "significant in both",
+      p_adjust_mouse_gsea < 0.05 ~ "significant in mice",
+      TRUE ~ "all modules"))
+  write_json_df(btm_mod, "fig4-btm-modules.json", 4)
 })
 
 # ── 8 · Fig. 6 — evolution and regulatory architecture -----------------------
@@ -214,27 +228,25 @@ try({
   write_json_df(gc %>% sample_n(min(20000, nrow(gc))), "fig4-genecorr.json", 3)
 })
 
-# ── 10 · Fig. 6 — |Δlog2FC| vs CRE number and CTCF status (per gene) ---------
+# ── 10 · Fig. 6 — |Δlog2FC| vs CRE count, per CRE type (colour = CTCF) --------
 try({
   sc <- read_rds("Modelling/Models/score_table_v2.rds")
-  cre_gene <- sc %>%
-    mutate(
-      gene = hgnc_symbol,
-      n_cre = n_total_cres_gene,
-      n_type = coalesce(n_type_PLS, 0) + coalesce(n_type_pELS, 0) + coalesce(n_type_dELS, 0),
-      ctcf_bound = (coalesce(`n_ctcf_pELS_CTCF-bound`, 0) +
-                      coalesce(`n_ctcf_dELS_CTCF-bound`, 0) +
-                      coalesce(`n_ctcf_PLS_CTCF-bound`, 0)) > 0
-    ) %>%
-    filter(is.finite(abs_log2fc_diff)) %>%
-    group_by(gene) %>%
-    summarise(n_cre = mean(n_cre, na.rm = TRUE),
-              n_type = mean(n_type, na.rm = TRUE),
+  cre_long <- bind_rows(
+    sc %>% transmute(gene = hgnc_symbol, type = "PLS", n = coalesce(n_type_PLS, 0),
+                     ctcf_bound = coalesce(`n_ctcf_PLS_CTCF-bound`, 0) > 0, abs_diff = abs_log2fc_diff),
+    sc %>% transmute(gene = hgnc_symbol, type = "pELS", n = coalesce(n_type_pELS, 0),
+                     ctcf_bound = coalesce(`n_ctcf_pELS_CTCF-bound`, 0) > 0, abs_diff = abs_log2fc_diff),
+    sc %>% transmute(gene = hgnc_symbol, type = "dELS", n = coalesce(n_type_dELS, 0),
+                     ctcf_bound = coalesce(`n_ctcf_dELS_CTCF-bound`, 0) > 0, abs_diff = abs_log2fc_diff)
+  ) %>%
+    filter(is.finite(abs_diff)) %>%
+    group_by(gene, type) %>%
+    summarise(n = mean(n, na.rm = TRUE),
               ctcf_bound = any(ctcf_bound, na.rm = TRUE),
-              abs_diff = mean(abs_log2fc_diff, na.rm = TRUE),
+              abs_diff = mean(abs_diff, na.rm = TRUE),
               .groups = "drop") %>%
-    filter(is.finite(n_type), is.finite(abs_diff))
-  if (nrow(cre_gene)) write_json_df(cre_gene, "fig6-cre-gene.json", 4)
+    filter(is.finite(n), n > 0)
+  if (nrow(cre_long)) write_json_df(cre_long, "fig6-cre-type.json", 4)
 })
 
 cat("\nDone —", length(wrote), "files written to docs/article-data/\n")

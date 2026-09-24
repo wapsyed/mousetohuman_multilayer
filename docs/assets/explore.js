@@ -12,7 +12,7 @@
       cyan: "#2e9db7", blue: "#4361ee", peri: "#7b8fe0", lime: "#4f7a44",
       orange: "#d98a35", pink: "#c94f86", ink: "#101828", muted: "#3b4358",
       soft: "#6b7694", grid: "rgba(27,33,48,.12)",
-      palette: ["#2e9db7", "#4361ee", "#7b8fe0", "#6b9e5f", "#d98a35", "#c94f86", "#3f9c86", "#8b6fd6"]
+      palette: ["#2e9db7", "#4361ee", "#7b8fe0", "#6b9e5f", "#d98a35", "#c94f86", "#3f9c86", "#8b6fd6", "#b0563f", "#4f9dd9", "#9b7a3f", "#7a4f9b"]
     },
     dark: {
       cyan: "#5fd0e6", blue: "#7e9bff", peri: "#b7c3ff", lime: "#c3ecb6",
@@ -362,49 +362,55 @@
     }));
   };
 
-  R.btmScatter = function (el, d) {
+  R.btmFacets = function (el, d) {
     var rows = d.filter(function (r) { return finite(r.nes_mouse) && finite(r.nes_human); });
-    var treatments = uniq(rows.map(function (r) { return r.treatment; }));
+    var pathogens = uniq(rows.map(function (r) { return r.pathogen; }));
     var groups = uniq(rows.map(function (r) { return r.group; })).filter(Boolean);
-    var state = { t: treatments.indexOf("Infection") >= 0 ? "Infection" : treatments[0] };
-    el.innerHTML = '<div class="x-controls">' + treatments.map(function (t) {
-      return '<button class="x-chip' + (t === state.t ? " active" : "") + '" data-t="' + t + '">' + t + "</button>";
-    }).join("") + '</div><div class="x-canvas tall"></div>';
-    var canvas = el.querySelector(".x-canvas");
-    function draw() {
-      var sub = rows.filter(function (r) { return r.treatment === state.t; });
-      var opt = Object.assign(base(), {
-        title: title("Cross-species module correlation", "BTM enrichment (NES): mouse vs human · " + state.t),
-        xAxis: Object.assign(axis("NES mouse"), { type: "value", scale: true }),
-        yAxis: Object.assign(axis("NES human"), { type: "value", scale: true }),
-        series: groups.map(function (g, i) {
-          return {
-            name: g, type: "scatter", symbolSize: 7,
-            itemStyle: { color: PALETTE[i % PALETTE.length], opacity: .75 },
-            data: sub.filter(function (r) { return r.group === g; })
-              .map(function (r) { return { value: [r.nes_mouse, r.nes_human], name: r.process, extra: r.pathogen + " · " + r.timepoint_comparison, status: r.status }; })
-          };
-        }).concat([{
-          name: "y = x", type: "line", symbol: "none", silent: true,
-          lineStyle: { color: mode === "dark" ? "rgba(225,230,245,.6)" : "rgba(0,0,0,.5)", type: "dashed", width: 1.5 }, data: [[-4, -4], [4, 4]]
-        }])
+    var cols = pathogens.length > 4 ? 3 : 2, cellH = 250, cellW = 100 / cols;
+    var nRows = Math.ceil(pathogens.length / cols);
+    el.style.height = (nRows * cellH + 40) + "px";
+
+    var titles = [], grids = [], xAxes = [], yAxes = [], series = [];
+    pathogens.forEach(function (p, idx) {
+      var r = Math.floor(idx / cols), c = idx % cols;
+      var sub = rows.filter(function (x) { return x.pathogen === p; });
+      titles.push({ text: p + "  (n=" + sub.length + ")", left: (c * cellW + cellW / 2) + "%",
+        textAlign: "center", top: r * cellH + 28,
+        textStyle: { color: C.ink, fontSize: 12, fontWeight: 700 } });
+      grids.push({ left: (c * cellW + (c === 0 ? 10 : 6)) + "%", width: (cellW - (c === 0 ? 12 : 9)) + "%",
+        top: r * cellH + 50, height: cellH - 96, containLabel: false });
+      xAxes.push({ gridIndex: idx, type: "value", scale: true,
+        name: (r === nRows - 1 ? "NES mouse" : ""), nameLocation: "middle", nameGap: 22,
+        nameTextStyle: { color: C.soft, fontSize: 9 }, axisLabel: { color: C.soft, fontSize: 9 },
+        splitLine: { lineStyle: { color: C.grid } } });
+      yAxes.push({ gridIndex: idx, type: "value", scale: true,
+        name: (c === 0 ? "NES human" : ""), nameLocation: "middle", nameGap: 28,
+        nameTextStyle: { color: C.soft, fontSize: 9 }, axisLabel: { color: C.soft, fontSize: 9 },
+        splitLine: { lineStyle: { color: C.grid } } });
+      groups.forEach(function (g, gi) {
+        series.push({ name: g, type: "scatter", xAxisIndex: idx, yAxisIndex: idx, symbolSize: 6,
+          itemStyle: { color: PALETTE[gi % PALETTE.length], opacity: .75 },
+          data: sub.filter(function (x) { return x.group === g; })
+            .map(function (x) { return { value: [x.nes_mouse, x.nes_human], name: x.process, extra: x.pathogen + " · " + x.timepoint_comparison, status: x.status }; }) });
       });
-      opt.tooltip.formatter = function (p) {
-        if (p.seriesName === "y = x") return "";
-        return "<b>" + (p.data.name || "") + "</b><br>" + (p.data.extra || "") +
-          "<br>NES mouse " + nfmt(p.value[0]) + " · human " + nfmt(p.value[1]) +
-          (p.data.status ? "<br>status: " + p.data.status : "");
-      };
-      refit(canvas._chart, function () { canvas._chart.setOption(opt, true); });
-    }
-    render(canvas, {});
-    draw();
-    el.addEventListener("click", function (e) {
-      var b = e.target.closest("[data-t]"); if (!b) return;
-      state.t = b.getAttribute("data-t");
-      el.querySelectorAll(".x-chip").forEach(function (c) { c.classList.toggle("active", c.getAttribute("data-t") === state.t); });
-      draw();
+      series.push({ name: "y = x", type: "line", xAxisIndex: idx, yAxisIndex: idx, showSymbol: false, silent: true,
+        lineStyle: { color: mode === "dark" ? "rgba(225,230,245,.6)" : "rgba(0,0,0,.5)", type: "dashed", width: 1.3 },
+        data: [[-4, -4], [4, 4]] });
     });
+
+    var opt = Object.assign(base(), {
+      title: titles,
+      legend: { top: 2, type: "scroll", textStyle: { color: C.muted }, data: groups, itemGap: 10 },
+      tooltip: Object.assign({}, base().tooltip, { trigger: "item" }),
+      grid: grids, xAxis: xAxes, yAxis: yAxes, series: series
+    });
+    opt.tooltip.formatter = function (p) {
+      if (p.seriesName === "y = x") return "";
+      return "<b>" + (p.data.name || "") + "</b><br>" + (p.data.extra || "") +
+        "<br>NES mouse " + nfmt(p.value[0]) + " · human " + nfmt(p.value[1]) +
+        (p.data.status ? "<br>status: " + p.data.status : "");
+    };
+    render(el, opt);
   };
 
   R.btmShared = function (el, d) {
@@ -580,31 +586,48 @@
     render(el, opt);
   };
 
-  R.creCtcf = function (el, d) {
-    var order = ["PLS", "pELS", "dELS", "CTCF-bound", "not-CTCF"];
-    var cats = order.filter(function (c) { return d.some(function (r) { return r.category === c; }); });
-    d.forEach(function (r) { if (cats.indexOf(r.category) < 0) cats.push(r.category); });
+  R.creType = function (el, d) {
+    var types = ["PLS", "pELS", "dELS"].filter(function (t) {
+      return d.some(function (r) { return r.type === t; });
+    });
+    var pts = d.filter(function (r) { return finite(r.n) && finite(r.abs_diff); });
+    function isB(r) { return r.ctcf_bound === true || r.ctcf_bound === "TRUE"; }
+    var cols = types.length, cellW = 100 / cols, cellH = 330;
+    el.style.height = cellH + "px";
+
+    var titles = [], grids = [], xAxes = [], yAxes = [], series = [];
+    types.forEach(function (t, idx) {
+      var sub = pts.filter(function (r) { return r.type === t; });
+      var bound = sub.filter(isB), free = sub.filter(function (r) { return !isB(r); });
+      titles.push({ text: t + "  (n=" + sub.length + ")", left: (idx * cellW + cellW / 2) + "%",
+        textAlign: "center", top: 24, textStyle: { color: C.ink, fontSize: 12, fontWeight: 700 } });
+      grids.push({ left: (idx * cellW + (idx === 0 ? 8 : 5)) + "%", width: (cellW - (idx === 0 ? 10 : 7)) + "%",
+        top: 48, height: cellH - 116, containLabel: false });
+      xAxes.push({ gridIndex: idx, type: "value", scale: true,
+        name: "CREs per gene", nameLocation: "middle", nameGap: 24,
+        nameTextStyle: { color: C.soft, fontSize: 9 }, axisLabel: { color: C.soft, fontSize: 9 },
+        splitLine: { lineStyle: { color: C.grid } } });
+      yAxes.push({ gridIndex: idx, type: "value", scale: true,
+        name: (idx === 0 ? "|Δlog2FC|" : ""), nameLocation: "middle", nameGap: 30,
+        nameTextStyle: { color: C.soft, fontSize: 9 }, axisLabel: { color: C.soft, fontSize: 9 },
+        splitLine: { lineStyle: { color: C.grid } } });
+      series.push({ name: "CTCF-bound", type: "scatter", xAxisIndex: idx, yAxisIndex: idx, symbolSize: 5,
+        itemStyle: { color: C.blue, opacity: .45 },
+        data: bound.map(function (r) { return { value: [r.n, r.abs_diff], name: r.gene }; }) });
+      series.push({ name: "not-CTCF", type: "scatter", xAxisIndex: idx, yAxisIndex: idx, symbolSize: 5,
+        itemStyle: { color: C.peri, opacity: .45 },
+        data: free.map(function (r) { return { value: [r.n, r.abs_diff], name: r.gene }; }) });
+    });
+
     var opt = Object.assign(base(), {
-      title: title("CRE types and CTCF", "all genes — not split by same/different"),
-      grid: { left: 12, right: 18, top: 74, bottom: 44, containLabel: true },
-      xAxis: Object.assign(axis(""), { type: "category", data: cats, axisLabel: { color: C.soft, fontSize: 10, interval: 0 } }),
-      yAxis: Object.assign(axis("genes"), { type: "value" }),
-      series: [{
-        type: "bar", barMaxWidth: 46,
-        itemStyle: {
-          color: function (p) {
-            var cat = cats[p.dataIndex];
-            return ["PLS", "pELS", "dELS"].indexOf(cat) >= 0 ? C.cyan : (cat === "CTCF-bound" ? C.blue : C.peri);
-          }, borderRadius: [4, 4, 0, 0]
-        },
-        label: { show: true, position: "top", color: C.muted, fontSize: 9, formatter: function (p) { return p.value >= 1000 ? (p.value / 1000).toFixed(1) + "k" : p.value; } },
-        data: cats.map(function (c) { var row = d.filter(function (r) { return r.category === c; })[0]; return row ? row.n : null; })
-      }]
+      title: titles,
+      legend: { top: 2, textStyle: { color: C.muted }, data: ["CTCF-bound", "not-CTCF"], itemGap: 14 },
+      tooltip: Object.assign({}, base().tooltip, { trigger: "item" }),
+      grid: grids, xAxis: xAxes, yAxis: yAxes, series: series
     });
     opt.tooltip.formatter = function (p) {
-      var row = d.filter(function (r) { return r.category === p.name; })[0] || {};
-      return "<b>" + p.name + "</b><br>n = " + (row.n != null ? row.n.toLocaleString() : "–") +
-        "<br>mean |Δlog2FC| = " + nfmt(row.mean_abs_diff, 2);
+      return "<b>" + (p.data && p.data.name ? p.data.name : "") + "</b><br>|Δlog2FC| " + nfmt(p.value[1], 2) +
+        "<br>CREs " + p.value[0] + " · " + p.seriesName;
     };
     render(el, opt);
   };

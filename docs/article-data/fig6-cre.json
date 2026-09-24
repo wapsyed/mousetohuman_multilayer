@@ -1,1 +1,0 @@
-[{"category":"PLS","n":93190,"mean_abs_diff":0.6155,"group":"CRE type"},{"category":"pELS","n":174729,"mean_abs_diff":0.6241,"group":"CRE type"},{"category":"dELS","n":218349,"mean_abs_diff":0.6569,"group":"CRE type"},{"category":"CTCF-bound","n":330416,"mean_abs_diff":0.6262,"group":"CTCF"},{"category":"not-CTCF","n":155852,"mean_abs_diff":0.6605,"group":"CTCF"}]

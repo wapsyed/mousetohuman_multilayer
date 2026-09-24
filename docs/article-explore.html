@@ -98,16 +98,15 @@
     <p class="x-kicker">05 · Functional modules</p>
     <h2>Modules travel better than genes</h2>
     <p class="x-lede">Collapsing genes into blood transcriptional modules (BTMs) revealed far stronger cross-species conservation. Explore the module-level correlation and the share of leading-edge genes conserved per process.</p>
-    <div class="x-grid">
-      <div class="x-card">
-        <h3>Cross-species module correlation</h3>
-        <div data-chart="btmScatter" data-data="article-data/fig4-btm.json"></div>
-      </div>
-      <figure class="x-card">
-        <h3>Shared leading-edge genes</h3>
-        <div class="x-canvas" data-chart="btmShared" data-data="article-data/fig4-btm.json"></div>
-      </figure>
-    </div>
+    <figure class="x-card">
+      <h3>Cross-species module correlation</h3>
+      <p class="x-sub">NES per module · one panel per condition · the legend toggles every panel</p>
+      <div class="x-canvas" data-chart="btmFacets" data-data="article-data/fig4-btm.json"></div>
+    </figure>
+    <figure class="x-card" style="margin-top:1.1rem;">
+      <h3>Shared leading-edge genes</h3>
+      <div class="x-canvas" data-chart="btmShared" data-data="article-data/fig4-btm.json"></div>
+    </figure>
   </section>
 
   <section class="x-section" id="evolution">
@@ -129,9 +128,9 @@
       <div class="x-canvas" data-chart="regBars" data-data="article-data/fig6-regulation.json"></div>
     </figure>
     <figure class="x-card" style="margin-top:1.1rem;">
-      <h3>CRE types &amp; CTCF</h3>
-      <p class="x-sub">All genes — not split by same/different</p>
-      <div class="x-canvas" data-chart="creCtcf" data-data="article-data/fig6-cre.json"></div>
+      <h3>|&Delta;log2FC| vs CRE number, per CRE type</h3>
+      <p class="x-sub">One panel per CRE type (PLS · pELS · dELS) · colour = CTCF-bound or not · hover a point for its gene</p>
+      <div class="x-canvas" data-chart="creType" data-data="article-data/fig6-cre-type.json"></div>
     </figure>
   </section>
 
@@ -182,6 +181,6 @@
 </div>
 
 <script src="assets/vendor/echarts.min.js"></script>
-<script src="assets/explore.js?v=10"></script>
+<script src="assets/explore.js?v=12"></script>
 </body>
 </html>

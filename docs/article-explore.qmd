@@ -142,13 +142,16 @@ ggplotly(
 btm <- read_data("fig4-btm.json") |>
   filter(is.finite(nes_mouse), is.finite(nes_human))
 
-plot_ly(btm, x = ~nes_mouse, y = ~nes_human, color = ~group,
-        type = "scattergl", mode = "markers", colors = PAL,
-        marker = list(size = 7, opacity = .75),
-        text = ~paste(process, "<br>", pathogen, timepoint_comparison, "<br>", status),
-        hovertemplate = "%{text}<br>NES mouse %{x:.2f} · human %{y:.2f}<extra></extra>") |>
-  layout(title = "Cross-species module correlation (BTM NES)",
-         xaxis = list(title = "NES mouse"), yaxis = list(title = "NES human"))
+ggplotly(
+  ggplot(btm, aes(nes_mouse, nes_human, color = group,
+                  text = paste0(process, "<br>", pathogen, " · ", timepoint_comparison, "<br>", status))) +
+    geom_point(size = .9, alpha = .8) +
+    geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "black", linewidth = .4) +
+    facet_wrap(~ pathogen, ncol = 3, scales = "free") +
+    scale_color_manual(values = PAL) +
+    labs(x = "NES mouse", y = "NES human", color = NULL) +
+    theme_minimal(base_size = 11),
+  height = 560, tooltip = "text")
 ```
 
 ```{r}
@@ -214,16 +217,19 @@ plot_ly(reg, x = ~y, y = ~label, type = "bar", orientation = "h",
 
 ```{r}
 #| fig-height: 4
-cre <- read_data("fig6-cre.json")
-cre$category <- factor(cre$category, levels = c("PLS", "pELS", "dELS", "CTCF-bound", "not-CTCF"))
+cre <- read_data("fig6-cre-type.json") |>
+  mutate(ctcf = ifelse(ctcf_bound, "CTCF-bound", "not-CTCF"),
+         type = factor(type, levels = c("PLS", "pELS", "dELS")))
 
-plot_ly(cre, x = ~category, y = ~n, type = "bar",
-        color = ~group, colors = PAL[1:2],
-        customdata = ~mean_abs_diff,
-        hovertemplate = "%{x}<br>n = %{y:,}<br>mean |dLog2FC| = %{customdata:.2f}<extra></extra>") |>
-  layout(title = "CRE types and CTCF (all genes, not split by same/different)",
-         xaxis = list(title = ""), yaxis = list(title = "genes"),
-         legend = list(title = list(text = "")))
+ggplotly(
+  ggplot(cre, aes(n, abs_diff, color = ctcf,
+                  text = paste0(gene, "<br>|dLog2FC| ", round(abs_diff, 2), "<br>", n, " CREs"))) +
+    geom_point(size = .8, alpha = .5) +
+    facet_wrap(~ type, ncol = 3, scales = "free_x") +
+    scale_color_manual(values = c(`CTCF-bound` = PAL[2], `not-CTCF` = PAL[3])) +
+    labs(x = "CREs per gene", y = "|Δlog2FC|", color = NULL) +
+    theme_minimal(base_size = 11),
+  height = 340, tooltip = "text")
 ```
 
 ## 06 · The multilayer model {#model}
