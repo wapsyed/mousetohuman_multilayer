@@ -214,19 +214,27 @@ try({
   write_json_df(gc %>% sample_n(min(20000, nrow(gc))), "fig4-genecorr.json", 3)
 })
 
-# ── 10 · Fig. 6 — CRE types and CTCF (not split by same/different) -----------
+# ── 10 · Fig. 6 — |Δlog2FC| vs CRE number and CTCF status (per gene) ---------
 try({
-  cres <- read_rds("tables/Regulation/cres_type_homology_comparison_dge_legs_stats.rds") %>%
-    filter(is.finite(abs_log2fc_diff))
-  cre <- bind_rows(
-    cres %>% filter(!is.na(type_human)) %>% group_by(category = type_human) %>%
-      summarise(n = n(), mean_abs_diff = mean(abs_log2fc_diff, na.rm = TRUE), .groups = "drop") %>%
-      mutate(group = "CRE type"),
-    cres %>% filter(!is.na(ctcf_human)) %>% group_by(category = ctcf_human) %>%
-      summarise(n = n(), mean_abs_diff = mean(abs_log2fc_diff, na.rm = TRUE), .groups = "drop") %>%
-      mutate(group = "CTCF")
-  )
-  if (nrow(cre)) write_json_df(cre, "fig6-cre.json", 4)
+  sc <- read_rds("Modelling/Models/score_table_v2.rds")
+  cre_gene <- sc %>%
+    mutate(
+      gene = hgnc_symbol,
+      n_cre = n_total_cres_gene,
+      n_type = coalesce(n_type_PLS, 0) + coalesce(n_type_pELS, 0) + coalesce(n_type_dELS, 0),
+      ctcf_bound = (coalesce(`n_ctcf_pELS_CTCF-bound`, 0) +
+                      coalesce(`n_ctcf_dELS_CTCF-bound`, 0) +
+                      coalesce(`n_ctcf_PLS_CTCF-bound`, 0)) > 0
+    ) %>%
+    filter(is.finite(abs_log2fc_diff)) %>%
+    group_by(gene) %>%
+    summarise(n_cre = mean(n_cre, na.rm = TRUE),
+              n_type = mean(n_type, na.rm = TRUE),
+              ctcf_bound = any(ctcf_bound, na.rm = TRUE),
+              abs_diff = mean(abs_log2fc_diff, na.rm = TRUE),
+              .groups = "drop") %>%
+    filter(is.finite(n_type), is.finite(abs_diff))
+  if (nrow(cre_gene)) write_json_df(cre_gene, "fig6-cre-gene.json", 4)
 })
 
 cat("\nDone —", length(wrote), "files written to docs/article-data/\n")
