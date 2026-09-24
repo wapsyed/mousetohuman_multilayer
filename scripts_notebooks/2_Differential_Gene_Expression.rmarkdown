@@ -598,7 +598,7 @@ Compute log2 fold-changes for human Fluad samples (days 1, 3, 7 vs day 0), save 
 #Import
 eset_human_mouse = readRDS(file = here("tables", "Differential gene expression", "influenza_human_mouse_eset.rds"))
 human_mouse_fluad_matrix = eset_human_mouse %>% exprs()
-human_mouse_fluad_metadata = readRDS(file = here("tables", "processed_data", "influenza_human_mouse_metadata.rds.png"))
+human_mouse_fluad_metadata = readRDS(file = here("tables", "processed_data", "influenza_human_mouse_metadata.rds"))
 
 # Subset to human samples, excluding outlier participants
 human_mouse_fluad_matrix_human = human_mouse_fluad_matrix %>% 

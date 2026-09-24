@@ -12,6 +12,10 @@
 
 > **📄 Read the paper:** [**interactive HTML edition**](https://wapsyed.github.io/mousetohuman_multilayer/read-paper.html) — the complete manuscript, designed for the web (the bioRxiv preprint and the peer-reviewed version are linked here as they become available).
 
+> **🔎 Explore the data:** [**immersive, interactive charts**](https://wapsyed.github.io/mousetohuman_multilayer/article-explore.html) — the evidence behind every figure, built from the study's own results (filter, hover and zoom).
+
+> **🚀 Predict with your own data:** [**mousetohuman_predict**](https://github.com/wapsyed/mousetohuman_predict) — apply the trained models to your own murine dataset: a step-by-step notebook (DGE → GSEA → prediction → translational scores), the fitted models, and a Binder launcher — no installation needed.
+
 ------------------------------------------------------------------------
 
 ## Overview

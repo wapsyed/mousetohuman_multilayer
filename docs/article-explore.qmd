@@ -1,0 +1,139 @@
+---
+title: "Explore the data"
+subtitle: "From mice to humans — interactive companion (Quarto)"
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    toc-location: left
+    toc-title: "Contents"
+    theme: cosmo
+    css:
+      - assets/article-qmd.css
+      - assets/explore.css
+    output-file: article-explore-quarto.html
+    embed-resources: false
+    lang: en
+    code-fold: true
+    code-summary: "Show R code"
+    include-after-body: assets/explore-quarto-init.html
+---
+
+::: {.callout-note}
+**Editable Quarto edition.** The charts are the *same* ECharts components as
+the [polished edition](article-explore.html) — assembled here in R with
+`htmltools` from the data in `docs/article-data/`. Edit the `card(...)` calls
+below and re-render with `quarto render article-explore.qmd`.
+:::
+
+```{r setup}
+#| include: false
+.libPaths(c(file.path(here::here(), "renv", "library", "linux-zorin-noble", "R-4.6"), .libPaths()))
+suppressPackageStartupMessages(library(htmltools))
+
+# Wrap the shared ECharts components in the Explore card markup.
+card <- function(chart, data, title, sub = NULL, canvas = TRUE, var = NULL, bins = NULL) {
+  attrs <- sprintf('data-chart="%s" data-data="article-data/%s"', chart, data)
+  if (!is.null(var))  attrs <- paste(attrs, sprintf('data-var="%s"', var))
+  if (!is.null(bins)) attrs <- paste(attrs, sprintf('data-bins="article-data/%s"', bins))
+  cls <- if (canvas) ' class="x-canvas"' else ''
+  sprintf(
+    '<div class="x-card"><h3>%s</h3>%s<div%s %s></div></div>',
+    title,
+    if (is.null(sub)) "" else sprintf('<p class="x-sub">%s</p>', sub),
+    cls, attrs
+  )
+}
+grid2 <- function(...) sprintf('<div class="x-grid two">%s</div>', paste0(...))
+```
+
+## 01 · Data curation {#curation}
+
+From every immunization dataset available, only a handful matched across species.
+
+```{r}
+#| results: asis
+cat(grid2(
+  card("genusBar", "fig1-genus.json", "Datasets by genus"),
+  card("sankey", "fig1-sankey.json", "From all datasets to the final cohorts")
+))
+cat(card("studiesTable", "fig1-studies.json", "Curated datasets",
+         "20 per page · filter and sort", canvas = FALSE))
+```
+
+## 02 · Signal and noise {#conservation}
+
+```{r}
+#| results: asis
+cat(card("dgeFacets", "fig2-dge.json", "Significant genes by condition",
+         "Human vs mouse — one panel per pathogen"))
+cat(card("dgeScatter", "fig2-dge.json", "Noise vs effect size"))
+```
+
+## 03 · Classification {#classification}
+
+```{r}
+#| echo: false
+#| fig-align: center
+knitr::include_graphics("article-figures/fig3.png")
+```
+
+The interactive ROC/PR matrices are in preparation; the full-resolution figure
+is in the [complete article](article.html#fig-3).
+
+## 04 · Functional modules {#modules}
+
+```{r}
+#| results: asis
+cat(card("btmScatter", "fig4-btm.json", "Cross-species module correlation", canvas = FALSE))
+cat(card("btmShared", "fig4-btm.json", "Shared leading-edge genes"))
+```
+
+## 05 · Evolution and regulation {#evolution}
+
+```{r}
+#| results: asis
+cat(grid2(
+  card("evoScatter", "fig6-evolution.json", "Protein identity",
+       var = "identity_human2mouse", bins = "fig6-evolution-bins.json"),
+  card("evoScatter", "fig6-evolution.json", "Evolutionary distance",
+       var = "dist_k80", bins = "fig6-evolution-bins.json")
+))
+cat(card("regBars", "fig6-regulation.json", "Regulatory architecture"))
+```
+
+## 06 · The multilayer model {#model}
+
+```{r}
+#| results: asis
+cat(card("perfFacets", "fig7-perf.json", "Model performance",
+         "Out-of-fold (LOCO) — one panel per task"))
+cat(card("importanceBars", "fig7-importance.json", "Feature importance", canvas = FALSE))
+cat(card("geneFacets", "fig7-genes.json", "Gene explorer — observed vs predicted",
+         "Human rank per pathogen · hover a point for its gene · search to highlight",
+         canvas = FALSE))
+cat(card("priorityTable", "fig7-priority.json", "Priority convergent genes", canvas = FALSE))
+```
+
+## 07 · Take-aways {#numbers}
+
+::: {.columns}
+::: {.column width="25%"}
+### 0.23
+R² · human rank transfer (random forest)
+:::
+::: {.column width="25%"}
+### 0.85
+ROC-AUC · directional concordance
+:::
+::: {.column width="25%"}
+### 0.62
+ROC-AUC · shared leading-edge genes
+:::
+::: {.column width="25%"}
+### 8,742
+genes scored out-of-fold
+:::
+:::
+
+[Read the full article →](article.html){.btn} · [Open the polished Explore edition →](article-explore.html){.btn}

@@ -96,18 +96,25 @@ try({
 
 # ── 5 · Fig. 1 — data curation (genus counts + Sankey + studies) -------------
 try({
-  ann <- read_csv2("tables/Data curation/datacuration_annotated.csv") %>%
-    mutate(genus = trimws(sub(" .*$", "", taxon)))
-  genus <- ann %>% count(genus, sort = TRUE) %>% rename(datasets = n)
+  step2 <- read_csv2("tables/Data curation/datacuration_step2.csv")
+  genus <- step2 %>%
+    filter(!grepl("cancer|tumor|autoimmune|drug", tolower(title))) %>%
+    filter(grepl("vaccin|immuniz", tolower(title))) %>%
+    mutate(genus = trimws(sub(" .*$", "", organism))) %>%
+    count(genus, sort = TRUE) %>%
+    rename(datasets = n)
   write_json_df(genus, "fig1-genus.json")
 
   sankey_path <- file.path(root, "tables/Data curation/datacuration_annotated_sankey_blood.csv")
   if (file.exists(sankey_path)) {
+    # keep the first transition only and drop self-loops: a Sankey must be a DAG
     sk <- read_csv2("tables/Data curation/datacuration_annotated_sankey_blood.csv") %>%
-      select(source, target, value) %>%
-      filter(!is.na(source), !is.na(target), value > 0)
+      select(source, target, value, step_from) %>%
+      filter(!is.na(source), !is.na(target), value > 0,
+             source != target, step_from == 0)
     write_json_df(sk, "fig1-sankey.json")
   }
+  ann <- read_csv2("tables/Data curation/datacuration_annotated.csv")
   studies <- ann %>%
     filter(!is.na(gse_id)) %>%
     transmute(gse = gse_id, pathogen = target_pathogen, vaccine = vaccine_type,
@@ -143,32 +150,27 @@ try({
 
 # ── 8 · Fig. 6 — evolution and regulatory architecture -----------------------
 try({
-  sc <- read_rds("tables/human_mouse_statsmodelling_gene_annotated_layers.rds")
-  keep <- c("hgnc_symbol", "treatment", "pathogen", "status_original",
-            "identity_human2mouse", "dist_k80", "abs_log2fc_diff",
-            "inverse_se_mouse", "n_tf_total", "pct_tf_shared",
-            "n_total_cres_gene", "pct_match_type_PLS", "pct_match_type_pELS",
-            "pct_match_type_dELS",
-            "pct_match_ctcf_dELS_CTCF-bound", "pct_match_ctcf_pELS_CTCF-bound",
-            "rank_mouse", "rank_human", "mean_log2fc_mouse", "mean_log2fc_human")
-  keep <- intersect(keep, names(sc))
-  evo_all <- sc %>% select(all_of(keep))
-
-  # deterministic subsample for the scatter (keeps the JSON light)
+  # (a–b) protein identity and Kimura distance vs expression divergence
+  gi <- read_rds("tables/Gene and Protein sequences/human_mouse_gene_info_dge_clean.rds")
+  cds <- read_rds("tables/Gene and Protein sequences/human_mouse_cds_distance.rds") %>%
+    select(hgnc_symbol, dist_k80)
+  evo_all <- gi %>%
+    left_join(cds, by = c("gene" = "hgnc_symbol")) %>%
+    filter(is.finite(abs_log2fc_diff))
   set.seed(1)
   evo <- evo_all %>% sample_n(min(6000, nrow(evo_all)))
   write_json_df(evo, "fig6-evolution.json", 4)
 
-  # binned summaries for the regression lines
   bins_from <- function(df, col, n = 12) {
     x <- df[[col]]; y <- df$abs_log2fc_diff
     ok <- is.finite(x) & is.finite(y)
     if (sum(ok) < 20) return(NULL)
-    br <- quantile(x[ok], probs = seq(0, 1, length.out = n + 1), na.rm = TRUE)
-    grp <- cut(x[ok], breaks = unique(br), include.lowest = TRUE)
+    br <- unique(quantile(x[ok], probs = seq(0, 1, length.out = n + 1), na.rm = TRUE))
+    if (length(br) < 3) return(NULL)
+    grp <- cut(x[ok], breaks = br, include.lowest = TRUE)
+    mid <- aggregate(x[ok], list(bin = grp), function(v) mean(v, na.rm = TRUE))
     agg <- aggregate(y[ok], list(bin = grp), function(v) mean(v, na.rm = TRUE))
     cnt <- aggregate(y[ok], list(bin = grp), length)
-    mid <- aggregate(x[ok], list(bin = grp), function(v) mean(v, na.rm = TRUE))
     data.frame(var = col, x = mid$x, y = agg$x, n = cnt$x)
   }
   evo_bins <- bind_rows(
@@ -176,29 +178,23 @@ try({
     bins_from(evo_all, "dist_k80"))
   if (nrow(evo_bins)) write_json_df(evo_bins, "fig6-evolution-bins.json", 4)
 
-  # regulatory aggregates by CRE type / CTCF status
-  reg_rows <- list()
-  if ("n_type_PLS" %in% names(sc) && "n_type_pELS" %in% names(sc) && "n_type_dELS" %in% names(sc)) {
-    dom <- sc %>%
-      mutate(dominant = case_when(
-        n_type_PLS >= n_type_pELS & n_type_PLS >= n_type_dELS ~ "PLS",
-        n_type_pELS >= n_type_dELS ~ "pELS",
-        TRUE ~ "dELS")) %>%
-      group_by(dominant) %>%
-      summarise(abs_diff = mean(abs_log2fc_diff, na.rm = TRUE),
-                n = n(), .groups = "drop") %>%
-      transmute(var = "dominant CRE class", bin = dominant, y = abs_diff, n = n)
-    reg_rows[[length(reg_rows) + 1]] <- dom
+  # (c–f) cis-regulatory architecture: CRE type, CTCF status and matching
+  cres <- read_rds("tables/Regulation/cres_type_homology_comparison_dge_legs_stats.rds") %>%
+    filter(is.finite(abs_log2fc_diff))
+  agg_by <- function(df, col, label, keep = NULL) {
+    out <- df %>%
+      group_by(bin = .data[[col]]) %>%
+      summarise(y = mean(abs_log2fc_diff, na.rm = TRUE), n = n(), .groups = "drop") %>%
+      mutate(var = label)
+    if (!is.null(keep)) out <- out %>% filter(bin %in% keep)
+    out %>% filter(!is.na(bin))
   }
-  for (col in c("pct_match_type_pELS", "pct_match_type_dELS",
-                "pct_match_ctcf_dELS_CTCF-bound", "pct_match_ctcf_pELS_CTCF-bound")) {
-    if (col %in% names(sc)) {
-      b <- bins_from(sc, col, n = 6)
-      if (!is.null(b)) reg_rows[[length(reg_rows) + 1]] <-
-        transmute(b, var = col, bin = as.character(bin))
-    }
-  }
-  if (length(reg_rows)) write_json_df(bind_rows(reg_rows), "fig6-regulation.json", 4)
+  reg <- bind_rows(
+    agg_by(cres, "match_cretype", "CRE type match", c("Same", "Different")),
+    agg_by(cres, "match_ctcf", "CTCF match", c("Same", "Different")),
+    agg_by(cres, "type_human", "CRE class (human)", c("PLS", "pELS", "dELS")),
+    agg_by(cres, "match_homology_group", "CRE homology group"))
+  if (nrow(reg)) write_json_df(reg, "fig6-regulation.json", 4)
 })
 
 cat("\nDone —", length(wrote), "files written to docs/article-data/\n")

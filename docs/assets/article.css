@@ -126,6 +126,22 @@ html { font-size: calc(16px * var(--a-scale, 1)); }
 .front-matter .corr { margin-top: .2rem; }
 .article-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin: 1.1rem 0 .2rem; }
 
+/* immersive edition call-to-action at the very top */
+.explore-cta {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .75rem;
+  margin: 0 0 1.5rem; padding: .85rem 1.05rem;
+  border: 1px solid var(--rule-strong); border-radius: 10px;
+  background: linear-gradient(90deg, rgba(77, 187, 213, .12), rgba(67, 97, 238, .12));
+}
+.explore-cta-label {
+  font-family: var(--font-sans); font-size: .72rem; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+}
+.explore-cta .btn { margin-left: auto; }
+@media (max-width: 680px) {
+  .explore-cta .btn { margin-left: 0; flex: 1 1 100%; justify-content: center; }
+}
+
 /* ── body typography ────────────────────────────────────────────────────── */
 .article-main p { font-size: 1rem; line-height: 1.75; margin: 1rem 0; }
 .article-main h2 {

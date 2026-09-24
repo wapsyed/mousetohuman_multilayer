@@ -78,7 +78,7 @@ SHELL = """<!DOCTYPE html>
 <title>__TITLE__ | Mouse2Human</title>
 <meta name="description" content="__DESC__">
 <link rel="stylesheet" href="assets/style.css?v=d23f4625">
-<link rel="stylesheet" href="assets/article.css?v=1">
+<link rel="stylesheet" href="assets/article.css?v=2">
 </head>
 <body class="article-page">
 <div class="read-progress" aria-hidden="true"><span id="readProgress"></span></div>
@@ -929,7 +929,13 @@ def main(argv=None):
     body_html, toc = render_body(blocks, args.figures_dir, meta)
     toc_html = render_toc(toc)
     refs_html = render_refs(meta["refs"])
-    content = render_header(meta) + "\n" + body_html + "\n" + refs_html
+    top_cta = (
+        '    <div class="explore-cta">\n'
+        '      <span class="explore-cta-label">New &middot; immersive edition</span>\n'
+        '      <a class="btn" href="article-explore.html">Explore the data &rarr;</a>\n'
+        '    </div>'
+    )
+    content = top_cta + "\n" + render_header(meta) + "\n" + body_html + "\n" + refs_html
 
     page = (SHELL
             .replace("__NAV__", NAV)
