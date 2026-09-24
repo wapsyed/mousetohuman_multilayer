@@ -145,6 +145,8 @@
 }
 .x-card .x-sub { font-size: .78rem; color: var(--x-soft); margin: 0 0 .6rem; }
 .x-canvas { width: 100%; height: 340px; }
+/* a container that holds its own canvas must not force a fixed height */
+.x-card .x-canvas:has(.x-canvas) { height: auto; }
 .x-canvas.tall { height: 440px; }
 .x-canvas.short { height: 260px; }
 .x-card figcaption { font-size: .74rem; color: var(--x-soft); margin-top: .5rem; line-height: 1.5; }
@@ -165,6 +167,9 @@
 .x-pageinfo { font-size: .72rem; color: var(--x-soft); margin-left: auto; }
 .x-chip:disabled { opacity: .4; cursor: not-allowed; }
 .x-chip:disabled:hover { border-color: var(--x-rule); color: var(--x-muted); }
+.x-group-legend { display: flex; flex-wrap: wrap; gap: .35rem .9rem; margin: .1rem 0 .5rem; }
+.x-gl-item { display: inline-flex; align-items: center; gap: .35rem; font-size: .66rem; color: var(--x-muted); }
+.x-gl-item i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; }
 
 /* tables */
 .x-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: .4rem; }

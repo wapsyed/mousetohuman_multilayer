@@ -6,7 +6,7 @@
   <title>Mouse2Human — Explore the data</title>
   <meta name="description" content="Immersive, interactive companion to the Mouse2Human manuscript: explore the data behind the figures.">
   <link rel="stylesheet" href="assets/style.css?v=d23f4625">
-  <link rel="stylesheet" href="assets/explore.css?v=3">
+  <link rel="stylesheet" href="assets/explore.css?v=4">
 </head>
 <body class="explore-page">
 <div class="read-progress" aria-hidden="true"><span id="readProgress"></span></div>
@@ -90,7 +90,7 @@
     <figure class="x-card">
       <h3>Human vs mouse log2FC per gene</h3>
       <p class="x-sub">One panel per condition · r = Pearson correlation · hover a point for its gene</p>
-      <div class="x-canvas" data-chart="geneCorrelation" data-data="article-data/fig4-genecorr.json" data-meta="article-data/fig4-genecorr-meta.json"></div>
+      <div data-chart="geneCorrelation" data-data="article-data/fig4-genecorr.json" data-meta="article-data/fig4-genecorr-meta.json"></div>
     </figure>
   </section>
 
@@ -98,14 +98,15 @@
     <p class="x-kicker">05 · Functional modules</p>
     <h2>Modules travel better than genes</h2>
     <p class="x-lede">Collapsing genes into blood transcriptional modules (BTMs) revealed far stronger cross-species conservation. Explore the module-level correlation and the share of leading-edge genes conserved per process.</p>
-    <figure class="x-card">
+    <div class="x-card">
       <h3>Cross-species module correlation</h3>
-      <p class="x-sub">NES per module · one panel per condition · the legend toggles every panel</p>
-      <div class="x-canvas" data-chart="btmFacets" data-data="article-data/fig4-btm.json"></div>
-    </figure>
+      <p class="x-sub">NES per module · one panel per condition · shapes = significance (legend filters) · colour = module group</p>
+      <div data-chart="btmFacets" data-data="article-data/fig4-btm-modules.json"></div>
+    </div>
     <figure class="x-card" style="margin-top:1.1rem;">
       <h3>Shared leading-edge genes</h3>
-      <div class="x-canvas" data-chart="btmShared" data-data="article-data/fig4-btm.json"></div>
+      <p class="x-sub">% shared per module · one panel per condition · points coloured by module group, hover for the process</p>
+      <div data-chart="legsBox" data-data="article-data/fig4-btm.json"></div>
     </figure>
   </section>
 
@@ -130,7 +131,7 @@
     <figure class="x-card" style="margin-top:1.1rem;">
       <h3>|&Delta;log2FC| vs CRE number, per CRE type</h3>
       <p class="x-sub">One panel per CRE type (PLS · pELS · dELS) · colour = CTCF-bound or not · hover a point for its gene</p>
-      <div class="x-canvas" data-chart="creType" data-data="article-data/fig6-cre-type.json"></div>
+      <div data-chart="creType" data-data="article-data/fig6-cre-type.json"></div>
     </figure>
   </section>
 
@@ -181,6 +182,6 @@
 </div>
 
 <script src="assets/vendor/echarts.min.js"></script>
-<script src="assets/explore.js?v=12"></script>
+<script src="assets/explore.js?v=15"></script>
 </body>
 </html>

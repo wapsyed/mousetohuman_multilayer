@@ -31,7 +31,8 @@ suppressPackageStartupMessages({
   library(plotly); library(DT); library(ggplot2)
 })
 
-PAL <- c("#2e9db7", "#4361ee", "#7b8fe0", "#6b9e5f", "#d98a35", "#c94f86", "#3f9c86", "#8b6fd6")
+PAL <- c("#2e9db7", "#4361ee", "#7b8fe0", "#6b9e5f", "#d98a35", "#c94f86",
+         "#3f9c86", "#8b6fd6", "#b0563f", "#4f9dd9", "#9b7a3f", "#7a4f9b")
 
 read_data <- function(file) {
   path <- file.path(here::here("docs", "article-data"), file)
@@ -139,38 +140,40 @@ ggplotly(
 
 ```{r}
 #| fig-height: 6
-btm <- read_data("fig4-btm.json") |>
+btm <- read_data("fig4-btm-modules.json") |>
   filter(is.finite(nes_mouse), is.finite(nes_human))
 
 ggplotly(
-  ggplot(btm, aes(nes_mouse, nes_human, color = group,
-                  text = paste0(process, "<br>", pathogen, " · ", timepoint_comparison, "<br>", status))) +
-    geom_point(size = .9, alpha = .8) +
+  ggplot(btm, aes(nes_mouse, nes_human, color = group, shape = sig,
+                  text = paste0(process, "<br>", pathogen, " · ", timepoint_comparison, "<br>", sig))) +
+    geom_point(size = 2.2, alpha = .9) +
     geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "black", linewidth = .4) +
     facet_wrap(~ pathogen, ncol = 3, scales = "free") +
     scale_color_manual(values = PAL) +
-    labs(x = "NES mouse", y = "NES human", color = NULL) +
+    scale_shape_manual(values = c("all modules" = 16, "significant in mice" = 17, "significant in both" = 18)) +
+    labs(x = "NES mouse", y = "NES human", color = NULL, shape = NULL) +
     theme_minimal(base_size = 11),
   height = 560, tooltip = "text")
 ```
 
 ```{r}
 #| fig-height: 7
-shared <- btm |>
-  group_by(process) |>
-  summarise(pct = mean(percent, na.rm = TRUE), .groups = "drop") |>
-  filter(is.finite(pct)) |>
-  slice_max(pct, n = 22) |>
-  mutate(process = reorder(process, pct))
+legs <- read_data("fig4-btm.json") |>
+  filter(is.finite(percent), !is.na(process)) |>
+  group_by(pathogen, process) |>
+  summarise(pct = mean(percent, na.rm = TRUE), group = first(group), .groups = "drop")
 
-plot_ly(shared, x = ~pct, y = ~process, type = "bar", orientation = "h",
-        marker = list(color = ifelse(shared$pct >= 70, PAL[1],
-                              ifelse(shared$pct >= 45, PAL[3], PAL[2]))),
-        text = ~round(pct), textposition = "outside",
-        hovertemplate = "%{y}: %{x:.0f}% shared<extra></extra>") |>
-  layout(title = "Shared leading-edge genes per module (%)",
-         xaxis = list(title = "% shared", range = c(0, 105)), yaxis = list(title = ""),
-         margin = list(l = 200, r = 30, t = 50, b = 40))
+ggplotly(
+  ggplot(legs, aes("", pct, color = group,
+                   text = paste0(process, "<br>", round(pct), "% shared"))) +
+    geom_boxplot(width = .25, outlier.shape = NA, color = "grey35", fill = "grey92") +
+    geom_jitter(width = .16, size = 1.1, alpha = .9) +
+    facet_wrap(~ pathogen, ncol = 3, scales = "free_y") +
+    scale_color_manual(values = PAL) +
+    labs(x = "", y = "% shared", color = NULL) +
+    theme_minimal(base_size = 11) +
+    theme(axis.text.x = element_blank()),
+  height = 520, tooltip = "text")
 ```
 
 ## 05 · Evolution and regulation {#evolution}
