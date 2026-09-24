@@ -525,6 +525,90 @@
     }));
   };
 
+  R.geneCorrelation = function (el, d) {
+    var meta = el._meta || [];
+    var pts = d.filter(function (r) { return finite(r.lfc_mouse) && finite(r.lfc_human); });
+    var pathogens = uniq(pts.map(function (r) { return r.pathogen; }));
+    var cols = 2, cellH = 268, cellW = 100 / cols;
+    var nRows = Math.ceil(pathogens.length / cols);
+    el.style.height = (nRows * cellH + 30) + "px";
+    function isSame(r) { return r.same === true || r.same === "TRUE"; }
+
+    var titles = [], grids = [], xAxes = [], yAxes = [], series = [];
+    pathogens.forEach(function (p, idx) {
+      var r = Math.floor(idx / cols), c = idx % cols;
+      var sub = pts.filter(function (x) { return x.pathogen === p; });
+      var same = sub.filter(isSame), diff = sub.filter(function (x) { return !isSame(x); });
+      var m = meta.filter(function (x) { return x.pathogen === p; })[0] || {};
+      titles.push({
+        text: p + "  (n=" + (m.n || sub.length) + ")",
+        left: (c * cellW + cellW / 2) + "%", textAlign: "center", top: r * cellH + 24,
+        textStyle: { color: C.ink, fontSize: 12, fontWeight: 700 }
+      });
+      grids.push({ left: (c * cellW + (c === 0 ? 12 : 7)) + "%", width: (cellW - (c === 0 ? 15 : 11)) + "%",
+        top: r * cellH + 48, height: cellH - 104, containLabel: false });
+      xAxes.push({ gridIndex: idx, type: "value", min: -5, max: 5,
+        name: (r === nRows - 1 ? "log2FC mouse" : ""), nameLocation: "middle", nameGap: 24,
+        nameTextStyle: { color: C.soft, fontSize: 9 }, axisLabel: { color: C.soft, fontSize: 9 },
+        splitLine: { lineStyle: { color: C.grid } } });
+      yAxes.push({ gridIndex: idx, type: "value", min: -5, max: 5,
+        name: (c === 0 ? "log2FC human" : ""), nameLocation: "middle", nameGap: 30,
+        nameTextStyle: { color: C.soft, fontSize: 9 }, axisLabel: { color: C.soft, fontSize: 9 },
+        splitLine: { lineStyle: { color: C.grid } } });
+      series.push({ name: "concordant", type: "scatter", xAxisIndex: idx, yAxisIndex: idx, symbolSize: 5,
+        itemStyle: { color: C.cyan, opacity: .45 },
+        data: same.map(function (x) { return { value: [x.lfc_mouse, x.lfc_human], name: x.gene }; }) });
+      series.push({ name: "discordant", type: "scatter", xAxisIndex: idx, yAxisIndex: idx, symbolSize: 5,
+        itemStyle: { color: C.pink, opacity: .45 },
+        data: diff.map(function (x) { return { value: [x.lfc_mouse, x.lfc_human], name: x.gene }; }) });
+      series.push({ name: "y = x", type: "line", xAxisIndex: idx, yAxisIndex: idx, showSymbol: false, silent: true,
+        lineStyle: { color: mode === "dark" ? "rgba(225,230,245,.6)" : "rgba(0,0,0,.5)", type: "dashed", width: 1.5 },
+        data: [[-10, -10], [10, 10]] });
+    });
+
+    var opt = Object.assign(base(), {
+      title: titles,
+      legend: { top: 2, textStyle: { color: C.muted }, data: ["concordant", "discordant"], itemGap: 14 },
+      tooltip: Object.assign({}, base().tooltip, { trigger: "item" }),
+      grid: grids, xAxis: xAxes, yAxis: yAxes, series: series
+    });
+    opt.tooltip.formatter = function (p) {
+      if (p.seriesName === "y = x") return "";
+      return "<b>" + (p.data && p.data.name ? p.data.name : "") + "</b><br>log2FC mouse " + nfmt(p.value[0], 2) +
+        " · human " + nfmt(p.value[1], 2) + "<br>" + p.seriesName;
+    };
+    render(el, opt);
+  };
+
+  R.creCtcf = function (el, d) {
+    var order = ["PLS", "pELS", "dELS", "CTCF-bound", "not-CTCF"];
+    var cats = order.filter(function (c) { return d.some(function (r) { return r.category === c; }); });
+    d.forEach(function (r) { if (cats.indexOf(r.category) < 0) cats.push(r.category); });
+    var opt = Object.assign(base(), {
+      title: title("CRE types and CTCF", "all genes — not split by same/different"),
+      grid: { left: 12, right: 18, top: 74, bottom: 44, containLabel: true },
+      xAxis: Object.assign(axis(""), { type: "category", data: cats, axisLabel: { color: C.soft, fontSize: 10, interval: 0 } }),
+      yAxis: Object.assign(axis("genes"), { type: "value" }),
+      series: [{
+        type: "bar", barMaxWidth: 46,
+        itemStyle: {
+          color: function (p) {
+            var cat = cats[p.dataIndex];
+            return ["PLS", "pELS", "dELS"].indexOf(cat) >= 0 ? C.cyan : (cat === "CTCF-bound" ? C.blue : C.peri);
+          }, borderRadius: [4, 4, 0, 0]
+        },
+        label: { show: true, position: "top", color: C.muted, fontSize: 9, formatter: function (p) { return p.value >= 1000 ? (p.value / 1000).toFixed(1) + "k" : p.value; } },
+        data: cats.map(function (c) { var row = d.filter(function (r) { return r.category === c; })[0]; return row ? row.n : null; })
+      }]
+    });
+    opt.tooltip.formatter = function (p) {
+      var row = d.filter(function (r) { return r.category === p.name; })[0] || {};
+      return "<b>" + p.name + "</b><br>n = " + (row.n != null ? row.n.toLocaleString() : "–") +
+        "<br>mean |Δlog2FC| = " + nfmt(row.mean_abs_diff, 2);
+    };
+    render(el, opt);
+  };
+
   R.perfFacets = function (el, d) {
     var tasks = uniq(d.map(function (r) { return r.task; }));
     var cellH = 210;

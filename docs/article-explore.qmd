@@ -120,7 +120,7 @@ is in the [complete article](article.html#fig-3).
 #| fig-height: 7
 gc <- read_data("fig4-genecorr.json")
 meta <- read_data("fig4-genecorr-meta.json") |>
-  mutate(lab = sprintf("%s\nr = %.2f (n = %s)", pathogen, rho, format(n, big.mark = ",")))
+  mutate(lab = sprintf("%s\n(n = %s)", pathogen, format(n, big.mark = ",")))
 gc <- gc |> left_join(meta |> select(pathogen, lab), by = "pathogen")
 
 ggplotly(
@@ -129,6 +129,7 @@ ggplotly(
                                " · human ", round(lfc_human, 2)))) +
     geom_point(alpha = .35, size = .7) +
     geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "black", linewidth = .4) +
+    coord_cartesian(xlim = c(-5, 5), ylim = c(-5, 5)) +
     facet_wrap(~ lab, ncol = 3, scales = "free") +
     scale_color_manual(values = c(`FALSE` = PAL[6], `TRUE` = PAL[1])) +
     labs(x = "log2FC mouse", y = "log2FC human", color = NULL) +
