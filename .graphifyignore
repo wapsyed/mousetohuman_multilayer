@@ -1,0 +1,46 @@
+# Graphify — arquivos ignorados na extração (sintaxe .gitignore).
+# Projeto de 2.6 GB: exclui dependências (renv), dados (.rds/.csv), mídia
+# (png/pdf/html renderizado) e libs de site — mantém o conhecimento real.
+
+renv/
+.Rproj.user/
+Figures/
+graphify-out/
+**/site_libs/
+tables/          # dumps de dados (.txt/.csv/.rds) — enorme e sem valor de grafo
+
+# Dados / binários
+*.rds
+*.RData
+*.rda
+*.gz
+*.zip
+*.7z
+*.csv
+*.tsv
+*.xls
+*.xlsx
+*.pse
+*.cif
+*.pdb
+*.bed
+*.gmt
+*.map
+*.bin
+
+# Imagens, fontes e HTML/CSS/JS renderizados
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.pdf
+*.html
+*.css
+*.js
+*.woff
+*.woff2
+*.ttf
+*.eot
+
+# Ruído de sistema
+.DS_Store
