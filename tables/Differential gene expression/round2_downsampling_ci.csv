@@ -1,0 +1,4 @@
+condition,n_genes,median_ci_width,median_pct_iterations_significant,n_robust
+FLUADD Day 1,10132,0.8075405096121566,0,424
+FLUADD Day 3,10132,0.7979403657591448,0,0
+FLUADD Day 7,10132,0.8352839402359937,0,0

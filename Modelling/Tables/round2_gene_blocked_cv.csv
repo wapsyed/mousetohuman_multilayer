@@ -1,0 +1,7 @@
+feature_set,n_rows,model,rmse,rsq,task,roc_auc,pr_auc,prevalence
+All layers,8521,Linear (LM),27.898817513366232,0.06987052106348807,Rank transfer,NA,NA,NA
+All layers,8521,Random Forest,28.090587779360042,0.060422145044383785,Rank transfer,NA,NA,NA
+All layers,8521,Lasso,27.89684219517553,0.06996130319367158,Rank transfer,NA,NA,NA
+All layers,434,Logistic Regression,NA,NA,Shared-LEG classification,0.5718805704099822,0.8957244501088368,0.8617511520737328
+All layers,434,Random Forest,NA,NA,Shared-LEG classification,0.500222816399287,0.8635776390057153,0.8617511520737328
+All layers,434,Lasso,NA,NA,Shared-LEG classification,0.598440285204991,0.9055801328527178,0.8617511520737328

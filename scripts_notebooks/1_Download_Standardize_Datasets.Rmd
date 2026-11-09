@@ -1,0 +1,3023 @@
+---
+title: "2_Download_Standardize_Datasets"
+output: html_document
+---
+
+# Required
+
+Load the `here` package and source the project-wide library and utility script.
+
+```{r}
+# Load the `here` package and source the project-wide library and utility script.
+library(here)
+source(here("scripts_notebooks", "required.R"))
+```
+
+
+
+# Preprocessing
+
+#===================
+
+# 1. Fluad, Vaccine
+
+## Mouse
+Download dataset
+
+Download the Fluad/MF59 mouse dataset (GSE120661) from GEO. Extract metadata from the ExpressionSet, save it as a CSV, then extract and save the raw expression matrix.
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, echo=TRUE, cache = TRUE}
+# Download the GEO ExpressionSet
+filename = "GSE120661"
+eset <- getGEO(filename = here::here("tables", "raw_data", "GSE120661_series_matrix.txt.gz"))
+
+# Clean and save metadata
+influenza_hepatitisb_mouse_metadata = eset %>% 
+  pData() %>% 
+# Reorder columns
+  dplyr::select( 
+    geo_sample = "geo_accession", 
+    subject_id = "title",
+    sex = "gender:ch1", 
+    treatment = "treatment:ch1", 
+    tissue = "tissue:ch1",
+    timepoint = "timepoint:ch1",
+    animal_replicate = "animal replicate:ch1",
+    strain = "strain/background:ch1") %>% 
+  mutate(treatment = fct_relevel(treatment, "saline"),
+         timepoint = fct_relevel(timepoint, "0"),
+         condition = paste(treatment, timepoint, tissue, sep = "_"))
+
+#Save
+saveRDS(influenza_hepatitisb_mouse_metadata, file = here("tables", "processed_data", "influenza_hepatitisb_mouse_metadata.rds"))
+
+# Extract and save expression matrix
+eset <- exprs(eset)
+
+#Save
+eset %>% 
+  as.data.frame() %>% 
+  saveRDS(here("tables", "processed_data", "influenza_hepatitisb_mouse_exprs.rds"))
+
+```
+
+
+Inspect the distribution of expression values for one representative sample (GSM3407136) to confirm the data are on the log2 scale.
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, echo=TRUE, cache = TRUE}
+# Load the expression matrix
+influenza_hepatitisb_mouse_exprs = readRDS(here("tables", "processed_data", "influenza_hepatitisb_mouse_exprs.rds"))
+
+
+# Pivot to long format
+GSE120661_exprs_distribution = influenza_hepatitisb_mouse_exprs %>% 
+  rownames_to_column("probes") %>% 
+  pivot_longer(cols = -probes,
+               names_to = "sample_id",
+               values_to = "value") 
+
+# Plot expression histogram for the first sample
+GSE120661_exprs_distribution %>% 
+  filter(sample_id == "GSM3407136") %>% 
+  ggplot() +
+  aes(x = value) +
+  geom_histogram()
+```
+
+
+Import
+
+```{r}
+# Load metadata and expression
+influenza_hepatitisb_mouse_metadata = readRDS(here("tables", "processed_data", "influenza_mouse_metadata.rds"))
+influenza_hepatitisb_mouse_exprs = readRDS(here("tables", "processed_data", "influenza_hepatitisb_mouse_exprs.rds"))
+
+# Check probe count
+influenza_hepatitisb_mouse_exprs %>% rownames() %>% length()
+
+# Filter to Fluad PBMC samples, recode timepoint (hours to days)
+mouse_fluad_metadata = influenza_hepatitisb_mouse_metadata %>% 
+  filter(treatment == "Fluad",
+         tissue == "PBMC") %>% 
+  mutate(timepoint = as.character(timepoint) %>% as.numeric(),
+         timepoint = (timepoint / 24) %>% round(1),
+         participant_id = paste0("TriFLU-MF59_BL", animal_replicate)) %>% 
+  filter(timepoint %in% c(0, 1, 3, 7))
+
+#Save
+mouse_fluad_metadata %>% 
+  saveRDS(here("tables", "processed_data", "influenza_mouse_metadata.rds"))
+
+# Subset expression matrix to selected samples
+influenza_hepatitisb_mouse_exprs = influenza_hepatitisb_mouse_exprs %>% 
+  as.data.frame() %>% 
+  select(c(mouse_fluad_metadata$geo_sample)) %>% 
+  as.matrix()
+
+#Save
+influenza_hepatitisb_mouse_exprs %>% 
+  as.data.frame() %>% 
+  saveRDS(file = here("tables", "processed_data", "influenza_mouse_exprs.rds"))
+```
+
+Annotate genes
+
+```{r}
+# Set up Ensembl BioMart for mouse
+ensembl_mart <- biomaRt::useEnsembl(
+  biomart = "genes",
+  dataset = "mmusculus_gene_ensembl",   # humano: "hsapiens_gene_ensembl"
+  mirror  = "www"                        # se www cair, tenta useast/asia sozinho
+)
+
+# Get probe IDs from the expression matrix
+gene_id <- influenza_hepatitisb_mouse_exprs %>% rownames()
+
+# List available attributes
+listAttributes(ensembl_mart)
+
+# Retrieve annotations for all probes
+annot <- getBM(
+  attributes = c("agilent_sureprint_g3_ge_8x60k", 
+                 "ensembl_gene_id",
+                 "entrezgene_id",
+                 "mgi_symbol",
+                 "description"),
+  filters = "agilent_sureprint_g3_ge_8x60k",
+  values = gene_id,
+  mart = ensembl_mart)
+
+# Load mouse-to-human orthology lookup table
+library(FIT.mouse2man)
+HS_MM_Symbol_Entrez = FIT.mouse2man::HS_MM_Symbol_Entrez %>% 
+  clean_names() %>% 
+  rename(mouse_entrez = mouse_ortholog)
+
+# Summarise expression per probe, collapse to one row per gene
+mouse_fluad_log2summary = influenza_hepatitisb_mouse_exprs %>% #20,845 probes
+  as.data.frame() %>% 
+  rownames_to_column("probe") %>% 
+  pivot_longer(cols = -probe,
+               names_to = "sample",
+               values_to = "expression") %>% 
+  group_by(probe) %>% 
+# Compute per-probe summary statistics 
+  summarise(mean = mean(expression,na.rm = TRUE),
+            median = median(expression, na.rm = T)) %>%  
+  # Join BioMart annotation to expression data
+inner_join(annot %>% 
+              rename(probe = agilent_sureprint_g3_ge_8x60k), 
+            by = "probe") %>%  #24.009 rows
+  group_by(ensembl_gene_id) %>% 
+  # Keep probe with highest median expression per gene
+  slice_max(median, n = 1) %>%
+  ungroup() %>% 
+  select(-ensembl_gene_id) %>% 
+  distinct() %>% 
+  group_by(entrezgene_id) %>% 
+  slice_max(median, n = 1) %>%  #21.863 probes/entrez_ids
+  ungroup() %>% 
+  rename(mouse_entrez = entrezgene_id) %>% 
+  # Join human orthologs
+  inner_join(HS_MM_Symbol_Entrez, by = c("mouse_entrez", "mgi_symbol")) %>% 
+  group_by(hgnc_symbol) %>% 
+  # Keep probe with highest median expression per gene
+  slice_max(median, n = 1)  %>% #14.396
+  ungroup()
+
+# Remove HGNC symbols that map to multiple MGI symbols
+hgnc_symbol_dupes = mouse_fluad_log2summary %>% 
+  get_dupes(hgnc_symbol)
+
+mouse_fluad_log2summary = mouse_fluad_log2summary %>% 
+# Remove genes with ambiguous human symbol mappings
+  filter(!hgnc_symbol %in% c(hgnc_symbol_dupes$hgnc_symbol %>% unique())) 
+
+# Build filtered expression matrix with human gene symbols
+mouse_fluad_log2_filtered_probes = influenza_hepatitisb_mouse_exprs %>% 
+  as.data.frame() %>% 
+  rownames_to_column("probe") %>% 
+# Join expression data with annotation by probe ID
+  inner_join(mouse_fluad_log2summary, by = "probe") %>%   #214,396
+  select(human_symbol = hgnc_symbol,
+         human_entrez,
+         mouse_entrez,
+         c(mouse_fluad_metadata$geo_sample))
+
+mouse_fluad_log2_filtered_probes %>% dim()
+
+mouse_fluad_log2_hgnc_symbol = mouse_fluad_log2_filtered_probes 
+
+# Identify duplicated gene symbols
+mouse_fluad_log2_hgnc_symbol %>% get_dupes(human_symbol)
+
+#Save 
+mouse_fluad_log2_hgnc_symbol %>% 
+  saveRDS(here("tables", "processed_data", "influenza_mouse_exprs_hgnc_symbol.rds"))
+```
+
+Create expression set
+
+```{r}
+# Load annotation and metadata
+mouse_fluad_log2_hgnc_symbol = readRDS(here("tables", "processed_data", "influenza_mouse_exprs_hgnc_symbol.rds"))
+mouse_fluad_metadata = readRDS(here("tables", "processed_data", "influenza_mouse_metadata.rds")) 
+
+# Pivot to long, add metadata, compute log2 fold-change vs day 0
+mouse_fluad_log2fc_filtered_sample_long = mouse_fluad_log2_hgnc_symbol %>%
+  pivot_longer(cols = -human_symbol,
+               names_to = "geo_sample",
+               values_to = "log2") %>% 
+# Attach sample metadata 
+  inner_join(mouse_fluad_metadata %>% 
+               select(geo_sample, participant_id, timepoint),
+             by = "geo_sample") %>% 
+  select(participant_id, human_symbol,  timepoint, value = log2) %>%
+# Remove duplicate rows
+    distinct() %>% 
+  # Reshape to wide format with one column per timepoint
+  pivot_wider(names_from = timepoint, values_from = value, names_prefix = "day_") %>%
+# Reshape columns from wide to long using a common prefix pattern
+  pivot_longer(cols = starts_with("day_"),
+               names_to = "timepoint",
+               names_prefix = "day_",
+               values_to = "value") %>%
+  group_by(participant_id, human_symbol) %>% 
+# Extract baseline (day 0) expression value for each participant × gene pair
+  mutate(day0 = value[timepoint == "0"]) %>%
+  ungroup() %>%
+  # Compute log2 fold-change relative to baseline
+mutate(log2fc = value - day0) %>%
+  filter(timepoint != "0")
+
+#Save
+mouse_fluad_log2fc_filtered_sample_long %>% 
+  saveRDS(here("tables", "Differential gene expression", "influenza_mouse_log2fc_sample_clean_long.rds"))
+
+# Pivot to wide format (participants as columns)
+mouse_fluad_log2fc_filtered_sample_wide = mouse_fluad_log2fc_filtered_sample_long %>% 
+  select(-c(value:day0)) %>% 
+  pivot_wider(names_from = "participant_id",
+              values_from = "log2fc")
+
+```
+
+
+
+## Human
+
+Download dataset
+```{r eval=FALSE, message=FALSE, warning=FALSE, echo=TRUE, cache = TRUE}
+# Download GSE124689 from GEO
+GSE124689 <- getGEO("GSE124689", GSEMatrix = TRUE) 
+
+# Extract ExpressionSet
+eset <- GSE124689[[1]]
+
+# Expression matrix
+influenza_human_exprs <- eset %>% exprs()
+
+# Metadata
+influenza_human_metadata = eset %>% pData()
+
+#Save
+influenza_human_exprs %>% 
+  as.data.frame() %>% 
+  saveRDS(here("tables", "processed_data", "influenza_human_exprs.rds"))
+```
+Import data
+
+Load the raw expression matrix and the curated metadata, then filter to Fluad-treated PBMC samples only.
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, echo=TRUE, cache = TRUE}
+# Load expression matrix
+influenza_human_exprs = readRDS(here("tables", "processed_data", "influenza_human_exprs.rds"))
+
+# Load curated pheno data
+flu_expFC <- readRDS(here("tables", "FIT", "Flu_Human_expFC.rds"))
+flu_metadata = flu_expFC$cur_phenoData
+flu_metadata %>% filter(exposure_material_reported == "FLUADD")
+
+# Filter to Fluad PBMC samples
+human_samples_pbmc_fluad = flu_metadata %>% 
+  filter(exposure_material_reported == "FLUADD")
+```
+
+Annotate features
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, echo=TRUE, cache = TRUE}
+# Load platform annotation
+probes_annotation <- read.delim(here("tables", "raw_data", "GPL21272-58809.txt"), skip = 19, header = TRUE, sep = "\t", quote = "") %>% 
+  select(gene_id = ID, entrez_id = ENTREZ_GENE_ID, ensembl_id = ENSEMBL_ID, gene_symbol = GENE_SYMBOL) %>% 
+  mutate(gene_id = as.character(gene_id))
+
+# Join expression with annotation
+influenza_human_counts <- influenza_human_exprs %>%
+  as.data.frame() %>% 
+  rownames_to_column("gene_id") %>% 
+  inner_join(probes_annotation, by = "gene_id") %>% 
+  select(gene_id, entrez_id, ensembl_id, gene_symbol, c(human_samples_pbmc_fluad$biosample_accession)) %>% 
+  mutate(entrez_id = as.character(entrez_id)) 
+
+# Collapse multiple probes per Entrez ID (keep highest median)
+influenza_human_counts_genes_selected = influenza_human_counts %>% 
+  pivot_longer(cols = -c(gene_id, entrez_id, ensembl_id, gene_symbol),
+               names_to = "sample",
+               values_to = "expression") %>% 
+  group_by(entrez_id, gene_id) %>% 
+  drop_na(entrez_id) %>% 
+  summarise(median = median(expression),
+            median = round(median, 10)) %>% 
+  slice_max(median, n = 1) %>% 
+  ungroup()
+
+# Merge back with full data
+influenza_human_counts_raw = influenza_human_counts %>% 
+  inner_join(influenza_human_counts_genes_selected %>% 
+               select(gene_id, entrez_id),
+             by = join_by("gene_id", "entrez_id"))
+
+# Remove duplicate Entrez IDs by random sampling
+dupes_entrez = influenza_human_counts_genes_selected %>% 
+  get_dupes(entrez_id) %>% 
+  group_by(entrez_id) %>% 
+  slice_sample(n = 1)
+
+# Build Entrez-ID-based expression matrix
+influenza_human_not_normalized = influenza_human_counts_raw %>%
+  select(-gene_symbol) %>% 
+  filter(!gene_id %in% c(dupes_entrez$gene_id)) %>% 
+  distinct() %>% 
+  select(c(entrez_id, human_samples_pbmc_fluad$uid)) %>% 
+  column_to_rownames("entrez_id") 
+
+#Save
+human_fluadd_not_normalized %>% saveRDS(file = here("tables", "processed_data", "influenza_GSE124689_exprs.rds"))
+
+# Repeat collapse by gene symbol
+influenza_human_counts_genes_selected_symbol = influenza_human_counts %>% 
+  pivot_longer(cols = -c(gene_id, entrez_id, ensembl_id, gene_symbol),
+               names_to = "sample",
+               values_to = "expression") %>% 
+  group_by(gene_symbol, gene_id) %>% 
+  filter(gene_symbol != "") %>% 
+  drop_na(gene_symbol) %>% 
+  summarise(median = median(expression),
+            median = round(median, 10)) %>% 
+  slice_max(median, n = 1) %>% 
+  ungroup()
+
+influenza_human_counts_raw_symbol = influenza_human_counts %>% 
+  inner_join(influenza_human_counts_genes_selected_symbol %>% 
+               select(gene_id, gene_symbol),
+             by = join_by("gene_id", "gene_symbol"))
+
+# Remove duplicate gene symbols
+dupes_symbols = influenza_human_counts_genes_selected_symbol %>% 
+  get_dupes(gene_symbol) %>% 
+  group_by(gene_symbol) %>% 
+  slice_sample(n = 1)
+
+# Build symbol-based expression matrix
+human_fluadd_not_normalized_symbol = influenza_human_counts_raw_symbol %>%
+  filter(!gene_symbol %in% c(dupes_symbols$gene_symbol)) %>% 
+  distinct() %>% 
+  select(c(gene_symbol, human_samples_pbmc_fluad$uid)) %>% 
+  column_to_rownames("gene_symbol")
+
+# Save symbol-to-Entrez lookup
+human_fluadd_symbol_entrez = influenza_human_counts_raw_symbol %>%
+  filter(!gene_symbol %in% c(dupes_symbols$gene_symbol)) %>% 
+  distinct() %>% 
+  select(symbol = gene_symbol, entrez_id)
+
+#Save
+human_fluadd_not_normalized_symbol %>% 
+  saveRDS(file = here("tables", "processed_data", "influenza_GSE124689_exprs_not_normalized.rds"))
+
+# Inspect results
+human_fluadd_not_normalized_symbol %>% 
+  rownames_to_column("human_symbol") %>% 
+  pivot_longer(columns_to = "geo_sample",
+               values_to = "log2fc")
+
+human_fluadd_not_normalized_symbol
+```
+
+
+Clean metadata
+```{r eval=FALSE, message=FALSE, warning=FALSE, echo=TRUE, cache = TRUE}
+# Clean and restructure metadata
+flu_metadata_clean = flu_metadata %>% 
+  arrange(uid) %>% 
+  separate(participant_id, into = c("del", "participant_id")) %>% 
+  select(-del) %>% 
+  select(sample_id = uid, participant_id, timepoint = study_time_collected, age = age_imputed, sex = gender, race, vaccine = exposure_material_reported, sample_type = cell_type, array = featureSetName2, type = vaccine_type, adjuvant) %>% 
+  mutate(age = as.numeric(age),
+         sex = as.factor(sex), 
+         race = as.factor(race),
+         condition = paste(vaccine, "Day", timepoint)) %>%
+  filter(sample_id %in% c(influenza_human_counts %>% colnames())) %>% 
+  arrange(sample_id) %>% 
+# Select all columns: ensures clean column order with key identifier first
+  select(condition, everything()) 
+
+#Save
+saveRDS(flu_metadata_clean, file = here("tables", "processed_data", "influenza_human_metadata_clean.rds"))
+```
+
+
+Unite and normalize with human
+
+```{r}
+# Filter out duplicated MGI symbols
+filter_out_mgi = influenza_hepatitisb_mouse_exprs_annotations %>% 
+  select(mgi_symbol) %>% 
+  get_dupes()
+
+# Clean mouse symbol table
+influenza_hepatitisb_mouse_exprs_symbol = influenza_hepatitisb_mouse_exprs_annotations %>% 
+  select(-probe, -entrezgene_id) %>% #21,856 rows
+  distinct() %>%  #21,666 rows
+  filter(mgi_symbol != c(filter_out_mgi$mgi_symbol)) %>% #21,557 rows
+  mutate(mgi_symbol = str_to_upper(mgi_symbol)) %>% 
+  rename(symbol = mgi_symbol)
+
+# Join human and mouse matrices by symbol, quantile normalize
+human_mouse_fluad_matrix = GSE124689_expression_not_normalized_log2_raw_symbol %>% 
+  rownames_to_column("symbol") %>% 
+  inner_join(influenza_hepatitisb_mouse_exprs_symbol, 
+             by = "symbol")  %>% 
+  column_to_rownames("symbol") %>% 
+  select(human_mouse_fluad_metadata %>% 
+           pull(sample_id)) %>% 
+  as.matrix() %>% 
+  normalizeBetweenArrays(method = "quantile")
+
+human_mouse_fluad_df = human_mouse_fluad_matrix %>% 
+  as.data.frame()
+
+# Create joint ExpressionSet
+eset_human_mouse <- ExpressionSet(
+  assayData = human_mouse_fluad_matrix,
+  phenoData = AnnotatedDataFrame(human_mouse_fluad_metadata %>% 
+                                   filter(sample_id %in% c(human_mouse_fluad_matrix %>% colnames())) %>% 
+                                   column_to_rownames("sample_id"))
+)
+
+#Save
+eset_human_mouse %>% saveRDS(file = here("tables", "Differential gene expression", "influenza_human_mouse_eset.rds"))
+
+```
+
+
+
+
+
+
+
+
+
+#==================
+# 2. Engerix B, Vaccine
+
+## Mouse
+
+Prepare data
+
+Filter the GSE120661 dataset to Engerix B-treated PBMC mouse samples, recode timepoints from hours to days, save metadata and expression matrix.
+
+```{r}
+# Load expression and metadata
+influenza_hepatitisb_mouse_exprs = readRDS(here("tables", "processed_data", "influenza_hepatitisb_mouse_exprs.rds")) %>% 
+  as.data.frame()
+influenza_hepatitisb_mouse_metadata = readRDS(file = here("tables", "processed_data", "influenza_hepatitisb_mouse_metadata.rds"))
+
+# Filter to Engerix B PBMC samples, recode timepoint (hours to days)
+mouse_engerixb_metadata = influenza_hepatitisb_mouse_metadata %>% 
+  filter(treatment == "Engerix B",
+         tissue == "PBMC") %>% 
+  mutate(timepoint = (timepoint / 24) %>% round(1),
+         participant_id = paste0("ENG_BL_", animal_replicate)) %>% 
+  filter(timepoint %in% c(0, 1, 3, 7))
+
+#Save
+mouse_engerixb_metadata %>% 
+  saveRDS(file = here("tables", "processed_data", "hepatitisb_mouse_metadata.rds"))
+
+# Subset expression matrix
+mouse_engerixb_log2 = influenza_hepatitisb_mouse_exprs %>% 
+  select(mouse_engerixb_metadata %>% pull(geo_sample))
+
+```
+Annotate genes
+Map probe IDs to gene symbols using BioMart and orthology lookup.
+
+Map Agilent probe IDs to human gene symbols using BioMart and FIT.mouse2man orthology lookup, then save the annotated expression matrix.
+
+```{r}
+# Set up Ensembl BioMart for mouse
+ensembl_mart <- useMart("ensembl")
+ensembl_mart <- useDataset("mmusculus_gene_ensembl", mart = ensembl_mart)
+
+# Get probe IDs
+gene_id <- mouse_engerixb_log2 %>% rownames()
+
+# List available attributes
+listAttributes(ensembl_mart)
+
+# Retrieve annotations
+annot <- getBM(
+  attributes = c("agilent_sureprint_g3_ge_8x60k", #Agilent microarray data
+                 "ensembl_gene_id",
+                 "entrezgene_id",
+                 "mgi_symbol",
+                 "description"),
+  filters = "agilent_sureprint_g3_ge_8x60k",
+  values = gene_id,
+  mart = ensembl_mart)
+
+#Save
+annot %>% 
+  saveRDS(here("tables", "Differential gene expression", "probe_annot_hepatitisb_engerixb_mouse.rds"))
+
+# Load mouse-to-human orthology lookup table
+library(FIT.mouse2man)
+HS_MM_Symbol_Entrez = FIT.mouse2man::HS_MM_Symbol_Entrez %>% 
+  clean_names() %>% 
+  rename(mouse_entrez = mouse_ortholog)
+
+# Summarise expression per probe, collapse to one row per gene
+mouse_engerixb_log2summary = mouse_engerixb_log2 %>% #20,845 probes
+  as.data.frame() %>% 
+  rownames_to_column("probe") %>% 
+  pivot_longer(cols = -probe,
+               names_to = "sample",
+               values_to = "expression") %>% 
+  group_by(probe) %>% 
+  summarise(mean = mean(expression,na.rm = TRUE),
+            median = median(expression, na.rm = T)) %>%  
+  inner_join(annot %>% 
+              rename(probe = agilent_sureprint_g3_ge_8x60k), 
+            by = "probe") %>%  #24.009 rows
+  group_by(ensembl_gene_id) %>% 
+  slice_max(median, n = 1) %>%
+  ungroup() %>% 
+  select(-ensembl_gene_id) %>% 
+  distinct() %>% 
+  group_by(entrezgene_id) %>% 
+  slice_max(median, n = 1) %>%  #21.863 probes/entrez_ids
+  ungroup() %>% 
+  rename(mouse_entrez = entrezgene_id) %>% 
+  inner_join(HS_MM_Symbol_Entrez, by = c("mouse_entrez", "mgi_symbol")) %>% 
+  group_by(hgnc_symbol) %>% 
+  slice_max(median, n = 1)  %>% #14.396
+  ungroup()
+
+# Remove HGNC symbols that map to multiple MGI symbols
+hgnc_symbol_dupes = mouse_engerixb_log2summary %>% 
+  get_dupes(hgnc_symbol)
+
+mouse_engerixb_log2summary = mouse_engerixb_log2summary %>% 
+  filter(!hgnc_symbol %in% c(hgnc_symbol_dupes$hgnc_symbol %>% unique())) 
+
+# Build filtered expression matrix with human gene symbols
+mouse_engerixb_log2_filtered_probes = mouse_engerixb_log2 %>% 
+  rownames_to_column("probe") %>% 
+  inner_join(mouse_engerixb_log2summary, by = "probe") %>%   #214,396
+  select(probe, mouse_entrez, human_symbol = hgnc_symbol, c(mouse_engerixb_metadata %>% pull(geo_sample)))
+
+mouse_engerixb_log2_filtered %>% dim()
+mouse_engerixb_log2_hgnc_symbol = mouse_engerixb_log2_filtered_probes %>% 
+  select(probe_id = probe, human_symbol, c(mouse_engerixb_metadata$geo_sample)) %>% 
+  column_to_rownames("human_symbol")
+
+#Save 
+mouse_engerixb_log2_hgnc_symbol %>% 
+  saveRDS(here("tables", "processed_data", "hepatitisb_mouse_exprs.rds"))
+```
+
+
+Create expression set
+
+```{r}
+# Load data
+mouse_engerixb_log2_hgnc_symbol = readRDS(here("tables", "processed_data", "hepatitisb_mouse_exprs.rds"))
+mouse_engerixb_metadata = readRDS(file = here("tables", "processed_data", "hepatitisb_mouse_metadata.rds"))
+
+# Create ExpressionSet
+eset_mouse_engerixb <- ExpressionSet(
+  assayData = mouse_engerixb_log2_hgnc_symbol %>% 
+    as.matrix(),
+  phenoData = AnnotatedDataFrame(mouse_engerixb_metadata %>% 
+                                   column_to_rownames("geo_sample")))
+
+#Save
+eset_mouse_engerixb %>% saveRDS(file = here("tables", "Differential gene expression", "hepatitisb_mouse_eset.rds"))
+```
+
+Compute log2 fold-change relative to day 0 for each gene and participant, save in long and wide formats.
+
+```{r}
+# Compute log2FC
+mouse_engerixb_log2fc_filtered_sample_long = mouse_engerixb_log2_hgnc_symbol %>%
+  rownames_to_column("human_symbol") %>% 
+  pivot_longer(cols = -c(human_symbol, probe_id),
+               names_to = "geo_sample",
+               values_to = "log2") %>% 
+  inner_join(mouse_engerixb_metadata %>% 
+               select(geo_sample, participant_id, timepoint),
+             by = "geo_sample") %>% 
+  select(human_symbol,probe_id, participant_id, timepoint, log2) %>% 
+  distinct() %>% 
+  select(participant_id,probe_id, human_symbol, timepoint, value = log2) %>%
+  pivot_wider(names_from = timepoint, values_from = value, names_prefix = "day_") %>%
+  pivot_longer(cols = starts_with("day_"),
+               names_to = "timepoint",
+               names_prefix = "day_",
+               values_to = "value") %>%
+  group_by(participant_id, human_symbol) %>% 
+  mutate(day0 = value[timepoint == "0"]) %>%
+  ungroup() %>%
+mutate(log2fc = value - day0) %>%
+  filter(timepoint != "0")
+
+#Save
+mouse_engerixb_log2fc_filtered_sample_long %>% 
+  saveRDS(here("tables", "Differential gene expression", "hepatitisb_mouse_log2fc_sample_clean_long.rds"))
+
+# Pivot to wide
+mouse_engerixb_log2fc_filtered_sample_wide = mouse_engerixb_log2fc_filtered_sample_long %>% 
+  select(-c(value:day0)) %>% 
+  pivot_wider(names_from = "participant_id",
+              values_from = "log2fc")
+
+```
+
+
+## Human
+
+Download directly from GEO. The data is too large.
+Prepare data
+
+```{r}
+#EngerixB: GSE124533 -----
+filename = "GSE124533"
+GSE124533 <- getGEO(filename = here("tables", "raw_data", "GSE124533_series_matrix.txt.gz"), GSEMatrix = F)
+
+#Metadata ------
+hepatitisb_human_metadata = GSE124533@phenoData %>% 
+  pData() %>% 
+  dplyr::select( 
+    geo_sample = "geo_accession", 
+    participant_id = "participant:ch1",
+    sex = "gender:ch1",
+    treatment = "treatment:ch1",
+    ethnicity = "ethnicity:ch1",
+    race = "race:ch1",
+    age = "age:ch1",
+    timepoint = "day:ch1") %>% 
+  mutate(condition = treatment,
+         organism = "Human",
+         time_unit = "Day")
+#Save
+hepatitisb_human_metadata %>% saveRDS(file = here("tables", "processed_data", "hepatitisb_human_metadata.rds"))
+
+# Load data
+hepatitisb_human_metadata = readRDS(file = here("tables", "processed_data", "hepatitisb_human_metadata.rds"))
+
+
+#Filter metadata
+hepatitisb_human_metadata_filtered = hepatitisb_human_metadata %>%
+  filter(treatment %in% c("ENGERIXB1"),
+         timepoint %in% c("0", "1" , "3", "7"))
+
+#Save
+hepatitisb_human_metadata_filtered %>% 
+  saveRDS(file = here("tables", "processed_data", "hepatitisb_human_metadata.rds"))
+
+
+#Counts matrix
+hepatitisb_human_exprs = GSE124533@assayData[["exprs"]] %>% as.data.frame()
+
+hepatitisb_human_exprs_engerixb = GSE124533_exprs %>% 
+  select(c(hepatitisb_human_metadata_filtered$geo_sample))
+#Save
+hepatitisb_human_exprs_engerixb %>% saveRDS(file = here("tables", "processed_data", "hepatitisb_human_exprs.rds"))
+```
+
+
+
+Import
+Load the required data objects from disk.
+```{r}
+# Load data
+human_exprs_engerixb = readRDS(file = here("tables", "processed_data", "hepatitisb_human_exprs.rds"))
+human_engerixb_metadata = readRDS(file = here("tables", "processed_data", "hepatitisb_human_metadata.rds"))
+
+########### Filter and annotate probes -----
+probes_annotation <- read.delim(here("tables", "raw_data", "GPL21272-58809.txt"), skip = 19, header = TRUE, sep = "\t", quote = "") %>% 
+  select(gene_id = ID, entrez_id = ENTREZ_GENE_ID, ensembl_id = ENSEMBL_ID, gene_symbol = GENE_SYMBOL) %>% 
+  mutate(gene_id = as.character(gene_id))
+
+
+#Get annotations for each probe 
+human_engerix_log2summary = human_exprs_engerixb %>% 
+  as.data.frame() %>% 
+  rownames_to_column("probe") %>% 
+  pivot_longer(cols = -probe,
+               names_to = "sample",
+               values_to = "expression") %>% 
+  group_by(probe) %>% 
+  summarise(mean = mean(expression,na.rm = TRUE),
+            median = median(expression, na.rm = T)) %>%  
+  inner_join(probes_annotation %>% 
+              rename(probe = gene_id,
+                     entrezgene_id = entrez_id,
+                     human_symbol = gene_symbol), 
+            by = "probe") %>% 
+  group_by(ensembl_id) %>% 
+  slice_max(median, n = 1) %>%
+  ungroup() %>% 
+  select(-ensembl_id) %>% 
+  distinct() %>% 
+  group_by(entrezgene_id) %>% 
+  slice_max(median, n = 1) %>%  #21.863 probes/entrez_ids
+  ungroup() 
+
+#Filter out genes with multiple hgnc_symbols
+hgnc_symbol_dupes = human_engerix_log2summary %>% 
+  get_dupes(human_symbol)
+
+human_engerix_log2summary = human_engerix_log2summary %>% 
+  filter(!human_symbol %in% c(hgnc_symbol_dupes$human_symbol %>% unique())) 
+
+# Build filtered expression matrix with human symbols
+human_engerix_log2_filtered_probes = human_exprs_engerixb %>% 
+  as.data.frame() %>% 
+  rownames_to_column("probe") %>% 
+  inner_join(human_engerix_log2summary, by = "probe") %>%   #214,396
+  select(human_symbol,
+         c(human_engerixb_metadata$geo_sample))
+#14395
+human_engerix_log2_filtered_probes %>% dim()
+
+human_engerix_log2_hgnc_symbol = human_engerix_log2_filtered_probes 
+
+human_engerix_log2_hgnc_symbol %>% 
+  get_dupes(human_symbol)
+
+#Save 
+human_engerix_log2_hgnc_symbol %>% 
+  saveRDS(here("tables", "processed_data", "hepatitisb_human_exprs_hgnc_symbol.rds"))
+```
+
+
+
+
+Load the Engerix B human dataset from saved RDS files.
+
+```{r}
+
+# Load data
+human_engerix_log2_hgnc_symbol = readRDS(here("tables", "processed_data", "hepatitisb_human_exprs_hgnc_symbol.rds"))
+human_metadata_filtered = readRDS(file = here("tables", "processed_data", "hepatitisb_human_metadata.rds"))
+
+#Get value from time 0 and calculate Log2FC
+human_engerixb_log2fc_filtered_sample_long = human_engerix_log2_hgnc_symbol %>%
+  ungroup() %>% 
+# Reshape expression data from wide (columns = samples) to long (rows = probe × sample) format for tidyverse workflows
+  pivot_longer(cols = -(human_symbol),
+               names_to = "geo_sample",
+               values_to = "log2") %>% 
+# Attach sample metadata (participant ID, timepoint, condition) to expression values by GEO sample ID
+  inner_join(human_metadata_filtered %>% 
+               select(geo_sample, participant_id, timepoint),
+             by = "geo_sample") %>% 
+  select(human_symbol, participant_id, timepoint, log2) %>% 
+# Remove duplicate rows: eliminates redundant probe-to-gene mappings (one probe may match multiple transcript clusters)
+  distinct() %>% 
+  select(participant_id, human_symbol, timepoint, value = log2) 
+
+# #Get over duplicated symbols
+# overduplicated = human_engerixb_log2fc_filtered_sample_long %>% 
+#   select(human_symbol) %>% 
+#   group_by(human_symbol) %>% 
+#   dplyr::count() %>% 
+#   arrange(-n) 
+
+#Calculate log2fc
+human_engerixb_log2fc_filtered_sample_long = human_engerixb_log2fc_filtered_sample_long %>%
+  # filter(!human_symbol %in% c(overduplicated %>% 
+  #                               ungroup() %>% 
+  #                               filter(n > median(n)) %>% 
+  #                               pull(human_symbol))) %>% 
+  # Reshape to wide format with one column per timepoint
+  pivot_wider(names_from = timepoint, values_from = value, names_prefix = "day_") %>% 
+# Reshape columns from wide to long using a common prefix pattern: separates metric type from timepoint via names_pattern
+  pivot_longer(cols = starts_with("day_"),
+               names_to = "timepoint",
+               names_prefix = "day_",
+               values_to = "value") %>%
+  group_by(participant_id, human_symbol) %>% 
+# Extract baseline (day 0) expression value for each participant × gene pair: reference for fold-change calculation
+  mutate(day0 = value[timepoint == "0"]) %>%
+  ungroup() %>%
+  # Compute log2 fold-change relative to baseline
+mutate(log2fc = value - day0) %>%
+# Remove baseline rows: only post-vaccination/infection timepoints are relevant for differential expression analysis
+  filter(timepoint != "0")
+
+
+#Annotate sample and pivot longer
+human_engerixb_log2fc_filtered_sample_long_annotated = human_engerixb_log2fc_filtered_sample_long %>% 
+# Attach sample metadata (participant ID, timepoint, condition) to expression values by GEO sample ID
+  inner_join(human_engerixb_metadata %>% 
+               select(sample_id = geo_sample,
+                      participant_id, timepoint), by = join_by("participant_id", "timepoint"))
+
+#Save
+human_engerixb_log2fc_filtered_sample_long_annotated %>% 
+# Save R object to disk in native RDS format: preserves data types and structure for fast loading
+  saveRDS(file = here("tables", "Differential gene expression", "hepatitisb_human_log2fc_sample_clean_long.rds"))
+
+# Play notification sound: alerts that a long-running chunk has finished execution
+beep()
+
+#Pivot wider
+human_engerixb_log2fc_filtered_sample_wide = human_engerixb_log2fc_filtered_sample_long %>% 
+  select(-c(value:day0)) %>% 
+# Widen data: reshape so that each timepoint becomes a separate column (required format for t-test input)
+  pivot_wider(names_from = "participant_id",
+              values_from = "log2fc")
+  
+```
+
+
+Create expression set
+Build an ExpressionSet with the expression matrix and phenotype data.
+Build an ExpressionSet with the expression matrix and phenotype data.
+```{r}
+# Load data
+human_engerix_log2_hgnc_symbol = readRDS(here("tables", "processed_data", "hepatitisb_human_exprs_hgnc_symbol.rds"))
+human_metadata_filtered = readRDS(file = here("tables", "processed_data", "hepatitisb_human_metadata.rds"))
+
+human_metadata_filtered = human_metadata_filtered %>% 
+  mutate(age = str_remove(age, "y") %>% as.numeric() %>% scale(),
+         timepoint = as.factor(timepoint),
+         sex = as.factor(sex),
+         race = as.factor(race))
+
+#Create Expression Set
+eset_human <- ExpressionSet(
+  assayData = human_engerix_log2_hgnc_symbol %>% 
+# Move identifier column to row names: required format for ExpressionSet and Limma (matrix must have rownames)
+    column_to_rownames("human_symbol") %>% 
+    as.matrix(),
+# Convert metadata to AnnotatedDataFrame: formal phenotype data structure required by ExpressionSet
+  phenoData = AnnotatedDataFrame(human_metadata_filtered))
+
+#Save
+eset_human %>% saveRDS(file = here("tables", "Differential gene expression", "hepatitisb_human_eset.rds"))
+```
+
+
+
+
+
+
+
+
+#==================
+# 3. S. aureus, Infection
+## Mouse
+
+Retrieve Exprs and Metadata from GEO
+```{r}
+#S aureus: GSE19668 -----
+filename = "saureus_GSE19668"
+# Download GEO ExpressionSet using GEOquery package: retrieves both expression data and phenotype metadata
+GSE19668 <- getGEO("GSE19668", GSEMatrix = TRUE) 
+# Unlist the GEO download result: extract the ExpressionSet object from the list wrapper
+eset <- GSE19668[[1]]
+
+#Metadata ------
+GSE19668_metadata = eset %>% 
+  pData() %>% 
+# Reorder columns: place comparison/condition column first for readability
+  dplyr::select( 
+    geo_sample = "geo_accession", 
+    subject_id = "title",
+    # sex = "gender:ch1", 
+    treatment = "infection:ch1", 
+    # tissue = "tissue:ch1",
+    timepoint = "time point:ch1",
+    # animal_replicate = "animal replicate:ch1",
+    strain = "strain:ch1") %>% 
+# Relevel treatment factor: set saline/control as the reference level for proper contrast encoding
+  mutate(treatment = fct_relevel(treatment, "none"),
+         timepoint = fct_relevel(timepoint, "0"),
+         condition = paste(treatment, strain, timepoint, sep = "_"))
+
+#Save
+GSE19668_metadata %>% saveRDS(file = here("tables", paste0(filename, "_metadata.rds")))
+
+
+#Get counts matrix ------
+GSE_exprs <- eset %>% exprs()
+
+#Save as RDS
+GSE_exprs %>% as.data.frame() %>% saveRDS(here("tables", paste0(filename, "_exprs.rds")))
+```
+
+Clean metadata
+Clean and restructure the metadata table.
+Clean and restructure the metadata table.
+```{r}
+# Load data
+GSE19668_metadata = readRDS(file = here("tables", "processed_data", "saureus_GSE19668_metadata.rds"))
+
+GSE19668_metadata %>% 
+  select(strain)
+
+#Filter metadata
+GSE19668_metadata_filtered = GSE19668_metadata %>%
+  filter(strain == "C57BL/6J") %>% 
+  separate(subject_id, into = c("tissue", "strain1", "timepoint1", "participant_id"), sep = " ") %>% 
+  select(!c(tissue:timepoint1)) %>% 
+  arrange(participant_id, timepoint) %>% 
+  separate(timepoint, into = c("timepoint_number", "time_unit")) %>% 
+  mutate(time_unit = "hours",
+         timepoint = timepoint_number %>% as.numeric(),
+         organism = "Mouse") %>% 
+  arrange(timepoint) %>% 
+  select(-timepoint_number) %>% 
+# Select all columns: ensures clean column order with key identifier first
+  select(geo_sample, participant_id, condition, timepoint, time_unit, everything())
+
+#Save
+GSE19668_metadata_filtered %>% saveRDS(file = here("tables", "processed_data", "saureus_mouse_metadata_filtered.rds"))
+
+```
+
+
+Annotate dataset
+Load the S. aureus mouse dataset from saved RDS files.
+
+```{r}
+# Load data
+saureus_mouse_exprs = readRDS(here("tables", "processed_data", "saureus_GSE19668_exprs.rds"))
+saureus_mouse_metadata = readRDS(file = here("tables", "processed_data", "saureus_mouse_metadata_filtered.rds"))
+
+#Inputs
+filename = "saureus_mouse"
+mouse_exprs = saureus_mouse_exprs 
+mouse_metadata = saureus_mouse_metadata
+```
+
+
+Annotate gene symbols and map probes to human orthologs via BioMart.
+
+```{r}
+#Annotate genes ------
+#Mouse -----
+#Annotate data and calculate log2fc
+mouse_exprs_metadata  = mouse_exprs %>% 
+  select(c(mouse_metadata$geo_sample)) %>%
+  rownames_to_column("probe_id") %>% 
+  pivot_longer(cols = c(mouse_metadata$geo_sample),
+               names_to = "geo_sample",
+               values_to = "value_raw") %>% 
+# Attach sample metadata (participant ID, timepoint, condition) to expression values by GEO sample ID
+  inner_join(mouse_metadata, 
+             by = "geo_sample") 
+
+
+#Get value from day 0 and calculate Log2FC
+mouse_exprs_log2fc_sample = mouse_exprs_metadata %>% 
+  filter(timepoint == 0) %>% 
+  select(probe_id, participant_id, day0_value_raw = value_raw) %>% 
+  #Filter batch
+  inner_join(mouse_exprs_metadata %>% 
+# Remove baseline rows: only post-vaccination/infection timepoints are relevant for differential expression analysis
+               filter(timepoint != "0"),
+             by = join_by("probe_id", "participant_id")) %>% 
+  # Compute log2 fold-change relative to baseline
+mutate(log2fc = value_raw - day0_value_raw) %>% 
+# Remove duplicate rows: eliminates redundant probe-to-gene mappings (one probe may match multiple transcript clusters)
+  distinct() 
+
+#Check duplicates
+mouse_exprs_log2fc_sample %>% 
+  filter(participant_id == "rep1",
+         probe_id == "1415670_at")
+
+
+mouse_exprs_log2fc_sample %>% 
+# Save R object to disk in native RDS format: preserves data types and structure for fast loading
+  saveRDS(here("tables", "Differential gene expression", "saureus_mouse_log2fc_sample_clean_long.rds"))
+```
+
+
+Annotate probes with gene symbols by querying the Ensembl BioMart database.
+
+```{r}
+########### Filter and annotate probes -----
+# Configure Ensembl BioMart
+ensembl_mart <- useMart("ensembl")
+# Select the mouse genome (mmusculus_gene_ensembl) as the annotation dataset in BioMart
+ensembl_mart <- useDataset("mmusculus_gene_ensembl", mart = ensembl_mart)
+
+# Get probe IDs from expression matrix
+gene_id <- mouse_exprs %>% 
+  rownames_to_column("probe_id") %>% 
+  pull(probe_id) %>% unique()
+
+# listAttributes(ensembl_mart)
+# Annotate data
+annot <- getBM(
+  attributes = c("affy_mouse430_2",
+                 "ensembl_gene_id",
+                 "entrezgene_id",
+                 "mgi_symbol",
+                 "description"),
+  filters = "affy_mouse430_2", #Probes
+  values = gene_id,
+  mart = ensembl_mart)
+
+annot %>% 
+# Save R object to disk in native RDS format: preserves data types and structure for fast loading
+  saveRDS(here("tables", "Differential gene expression", "probe_annot_saureus_infection_mouse.rds"))
+
+# Load mouse-to-human orthology lookup
+# (Install orthology package if needed)
+# library(devtools)
+# devtools::install_github('shenorrLabTRDF/FIT.mouse2man')
+library(FIT.mouse2man)
+HS_MM_Symbol_Entrez = FIT.mouse2man::HS_MM_Symbol_Entrez %>% 
+# Standardise column names to snake_case using janitor::clean_names for consistent tidyverse syntax
+  clean_names() %>% 
+  rename(mouse_entrez = mouse_ortholog)
+
+#Get annotations for each probe 
+### Filter probes with highest median expression
+mouse_log2summary = mouse_exprs %>% #20,845 probes
+  rownames_to_column("probe_id") %>% 
+  rename(probe = probe_id) %>% 
+# Reshape expression data from wide (columns = samples) to long (rows = probe × sample) format for tidyverse workflows
+  pivot_longer(cols = -probe,
+               names_to = "sample",
+               values_to = "expression") %>% 
+# Group by probe ID to collapse multiple probe-to-gene mappings later
+  group_by(probe) %>% 
+# Compute per-probe summary statistics (mean, median) across all samples to select the most representative probe
+  summarise(mean = mean(expression,na.rm = TRUE),
+            median = median(expression, na.rm = T)) %>%  
+# Join BioMart gene annotation to expression data by probe ID: adds gene symbol, Entrez ID, and description
+  inner_join(annot %>% 
+              rename(probe = affy_mouse430_2), 
+            by = "probe") %>%  #24.009 rows
+  # Collapse to one row per Ensembl ID
+  group_by(ensembl_gene_id) %>% 
+  # Keep probe with highest median expression per gene
+  slice_max(median, n = 1) %>%
+  ungroup() %>% 
+  select(-ensembl_gene_id) %>% 
+# Remove duplicate rows: eliminates redundant probe-to-gene mappings (one probe may match multiple transcript clusters)
+  distinct() %>% 
+  
+  # Collapse to one row per Entrez ID
+  group_by(entrezgene_id) %>% 
+  # Keep probe with highest median expression per gene
+  slice_max(median, n = 1) %>%  #21.863 probes/entrez_ids
+  ungroup() %>% 
+  rename(mouse_entrez = entrezgene_id) %>% 
+  
+  # Join human orthologs, collapse to one row per HGNC symbol
+  inner_join(HS_MM_Symbol_Entrez, by = c("mouse_entrez", "mgi_symbol")) %>% 
+# Group by human gene symbol: after orthology mapping, collapse mouse genes that map to the same human gene
+  group_by(hgnc_symbol) %>% 
+  # Keep probe with highest median expression per gene
+  slice_max(median, n = 1)  %>% #14.396
+  ungroup()
+
+# Remove HGNC symbols with multiple MGI mappings
+hgnc_symbol_dupes = mouse_log2summary %>% 
+  #filter ensembl id with multiple mgi_symbols
+  get_dupes(hgnc_symbol)
+
+#Filter out probes with multiple mgi and hgnc symbols
+probe_dupes = mouse_log2summary %>% get_dupes(probe)
+
+mouse_log2summary = mouse_log2summary %>% 
+  select(probe, hgnc_symbol) %>% 
+# Remove genes with ambiguous human symbol mappings: retains only one-to-one mouse-to-human orthologs
+  filter(!hgnc_symbol %in% c(hgnc_symbol_dupes$hgnc_symbol %>% unique()),
+         !probe %in% c(probe_dupes$probe %>% unique())) 
+
+# Build filtered expression matrix with human symbols
+
+# Join expression with annotation, keep only mapped probes
+mouse_log2_filtered_probes = mouse_exprs %>% 
+  rownames_to_column("probe_id") %>% 
+  rename(probe = probe_id) %>% 
+# Join expression data with annotation by probe ID: adds gene symbols to raw probe-level measurements
+  inner_join(mouse_log2summary, by = "probe") %>%   #214,396
+  select(human_symbol = hgnc_symbol,
+         probe,
+         c(mouse_metadata %>% 
+             pull(geo_sample)))
+#Check
+mouse_log2_filtered_probes %>% dim()
+mouse_log2_hgnc_symbol = mouse_log2_filtered_probes 
+# Identify duplicated gene symbols: marks genes that map to multiple Entrez IDs or probes for removal
+mouse_log2_hgnc_symbol %>% get_dupes(probe)
+
+#Save
+mouse_log2_hgnc_symbol %>% saveRDS(file = here("tables", "processed_data", "saureus_mouse_exprs_hgnc_symbol.rds"))
+```
+
+Pivot data and create expression set
+```{r}
+# Load data
+mouse_log2_hgnc_symbol = readRDS(file = here("tables", "processed_data", "saureus_mouse_exprs_hgnc_symbol.rds"))
+mouse_metadata = readRDS(file = here("tables", "processed_data", "saureus_mouse_metadata_filtered.rds"))
+
+#Pivot to long and wide format, and annotate
+mouse_log2_samples_log2fc_long = mouse_log2_hgnc_symbol %>% 
+  # Reshape expression data from wide to long format
+  pivot_longer(cols = -c(human_symbol, probe),
+               names_to = "geo_sample",
+               values_to = "log2fc") %>% 
+# Attach sample metadata (participant ID, timepoint, condition) to expression values by GEO sample ID
+  inner_join(mouse_metadata,
+             by = "geo_sample")
+
+
+mouse_log2_samples_log2fc_wide = mouse_log2_samples_log2fc_long %>% 
+  select(human_symbol, probe, participant_id, timepoint, log2fc) %>%
+# Widen data: reshape so that each timepoint becomes a separate column (required format for t-test input)
+  pivot_wider(names_from = "participant_id",
+              values_from = "log2fc") %>% 
+  mutate(timepoint = as.character(timepoint) %>% fct_reorder(timepoint %>% as.numeric()))
+
+
+#Create Expression Set
+# Create ExpressionSet from expression matrix and phenotype data
+eset_mouse <- ExpressionSet(
+  assayData = mouse_log2_hgnc_symbol %>% 
+    select(-probe) %>% 
+# Move identifier column to row names: required format for ExpressionSet and Limma (matrix must have rownames)
+    column_to_rownames("human_symbol") %>% 
+    as.matrix(),
+# Convert metadata to AnnotatedDataFrame: formal phenotype data structure required by ExpressionSet
+  phenoData = AnnotatedDataFrame(mouse_metadata))
+
+#Save
+eset_mouse %>% saveRDS(file = here("tables", "Differential gene expression", "saureus_mouse_eset.rds"))
+
+```
+
+
+
+
+
+
+
+
+
+
+
+## Human
+Prepare the S. aureus human dataset: download, import, and annotate.
+
+```{r}
+#S. aureus: GSE33341 -----
+filename = "GSE33341"
+GSE <- getGEO("GSE33341", GSEMatrix = TRUE) 
+eset <- GSE[[2]] #The matrix #1 the mouse annotated
+
+#Metadata ------
+GSE_metadata = eset %>% 
+  pData() %>% 
+# Reorder columns: place comparison/condition column first for readability
+  dplyr::select( 
+    geo_sample = "geo_accession", 
+    participant_id = "title",
+    sex = "host gender:ch1",
+    condition = "source_name_ch1",
+    pathogen = "pathogen:ch1",
+    description = "source_name_ch1", 
+    ethnicity = "ethnicity:ch1",
+    tissue_infection = "anatomic site of infection:ch1",
+    batch_experimental = "experimental batch:ch1",
+    age = "host age (yr):ch1") %>% 
+  mutate(condition = pathogen,
+         organism = "Human",
+         timepoint = 1,
+         time_unit = "Day",
+         tissue = "Blood",
+         participant_id = str_extract(participant_id, "\\[.*?\\]") %>% 
+           str_remove("\\[") %>% 
+           str_remove("\\]"),
+         condition = case_when(description == "blood patient with E. coli bacteremia prior antibiotic treatment (Emergency Department)" ~ "E. coli prior antibiotic",
+                               description == "blood patient with S. aureus bacteremia prior antibiotic treatment (Emergency Department)" ~ "S aureus prior antibiotic",
+                               description == "blood human NOT infected" ~ "No infection",
+                               T ~ description),
+         pathogen = if_else(pathogen == "-", "Healthy", pathogen))
+#Save
+GSE_metadata %>% saveRDS(file = here("tables", "processed_data", "saureus_human_metadata.rds"))
+
+#Filter metadata
+GSE_metadata_filtered = GSE_metadata %>%
+  filter(pathogen %in% c("Staphylococcus aureus", "Healthy")) %>% 
+# Select all columns: ensures clean column order with key identifier first
+  select(geo_sample, participant_id, condition, timepoint, everything()) %>% 
+  mutate(ethnicity = str_to_title(ethnicity)) %>% 
+  filter(batch_experimental != "2739",
+         ethnicity != "Unknown",
+         age != "unknown")
+
+GSE_metadata_filtered %>% 
+# Save R object to disk in native RDS format: preserves data types and structure for fast loading
+  saveRDS(file = here("tables", "processed_data", "saureus_human_metadata.rds"))
+
+
+
+#Expression data----
+# Extract raw expression matrix from the ExpressionSet: probes in rows, samples in columns
+GSE_exprs <- exprs(eset) %>% as.data.frame()
+
+#Save
+GSE_exprs %>% saveRDS(file = here("tables", "processed_data", "saureus_human_exprs.rds"))
+```
+
+Prepare data
+Load and filter data for the current condition.
+Filter and prepare expression data for the current condition.
+```{r}
+# Load data
+saureus_human_exprs = readRDS(file = here("tables", "processed_data", "saureus_human_exprs.rds"))
+saureus_human_metadata = readRDS(file = here("tables", "processed_data", "saureus_human_metadata.rds"))
+#Inputs
+filename = "saureus_human"
+human_exprs = saureus_human_exprs 
+human_metadata = saureus_human_metadata
+```
+
+
+Annotate gene symbols and map probes to human orthologs via BioMart.
+
+```{r}
+#Annotate genes ------
+#Human -----
+#Annotate data and calculate log2fc
+human_exprs_metadata  = human_exprs %>% 
+  rownames_to_column("probe_id") %>% 
+# Reshape expression data from wide (columns = samples) to long (rows = probe × sample) format for tidyverse workflows
+  pivot_longer(cols = -probe_id,
+               names_to = "geo_sample",
+               values_to = "value_raw") %>% 
+# Attach sample metadata (participant ID, timepoint, condition) to expression values by GEO sample ID
+  inner_join(human_metadata, 
+             by = "geo_sample") 
+
+#Get value from healthy and calculate Log2FC
+human_exprs_log2fc_sample = human_exprs_metadata %>% 
+  filter(pathogen == "Healthy") %>% 
+  select(probe_id, value_raw_ref = value_raw) %>% 
+# Group by probe ID to collapse multiple probe-to-gene mappings later
+  group_by(probe_id) %>% 
+  summarise(value_raw_ref = mean(value_raw_ref)) %>% 
+# Attach sample metadata (participant ID, timepoint, condition) to expression values by GEO sample ID
+  inner_join(human_exprs_metadata %>% 
+               filter(pathogen != "Healthy"),
+             by = join_by("probe_id")) %>% 
+  filter(condition != "No infection") %>% 
+  # Compute log2 fold-change relative to baseline
+mutate(log2fc = value_raw - value_raw_ref) %>% 
+# Remove duplicate rows: eliminates redundant probe-to-gene mappings (one probe may match multiple transcript clusters)
+  distinct() 
+
+#Check duplicates
+human_exprs_log2fc_sample %>% 
+  filter(participant_id == "CSD4620.CEL",
+         probe_id == "1007_s_at")
+
+human_exprs_log2fc_sample %>% 
+# Save R object to disk in native RDS format: preserves data types and structure for fast loading
+  saveRDS(here("tables", "Differential gene expression", "saureus_human_log2fc_sample_clean_long.rds"))
+```
+
+
+Annotate probes with gene symbols by querying the Ensembl BioMart database.
+
+```{r}
+########### Filter and annotate probes -----
+# Configure Ensembl BioMart
+ensembl_mart <- useMart("ensembl")
+# listDatasets(ensembl_mart)
+ensembl_mart <- useDataset("hsapiens_gene_ensembl", mart = ensembl_mart)
+
+# Get probe IDs from expression matrix
+gene_id <- human_exprs_log2fc_sample$probe_id %>% unique()
+
+# Annotate data
+annot <- getBM(
+  attributes = c("affy_hg_u133a_2",
+                 "ensembl_gene_id",
+                 "entrezgene_id",
+                 "hgnc_symbol",
+                 "description"),
+  filters = "affy_hg_u133a_2",
+  values = gene_id,
+  mart = ensembl_mart) %>% 
+  #Standardize
+  rename(probe = affy_hg_u133a_2,
+                     entrezgene_id = entrezgene_id,
+                     human_symbol = hgnc_symbol,
+                     ensembl_id = ensembl_gene_id)
+
+#Filter genes with highest median expression
+human_log2summary = human_exprs %>% 
+  rownames_to_column("probe") %>% 
+# Reshape expression data from wide (columns = samples) to long (rows = probe × sample) format for tidyverse workflows
+  pivot_longer(cols = -probe,
+               names_to = "sample",
+               values_to = "expression") %>% 
+# Group by probe ID to collapse multiple probe-to-gene mappings later
+  group_by(probe) %>% 
+# Compute per-probe summary statistics (mean, median) across all samples to select the most representative probe
+  summarise(mean = mean(expression,na.rm = TRUE),
+            median = median(expression, na.rm = T)) %>%  
+# Join BioMart gene annotation to expression data by probe ID: adds gene symbol, Entrez ID, and description
+  inner_join(annot, 
+            by = "probe") %>% 
+  # Collapse to one row per Ensembl ID
+  group_by(ensembl_id) %>% 
+  # Keep probe with highest median expression per gene
+  slice_max(median, n = 1) %>%
+  ungroup() %>% 
+  select(-ensembl_id) %>% 
+# Remove duplicate rows: eliminates redundant probe-to-gene mappings (one probe may match multiple transcript clusters)
+  distinct() %>% 
+  
+  # Collapse to one row per Entrez ID
+  group_by(entrezgene_id) %>% 
+  # Keep probe with highest median expression per gene
+  slice_max(median, n = 1) %>%  #21.863 probes/entrez_ids
+  ungroup()  
+
+
+#Filter out genes with multiple hgnc_symbols
+hgnc_symbol_dupes = human_log2summary %>% 
+  #filter ensembl id with multiple hgnc_symbols
+  get_dupes(human_symbol)
+
+human_log2summary = human_log2summary %>% 
+  filter(!human_symbol %in% c(hgnc_symbol_dupes$human_symbol %>% unique())) 
+
+# Build filtered expression matrix with human symbols
+
+# Join expression with annotation, keep only mapped probes
+human_log2_filtered_probes = human_exprs %>% 
+  as.data.frame() %>% 
+  rownames_to_column("probe") %>% 
+# Join expression data with annotation by probe ID: adds gene symbols to raw probe-level measurements
+  inner_join(human_log2summary, by = "probe") %>%   #214,396
+  select(human_symbol, probe,
+         c(human_metadata$geo_sample))
+#14395
+human_log2_filtered_probes %>% dim()
+
+human_log2_filtered_probes = human_log2_filtered_probes 
+
+human_log2_filtered_probes %>% 
+# Identify duplicated gene symbols: marks genes that map to multiple Entrez IDs or probes for removal
+  get_dupes(human_symbol)
+
+#Save 
+human_log2_filtered_probes %>% 
+# Save R object to disk in native RDS format: preserves data types and structure for fast loading
+  saveRDS(here("tables", "processed_data", "saureus_human_exprs_hgnc_symbol.rds"))
+```
+
+
+Load the S. aureus human dataset from saved RDS files.
+
+```{r}
+# Load data
+human_log2_hgnc_symbol = readRDS(file = here("tables", "processed_data", "saureus_human_exprs_hgnc_symbol.rds"))
+human_metadata = readRDS(file = here("tables", "processed_data", "saureus_human_metadata.rds"))
+
+#Pivot to long and wide format, and annotate
+human_log2_samples_log2fc_long = human_log2_hgnc_symbol %>% 
+  # Reshape expression data from wide to long format
+  pivot_longer(cols = -c(human_symbol, probe),
+               names_to = "geo_sample",
+               values_to = "log2fc") %>% 
+# Attach sample metadata (participant ID, timepoint, condition) to expression values by GEO sample ID
+  inner_join(human_metadata,
+             by = "geo_sample")
+
+
+human_log2_samples_log2fc_wide = human_log2_samples_log2fc_long %>% 
+  select(human_symbol, probe, participant_id, timepoint, log2fc) %>%
+# Widen data: reshape so that each timepoint becomes a separate column (required format for t-test input)
+  pivot_wider(names_from = "participant_id",
+              values_from = "log2fc") %>% 
+  mutate(timepoint = as.character(timepoint) %>% fct_reorder(timepoint %>% as.numeric()))
+
+
+#Create Expression Set
+human_metadata_eset = human_metadata %>% 
+  mutate(age = as.numeric(age) %>% scale(),
+         timepoint = as.factor(timepoint),
+         sex = as.factor(sex),
+         pathogen = fct_relevel(pathogen, "Healthy"),
+         batch_experimental = as.factor(batch_experimental),
+         ethnicity = as.factor(ethnicity)) 
+
+# Create ExpressionSet from expression matrix and phenotype data
+eset_human <- ExpressionSet(
+  assayData = human_log2_hgnc_symbol %>% 
+    select(-probe) %>% 
+# Move identifier column to row names: required format for ExpressionSet and Limma (matrix must have rownames)
+    column_to_rownames("human_symbol") %>% 
+    select(c(human_metadata_eset$geo_sample)) %>% 
+    as.matrix(),
+# Convert metadata to AnnotatedDataFrame: formal phenotype data structure required by ExpressionSet
+  phenoData = AnnotatedDataFrame(human_metadata_eset))
+
+#Save
+eset_human %>% saveRDS(file = here("tables", "Differential gene expression", "saureus_human_eset.rds"))
+
+```
+
+
+
+
+
+#==================
+# 4. E. coli, infection
+
+### Human and Mouse, same dataset
+
+E. coli: GSE33341 -----.
+
+```{r}
+#E. coli: GSE33341 -----
+filename = "GSE33341"
+# Download GEO ExpressionSet using GEOquery package: retrieves both expression data and phenotype metadata
+GSE33341 <- getGEO("GSE33341", GSEMatrix = TRUE) 
+eset_mouse <- GSE33341[[1]]
+eset_human <- GSE33341[[2]]
+
+#Metadata ------
+#Mouse
+ecoli_mouse_metadata = eset_mouse %>% 
+  pData() %>% 
+# Reorder columns: place comparison/condition column first for readability
+  dplyr::select( 
+    geo_sample = "geo_accession", 
+    #Host
+    subject_title = "title",
+    subject_num = "replicate number:ch1",
+    batch = "experimental batch:ch1",
+    host_strain = "host strain:ch1",
+    organism = "organism_ch1",
+    age = "host age (yr):ch1",
+    sex = "host gender:ch1", 
+    #Pathogen
+    pathogen = "pathogen:ch1",
+    status = "infection status:ch1",
+    site_infection = "anatomic site of infection:ch1",
+    route_infection = "inoculum route:ch1",
+    dosage = "pathogen   dosage cfu/g:ch1",
+    timepoint = "time after infection (h):ch1",
+    bac_strain = "bacterial strain:ch1"
+    ) %>% 
+  filter(pathogen %in% c("Escherichia  coli", "-")) %>%
+  mutate(pathogen = if_else(pathogen == "Escherichia  coli", "escherichia coli", "none"),
+         subject_id = paste0("Mouse_", host_strain, "_Animal", subject_num, "_Batch", batch),
+         status = str_replace(status, "-", "Healthy"),
+         condition = paste("Mouse", host_strain, timepoint, sep = "_"),
+         comparison = paste0("Mouse_", host_strain, "_Batch", batch)) %>% 
+# Select all columns: ensures clean column order with key identifier first
+  select(geo_sample, comparison, condition, subject_id, everything())
+
+
+#Human
+ecoli_human_metadata = eset_human %>% 
+  pData() %>% 
+  filter(`pathogen:ch1` %in% c("Escherichia coli", "-")) %>%
+# Reorder columns: place comparison/condition column first for readability
+  dplyr::select( 
+    geo_sample = "geo_accession", 
+    #Host
+    subject_title = "title",
+    # subject_num = "replicate number:ch1",
+    batch = "experimental batch:ch1",
+    # host_strain = "host strain:ch1",
+    organism = "organism_ch1",
+    age = "host age (yr):ch1",
+    sex = "host gender:ch1", 
+    ethnicity = "ethnicity:ch1",
+    #Pathogen
+    pathogen = "pathogen:ch1",
+    # status = "infection status:ch1",
+    site_infection = "anatomic site of infection:ch1"
+    # route_infection = "inoculum route:ch1",
+    # dosage = "pathogen   dosage cfu/g:ch1",
+    # timepoint = "time after infection (h):ch1",
+    # bac_strain = "bacterial strain:ch1"
+    ) %>% 
+  mutate(site_infection = str_to_lower(site_infection),
+         organism = "Human",
+         pathogen = if_else(pathogen == "-", "Healthy", pathogen),
+         status = if_else(pathogen == "Healthy", pathogen, "infected"),
+         timepoint = "0",
+         subject_id = if_else(pathogen == "Escherichia coli", 
+                              paste0("Ecoli_human_", site_infection,"_",geo_sample), 
+                              paste0("Healthy_human_", geo_sample)),
+         site_infection = if_else(site_infection == "-", "none", site_infection),
+         condition = subject_id) %>% 
+# Select all columns: ensures clean column order with key identifier first
+  select(geo_sample, condition, subject_id, everything()) %>% 
+  mutate(timepoint = if_else(pathogen == "Escherichia coli", "24", timepoint))
+
+ecoli_human_metadata
+
+#Unite metadata
+ecoli_mouse_human_metadata = ecoli_human_metadata %>% 
+  bind_rows(ecoli_mouse_metadata)
+
+ecoli_mouse_human_metadata %>% 
+# Save R object to disk in native RDS format: preserves data types and structure for fast loading
+  saveRDS(file = here("tables", "processed_data", "ecoli_human_mouse_metadata.rds"))
+```
+
+Load the E. coli mouse dataset from saved RDS files.
+
+```{r}
+# Load data
+ecoli_mouse_human_metadata =
+# Load dataset from disk or GEO: reads pre-saved expression matrix / metadata into the R environment
+  readRDS(file = here("tables", "processed_data", "ecoli_human_mouse_metadata.rds"))
+
+
+ecoli_mouse_human_metadata %>% 
+  select(strain, treatment, tissue) %>% 
+# Remove duplicate rows: eliminates redundant probe-to-gene mappings (one probe may match multiple transcript clusters)
+  distinct()
+
+#Get expression data -----
+#Mouse
+# Extract raw expression matrix from the ExpressionSet: probes in rows, samples in columns
+mouse_exprs <- exprs(eset_mouse) %>% 
+  as.data.frame() %>% 
+  select(GSE33341_ecoli_mouse_human_metadata %>% 
+           filter(organism == "Mus musculus") %>% 
+           pull(geo_sample)) %>% 
+  rownames_to_column("probe_id") 
+
+mouse_exprs %>% 
+  as.data.frame() %>% 
+# Save R object to disk in native RDS format: preserves data types and structure for fast loading
+  saveRDS(here("tables", "processed_data", "ecoli_mouse_exprs.rds"))
+
+#Human
+# Extract raw expression matrix from the ExpressionSet: probes in rows, samples in columns
+human_exprs <- exprs(eset_human) %>% 
+  as.data.frame() %>% 
+  select(GSE33341_ecoli_mouse_human_metadata %>% 
+           filter(organism == "Human") %>% 
+           pull(geo_sample)) %>% 
+  rownames_to_column("probe_id")
+
+human_exprs %>% 
+  as.data.frame() %>% 
+# Save R object to disk in native RDS format: preserves data types and structure for fast loading
+  saveRDS(here("tables", "processed_data", "ecoli_human_exprs.rds"))
+
+```
+
+#### Mouse
+
+Annotate genes
+
+This procedure was done using only one batch (8)
+
+```{r}
+# Load data
+ecoli_human_exprs = readRDS(here("tables", "processed_data", "ecoli_human_exprs.rds"))
+ecoli_mouse_exprs = readRDS(here("tables", "processed_data", "ecoli_mouse_exprs.rds"))
+ecoli_mouse_human_metadata = readRDS(file = here("tables", "processed_data", "ecoli_human_mouse_metadata.rds"))
+
+#Annotate genes ------
+#Mouse -----
+#Annotate data and calculate log2fc
+mouse_expression_metadata  = ecoli_mouse_exprs %>% 
+  pivot_longer(cols = 2:125,
+               names_to = "geo_sample",
+               values_to = "value_raw") %>% 
+# Attach sample metadata (participant ID, timepoint, condition) to expression values by GEO sample ID
+  inner_join(ecoli_mouse_human_metadata, 
+             by = "geo_sample") 
+
+mouse_metadata =  ecoli_mouse_human_metadata %>% 
+               filter(host_strain == "C57BL/6J",
+                      batch == "8")
+
+mouse_metadata %>% 
+# Save R object to disk in native RDS format: preserves data types and structure for fast loading
+  saveRDS(file = here("tables", "processed_data", "ecoli_mouse_metadata.rds"))
+
+#Get value from day 0 and calculate Log2FC
+log2fc_sample = mouse_expression_metadata %>% 
+  #Filter batch
+  filter(organism == "Mus musculus",
+         status == "Healthy",
+         host_strain == "C57BL/6J",
+         batch == "8") %>% 
+  select(probe_id, batch, subject_num, day0_value_raw = value_raw) %>% 
+  #Get the mean expression value for healthy
+  group_by(probe_id, batch) %>% 
+  summarise(n = n(),
+            #Mean of healthy
+            day0_value_raw = sum(day0_value_raw)/n,
+            batch) %>% 
+  select(probe_id, day0_value_raw) %>% 
+  #Filter batch
+  inner_join(mouse_expression_metadata %>% 
+               filter(timepoint != "0",
+                      host_strain == "C57BL/6J",
+                      batch == "8"),
+             by = join_by("probe_id", "batch")) %>% 
+  # Compute log2 fold-change relative to baseline
+mutate(log2fc = value_raw - day0_value_raw) %>% 
+# Remove duplicate rows: eliminates redundant probe-to-gene mappings (one probe may match multiple transcript clusters)
+  distinct() 
+
+#Check duplicates
+log2fc_sample %>% 
+  filter(subject_id == "Mouse_C57BL/6J_Animal1_Batch8",
+         probe_id == "1415670_at")
+
+
+#Save
+log2fc_sample %>% 
+# Save R object to disk in native RDS format: preserves data types and structure for fast loading
+  saveRDS(here("tables", "Differential gene expression", "ecoli_mouse_log2fc_sample_clean_long.rds"))
+```
+
+Annotate probes with gene symbols by querying the Ensembl BioMart database.
+
+```{r}
+########### Filter and annotate probes -----
+# Configure Ensembl BioMart
+ensembl_mart <- useMart("ensembl")
+# Select the mouse genome (mmusculus_gene_ensembl) as the annotation dataset in BioMart
+ensembl_mart <- useDataset("mmusculus_gene_ensembl", mart = ensembl_mart)
+
+# Get probe IDs from expression matrix
+gene_id <- log2fc_sample$probe_id %>% unique()
+# listAttributes(ensembl_mart)
+# Annotate data
+annot <- getBM(
+  attributes = c("affy_mouse430_2",
+                 "ensembl_gene_id",
+                 "entrezgene_id",
+                 "mgi_symbol",
+                 "description"),
+  filters = "affy_mouse430_2",
+  values = gene_id,
+  mart = ensembl_mart)
+
+annot %>% 
+# Save R object to disk in native RDS format: preserves data types and structure for fast loading
+  saveRDS(here("tables", "Differential gene expression", "probe_annot_ecoli_infection_mouse.rds"))
+
+# Load mouse-to-human orthology lookup
+# (Install orthology package if needed)
+# library(devtools)
+# devtools::install_github('shenorrLabTRDF/FIT.mouse2man')
+library(FIT.mouse2man)
+HS_MM_Symbol_Entrez = FIT.mouse2man::HS_MM_Symbol_Entrez %>% 
+# Standardise column names to snake_case using janitor::clean_names for consistent tidyverse syntax
+  clean_names() %>% 
+  rename(mouse_entrez = mouse_ortholog)
+
+#Get annotations for each probe 
+### Filter probes with highest median expression
+mouse_log2summary = ecoli_mouse_exprs %>% #20,845 probes
+  as.data.frame() %>% 
+  rename(probe = probe_id) %>% 
+# Reshape expression data from wide (columns = samples) to long (rows = probe × sample) format for tidyverse workflows
+  pivot_longer(cols = -probe,
+               names_to = "sample",
+               values_to = "expression") %>% 
+# Group by probe ID to collapse multiple probe-to-gene mappings later
+  group_by(probe) %>% 
+# Compute per-probe summary statistics (mean, median) across all samples to select the most representative probe
+  summarise(mean = mean(expression,na.rm = TRUE),
+            median = median(expression, na.rm = T)) %>%  
+# Join BioMart gene annotation to expression data by probe ID: adds gene symbol, Entrez ID, and description
+  inner_join(annot %>% 
+              rename(probe = affy_mouse430_2), 
+            by = "probe") %>%  #24.009 rows
+  # Collapse to one row per Ensembl ID
+  group_by(ensembl_gene_id) %>% 
+  # Keep probe with highest median expression per gene
+  slice_max(median, n = 1) %>%
+  ungroup() %>% 
+  select(-ensembl_gene_id) %>% 
+# Remove duplicate rows: eliminates redundant probe-to-gene mappings (one probe may match multiple transcript clusters)
+  distinct() %>% 
+  
+  # Collapse to one row per Entrez ID
+  group_by(entrezgene_id) %>% 
+  # Keep probe with highest median expression per gene
+  slice_max(median, n = 1) %>%  #21.863 probes/entrez_ids
+  ungroup() %>% 
+  rename(mouse_entrez = entrezgene_id) %>% 
+  
+  # Join human orthologs, collapse to one row per HGNC symbol
+  inner_join(HS_MM_Symbol_Entrez, by = c("mouse_entrez", "mgi_symbol")) %>% 
+# Group by human gene symbol: after orthology mapping, collapse mouse genes that map to the same human gene
+  group_by(hgnc_symbol) %>% 
+  # Keep probe with highest median expression per gene
+  slice_max(median, n = 1)  %>% #14.396
+  ungroup()
+
+# Remove HGNC symbols with multiple MGI mappings
+hgnc_symbol_dupes = mouse_log2summary %>% 
+  #filter ensembl id with multiple mgi_symbols
+  get_dupes(hgnc_symbol)
+
+mouse_log2summary = mouse_log2summary %>% 
+  select(probe, hgnc_symbol) %>% 
+# Remove genes with ambiguous human symbol mappings: retains only one-to-one mouse-to-human orthologs
+  filter(!hgnc_symbol %in% c(hgnc_symbol_dupes$hgnc_symbol %>% unique())) 
+
+# Build filtered expression matrix with human symbols
+
+# Join expression with annotation, keep only mapped probes
+mouse_log2_filtered_probes = ecoli_mouse_exprs %>% 
+  as.data.frame() %>% 
+  rename(probe = probe_id) %>% 
+# Join expression data with annotation by probe ID: adds gene symbols to raw probe-level measurements
+  inner_join(mouse_log2summary, by = "probe") %>%   #214,396
+  select(human_symbol = hgnc_symbol, 
+         probe,
+         c(mouse_metadata %>% 
+             pull(geo_sample)))
+#14395
+mouse_log2_filtered_probes %>% dim()
+
+mouse_log2_hgnc_symbol = mouse_log2_filtered_probes 
+
+mouse_log2_hgnc_symbol %>% 
+# Identify duplicated gene symbols: marks genes that map to multiple Entrez IDs or probes for removal
+  get_dupes(human_symbol)
+
+#Save
+mouse_log2_hgnc_symbol %>% 
+# Save R object to disk in native RDS format: preserves data types and structure for fast loading
+  saveRDS(file = here("tables", "processed_data", "ecoli_mouse_exprs_hgnc_symbol_long.rds"))
+```
+
+Import
+Load the required data objects from disk.
+Load the required data objects from disk.
+
+```{r}
+# Load data
+mouse_counts_log2_summary_annotated_genes = 
+# Load dataset from disk or GEO: reads pre-saved expression matrix / metadata into the R environment
+  readRDS(file = here("tables", "processed_data", "ecoli_mouse_exprs_hgnc_symbol_long.rds"))
+
+#Pivot wider
+log2fc_sample_wide = mouse_counts_log2_summary_annotated_probes %>% 
+  select(probe = probe_id, entrezgene_id, batch:human_symbol) %>% 
+# Remove duplicate rows: eliminates redundant probe-to-gene mappings (one probe may match multiple transcript clusters)
+  distinct() %>% 
+  select(human_symbol, subject_id, timepoint, log2fc) %>%
+  group_by(human_symbol, timepoint) %>% 
+# Widen data: reshape so that each timepoint becomes a separate column (required format for t-test input)
+  pivot_wider(names_from = subject_id,
+              values_from = log2fc) %>% 
+  ungroup()  %>% 
+  mutate(timepoint = fct_reorder(timepoint, timepoint %>% as.numeric()))
+  
+#Print
+log2fc_sample_wide
+```
+
+
+
+
+
+#### Human
+There are batches
+
+```{r}
+
+ecoli_human_exprs = readRDS(here("tables", "processed_data", "ecoli_human_exprs.rds"))
+ecoli_mouse_exprs = readRDS(here("tables", "processed_data", "ecoli_mouse_exprs.rds"))
+ecoli_mouse_human_metadata = readRDS(file = here("tables", "processed_data", "ecoli_human_mouse_metadata.rds"))
+
+
+#Annotate genes ------
+#Mouse -----
+#Annotate data and calculate log2fc
+human_expression_metadata  = ecoli_human_exprs %>% 
+  pivot_longer(cols = 2:63,
+               names_to = "geo_sample",
+               values_to = "value_raw") %>% 
+# Attach sample metadata (participant ID, timepoint, condition) to expression values by GEO sample ID
+  inner_join(ecoli_mouse_human_metadata, 
+             by = "geo_sample") 
+
+human_expression_metadata %>% 
+# Save R object to disk in native RDS format: preserves data types and structure for fast loading
+  saveRDS(file = here("tables", "processed_data", "ecoli_human_exprs_metadata.rds"))
+
+
+human_expression_metadata =
+# Load dataset from disk or GEO: reads pre-saved expression matrix / metadata into the R environment
+  readRDS(file = here("tables", "processed_data", "ecoli_human_exprs_metadata.rds"))
+
+human_metadata =  human_expression_metadata %>% 
+  filter(organism == "Human") %>% 
+# Remove duplicate rows: eliminates redundant probe-to-gene mappings (one probe may match multiple transcript clusters)
+  select(-value_raw, - probe_id) %>% distinct()
+
+# Save R object to disk in native RDS format: preserves data types and structure for fast loading
+human_metadata %>% saveRDS(file = here("tables", "processed_data", "ecoli_human_metadata.rds"))
+
+#Get value from day 0 and calculate Log2FC
+human_log2fc_sample = human_expression_metadata %>% 
+  #Filter batch
+  filter(organism == "Human",
+         status == "Healthy") %>% 
+  select(probe_id, participant_id = subject_id, status, day0_value_raw = value_raw) %>% 
+# Group by probe ID to collapse multiple probe-to-gene mappings later
+  group_by(probe_id, status) %>% 
+  summarise(n = n(),
+            #Mean of healthy
+            day0_value_raw = sum(day0_value_raw)/n) %>% 
+  select(probe_id, day0_value_raw) %>% 
+  #Join by probe id to infected participants
+  inner_join(human_expression_metadata %>% 
+               filter(site_infection == "urinary tract"), #1 lung, 19 urinary tract),
+             by = join_by("probe_id")) %>% 
+  # Compute log2 fold-change relative to baseline
+mutate(log2fc = value_raw - day0_value_raw) %>% 
+  select(probe_id:subject_id, batch:status, log2fc)
+
+#Check duplicates
+human_log2fc_sample %>% 
+  filter(subject_id == "Ecoli_human_urinary tract_GSM824707",
+         probe_id == "1007_s_at") #OK
+
+human_log2fc_sample %>% 
+# Save R object to disk in native RDS format: preserves data types and structure for fast loading
+  saveRDS(here("tables", "Differential gene expression", "ecoli_human_log2fc_sample_clean_long.rds"))
+
+```
+
+Annotate probes with gene symbols by querying the Ensembl BioMart database.
+
+```{r}
+########### Filter and annotate probes -----
+# Configure Ensembl BioMart
+ensembl_mart <- useMart("ensembl")
+ensembl_mart <- useDataset("hsapiens_gene_ensembl", mart = ensembl_mart)
+
+# Get probe IDs from expression matrix
+gene_id <- human_log2fc_sample$probe_id %>% unique()
+# listAttributes(ensembl_mart)%>% View()
+# Annotate data
+#[HG-U133A_2] Affymetrix Human Genome U133A 2.0 Array
+annot <- getBM(
+  attributes = c("affy_hg_u133a_2",
+                 "ensembl_gene_id",
+                 "entrezgene_id",
+                 "hgnc_symbol",
+                 "description"),
+  filters = "affy_hg_u133a_2",
+  values = gene_id,
+  mart = ensembl_mart)
+
+#Get annotations for each probe 
+### Filter probes with highest median expression
+#Get annotations for each probe 
+### Filter probes with highest median expression
+human_ecoli_log2summary = human_exprs %>% 
+  rename(probe = probe_id) %>% 
+# Reshape expression data from wide (columns = samples) to long (rows = probe × sample) format for tidyverse workflows
+  pivot_longer(cols = -probe,
+               names_to = "sample",
+               values_to = "expression") %>% 
+# Group by probe ID to collapse multiple probe-to-gene mappings later
+  group_by(probe) %>% 
+# Compute per-probe summary statistics (mean, median) across all samples to select the most representative probe
+  summarise(mean = mean(expression,na.rm = TRUE),
+            median = median(expression, na.rm = T)) %>%  
+# Join BioMart gene annotation to expression data by probe ID: adds gene symbol, Entrez ID, and description
+  inner_join(annot %>% 
+              rename(probe = affy_hg_u133a_2), 
+            by = "probe") %>% 
+  # Collapse to one row per Ensembl ID
+  group_by(ensembl_gene_id) %>% 
+  # Keep probe with highest median expression per gene
+  slice_max(median, n = 1) %>%
+  ungroup() %>% 
+  select(-ensembl_gene_id) %>% 
+# Remove duplicate rows: eliminates redundant probe-to-gene mappings (one probe may match multiple transcript clusters)
+  distinct() %>% 
+  
+  # Collapse to one row per Entrez ID
+  group_by(entrezgene_id) %>% 
+  # Keep probe with highest median expression per gene
+  slice_max(median, n = 1) %>%  #21.863 probes/entrez_ids
+  ungroup() %>% 
+  rename(human_symbol = hgnc_symbol) %>% 
+  filter(human_symbol != "") %>%
+# Group by Entrez gene ID: collapse multiple Ensembl IDs per Entrez ID after orthology mapping
+  group_by(entrezgene_id) %>%
+# Randomly select one representative entry from each group of duplicates (last resort for ambiguous mappings)
+  slice_sample(n = 1) %>%  # one line per entrezgene_id
+  ungroup() %>%
+  distinct(probe, .keep_all = TRUE)  # remove dup probes
+
+human_ecoli_log2summary %>% 
+# Identify duplicated gene symbols: marks genes that map to multiple Entrez IDs or probes for removal
+  get_dupes(probe)
+
+
+
+# Join expression with annotation, keep only mapped probes
+human_ecoli_log2_filtered_probes = human_exprs %>%
+  rename(probe = probe_id) %>% 
+# Join expression data with annotation by probe ID: adds gene symbols to raw probe-level measurements
+  inner_join(human_ecoli_log2summary, by = "probe") %>%   #214,396
+  select(human_symbol, probe,
+         c(human_metadata$geo_sample))
+#14395
+human_ecoli_log2_filtered_probes %>% dim()
+
+human_ecoli_log2_filtered_symbol = human_ecoli_log2_filtered_probes 
+
+human_ecoli_log2_filtered_symbol %>% 
+# Identify duplicated gene symbols: marks genes that map to multiple Entrez IDs or probes for removal
+  get_dupes(human_symbol)
+
+#Save 
+human_ecoli_log2_filtered_symbol %>% 
+# Save R object to disk in native RDS format: preserves data types and structure for fast loading
+  saveRDS(here("tables", "processed_data", "ecoli_human_exprs_hgnc_symbol.rds"))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+#====================
+
+#5. Burn and Trauma, Injuries
+
+
+##Download datasets
+
+### Human
+
+#### Trauma, Human (GSE36809)
+Clinical metadata were curated and standardized to ensure consistency across the dataset. The time elapsed since injury, originally recorded in hours, was converted to days and rounded to one decimal place. To account for the irregular temporal distribution of samples, timepoints were discretized into seven categorical bins: <1 day (Early Hours), 1–2 days, 2–5 days, 5–10 days, 10–18 days, 18–25 days, and >25 days. Samples were stratified into 'Trauma' and 'Control' groups based on subject identifiers. Rigorous quality control was applied by excluding samples explicitly flagged in the metadata for low RNA quality or incomplete temporal data. Finally, temporal bins were treated as ordered factors to facilitate downstream differential expression modeling.
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, echo=TRUE, cache = TRUE}
+#Download datasets
+filename = "trauma_human"
+GSE_matrix <- getGEO(filename = here("tables", "raw_data", "GSE36809_series_matrix.txt.gz"), 
+                     GSEMatrix = T)
+
+#Get Expression Set
+eset <- GSE_matrix
+
+#Get metadata -------
+GSE_metadata = eset %>% Biobase::pData()
+
+#Select, clean, and standardize attributes
+GSE_metadata_annotated = GSE_metadata %>% 
+  select(geo_sample = "geo_accession",
+         sample_id = "source_name_ch1",
+         description = title,
+         tissue = `tissue:ch1`,
+         sex = `Sex:ch1`,
+         age = "age:ch1",
+         timepoint = `hours_since_injury:ch1`,
+         platform_id
+         ) %>% 
+  separate(sample_id, sep = ", ", into = c("subject_id", "delete")) %>% 
+  select(-delete) %>% 
+    mutate(timepoint = if_else(timepoint == "N/A", "0", timepoint),
+         timepoint = (as.numeric(timepoint)/24) %>% round(x = ., digits = 1),
+         subject_id = str_remove(subject_id, "Subject "),
+         geo = "GSE36809",
+         organism = "Human",
+         treatment = if_else(subject_id != "Control", "Trauma", "Control")) %>% 
+  filter(!description %in% c("Please notice that this sample with low RNA quality.", 
+                            "Sample from patients with incomplete time points.")) %>% 
+  mutate(
+    
+    # Binned timepoints
+    timepoints_new = case_when(
+      timepoint < 1            ~ "Early_Hours",
+      timepoint >= 1 & timepoint < 2  ~ "Day_1",
+      timepoint >= 2 & timepoint < 5  ~ "Day_3",
+      timepoint >= 5 & timepoint < 10 ~ "Day_7",
+      timepoint >= 10 & timepoint < 18 ~ "Day_14",
+      timepoint >= 18 & timepoint < 25 ~ "Day_21",
+      timepoint >= 25          ~ "Day_28",
+      TRUE                         ~ "Other"
+    ),
+    
+    #Explicit bins
+    timepoints_bin = case_when(
+      timepoint < 1            ~ "<Day_1",
+      timepoint >= 1 & timepoint < 2  ~ "Day_1_>=1 to <2",
+      timepoint >= 2 & timepoint < 5  ~ "Day_3_>=2 to <5",
+      timepoint >= 5 & timepoint < 10 ~ "Day_7_>=5 to <10",
+      timepoint >= 10 & timepoint < 18 ~ "Day_14_>=10 to <18",
+      timepoint >= 18 & timepoint < 25 ~ "Day_21_>=18 to <25",
+      timepoint >= 25          ~ "Day_28_>25",
+      TRUE                         ~ "Other"
+    ),
+    
+    timepoints_new = factor(timepoints_new, levels = c("Early_Hours", "Day_1", "Day_3", "Day_7", "Day_14", "Day_21", "Day_28"))
+  )
+
+
+
+GSE_metadata_annotated %>% 
+  group_by(subject_id)%>%
+  arrange(subject_id, timepoint) %>%
+  View()
+
+GSE_metadata_annotated %>% 
+  filter(subject_id != "Control") %>% 
+  group_by(subject_id)%>%
+  summarise(n_timepoints = n()) %>% 
+  arrange(subject_id, n_timepoints) %>% 
+  filter(n_timepoints > 1) # -10 participants
+
+
+GSE_metadata_annotated %>% 
+  group_by(timepoints_new, treatment)%>%
+  summarise(n_sample = n()) %>% 
+  arrange(timepoints_new) %>% 
+# Create ggplot object: maps data to aesthetic (x = expression value)
+  ggplot() +
+  aes(x = timepoints_new,
+      size = n_sample,
+      y = treatment,
+      color = treatment) +
+# Add scatter plot points: each point represents a sample in PCA/MDS space
+  geom_point()
+
+GSE_metadata_annotated_filtered = GSE_metadata_annotated %>% 
+  filter(timepoints_new %in% c("Early_Hours", "Day_1", "Day_3", "Day_7"))
+
+
+#Save metadata
+saveRDS(GSE_metadata_annotated_filtered, file = here("tables", "processed_data", paste0(filename, "_metadata.rds")))
+
+#Get counts matrix ------
+GSE_exprs <- eset %>% exprs()
+
+#Save as RDS
+GSE_exprs %>% 
+  as.data.frame() %>% 
+  select(GSE_metadata_annotated_filtered$geo_sample) %>% 
+  saveRDS(here("tables", "processed_data", paste0(filename, "_exprs.rds")))
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+#### Burn, Human (GSE37069)
+
+Download the raw dataset from GEO using GEOquery.
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, echo=TRUE, cache = TRUE}
+#Download datasets
+filename = "burn_human"
+GSE_matrix <- getGEO(filename = here("tables", "raw_data", "GSE37069_series_matrix.txt.gz"), 
+                     GSEMatrix = T)
+
+#Get Expression Set
+eset <- GSE_matrix
+
+#Get metadata -------
+GSE_metadata = eset %>% Biobase::pData()
+
+#Select, clean, and standardize attributes
+GSE_metadata_annotated = GSE_metadata %>% 
+  select(geo_sample = "geo_accession",
+         treatment = "source_name_ch1",
+         organism = organism_ch1,
+         age = `age:ch1`,
+         tissue = `tissue:ch1`,
+         sex = `Sex:ch1`,
+         timepoint = `hours_since_injury:ch1`,
+         platform_id,
+         ) %>% 
+  separate(treatment, sep = ", ", into = c("subject_id", "delete")) %>% 
+  select(-delete) %>% 
+    mutate(subject_id = str_remove(subject_id, "Subject "),
+           timepoint = if_else(timepoint == "N/A", "0", timepoint),
+         timepoint = (as.numeric(timepoint)/24) %>% round(x = ., digits = 1),
+         geo = "GSE37069",
+         treatment = if_else(subject_id != "Control", "Burn", "Control")) %>% 
+  mutate(
+    
+    # Binned timepoints
+    timepoints_new = case_when(
+      timepoint < 1            ~ "Early_Hours",
+      timepoint >= 1 & timepoint < 2  ~ "Day_1",
+      timepoint >= 2 & timepoint < 5  ~ "Day_3",
+      timepoint >= 5 & timepoint < 10 ~ "Day_7",
+      timepoint >= 10 & timepoint < 18 ~ "Day_14",
+      timepoint >= 18 & timepoint < 25 ~ "Day_21",
+      timepoint >= 25          ~ "Day_28",
+      TRUE                         ~ "Other"
+    ),
+    
+    #Explicit bins
+    timepoints_bin = case_when(
+      timepoint < 1            ~ "<Day_1",
+      timepoint >= 1 & timepoint < 2  ~ "Day_1_>=1 to <2",
+      timepoint >= 2 & timepoint < 5  ~ "Day_3_>=2 to <5",
+      timepoint >= 5 & timepoint < 10 ~ "Day_7_>=5 to <10",
+      timepoint >= 10 & timepoint < 18 ~ "Day_14_>=10 to <18",
+      timepoint >= 18 & timepoint < 25 ~ "Day_21_>=18 to <25",
+      timepoint >= 25          ~ "Day_28_>25",
+      TRUE                         ~ "Other"
+    ),
+    
+    timepoints_new = factor(timepoints_new, levels = c("Early_Hours", "Day_1", "Day_3", "Day_7", "Day_14", "Day_21", "Day_28"))
+  )
+
+
+GSE_metadata_annotated %>% 
+  group_by(timepoints_new, treatment)%>%
+  summarise(n_sample = n()) %>% 
+  arrange(timepoints_new) %>% 
+  ggplot() +
+  aes(x = timepoints_new,
+      size = n_sample,
+      y = treatment,
+      color = treatment) +
+  geom_point()
+
+GSE_metadata_annotated %>%
+  group_by(timepoint, treatment)%>%
+  summarise(n_sample = n()) %>%
+  arrange(timepoint) %>%
+  ggplot() +
+  aes(x = timepoint,
+      color = treatment) +
+  geom_histogram()
+
+GSE_metadata_annotated_filtered = GSE_metadata_annotated %>% 
+  filter(timepoints_new %in% c("Early_Hours", "Day_1", "Day_3", "Day_7"))
+  
+
+#Save metadata
+write_csv(GSE_metadata_annotated_filtered, file = here("tables",  "processed_data", paste0(filename, "_metadata.csv")))
+
+#Get counts matrix ------
+GSE_exprs <- eset %>% exprs()
+
+#Save as RDS
+GSE_exprs %>% 
+  as.data.frame() %>% 
+  select(GSE_metadata_annotated_filtered$geo_sample) %>% 
+  saveRDS(here("tables", "processed_data", paste0(filename, "_exprs.rds")))
+
+```
+
+### Mouse
+#### Trauma and Burn, Mouse (GSE7404)
+
+Download the raw dataset from GEO using GEOquery.
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, echo=TRUE, cache = TRUE}
+#Download datasets
+filename = "trauma_burn_mouse"
+GSE_matrix <- getGEO(filename = here("tables", "raw_data", "GSE7404_series_matrix.txt.gz"), 
+                     GSEMatrix = T)
+
+#Get Expression Set
+eset <- GSE_matrix
+
+#Get metadata
+GSE_metadata = eset %>% Biobase::pData()
+
+#Select, clean, and standardize attributes
+GSE_metadata_annotated = GSE_metadata %>% 
+  select(geo_sample = "geo_accession",
+         sample_id = "source_name_ch1",
+         participant_description = title,
+         characteristics = characteristics_ch1,
+         timepoint = `time:ch1`,
+         genetic = `genetic background:ch1`,
+         tissue = `source_name_ch1`,
+         organism = organism_ch1,
+         description = description,
+         # sex = `Sex:ch1`,
+         platform_id
+         ) %>% 
+# Filter to PBMC samples only
+  filter(tissue == "mouse leukocytes") %>% 
+  fill(genetic, .direction = "up") %>% 
+  mutate(treatment = case_when(str_detect(description, "burn") ~ "Burn", 
+                               str_detect(description, "trauma") ~ "Trauma", 
+                               str_detect(description, "LPS") ~ "LPS",
+                               T~description),
+         treatment = if_else(str_detect(participant_description, "Sham"), paste0(treatment, "_", "Control"), treatment),
+         tissue = str_remove(tissue, "mouse "), 
+         sex = "male",
+         geo = "GSE7404") %>% 
+  extract(
+    col = participant_description, 
+    into = c("timepoint", "participant_id"), 
+    regex = "(\\d+\\s?(?:day|Day|hr))\\s+(rep\\s?\\d+)", 
+    remove = T 
+  ) %>% 
+  mutate(timepoint = str_replace(timepoint, "hr", "Hour") %>% str_replace("day", "Day"),
+         timepoint = fct_reorder(timepoint, parse_number(timepoint))) %>% 
+  select(geo_sample, participant_id, timepoint, sex, 
+         strain = genetic, tissue, organism, treatment, platform_id) 
+
+
+GSE_metadata_annotated %>% 
+  group_by(timepoint, treatment)%>%
+  summarise(n_sample = n()) %>% 
+  arrange(timepoint) %>% 
+  ggplot() +
+  aes(x = timepoint,
+      size = n_sample,
+      y = treatment,
+      color = treatment) +
+  geom_point()
+  
+
+#Save metadata
+write_csv(GSE_metadata_annotated, file = here("tables", "processed_data", paste0(filename, "_metadata.csv")))
+
+#Get counts matrix
+GSE_exprs <- eset %>% exprs()
+
+#Save as RDS
+GSE_exprs %>% as.data.frame() %>% 
+  saveRDS(here("tables", "processed_data", paste0(filename, "_exprs.rds")))
+
+```
+
+
+## Annotate genes
+
+#### Mouse 
+
+##### Trauma and Burn
+
+Import previously saved analysis results for combined processing.
+
+```{r}
+#Import datasets
+mouse_exprs = readRDS(here("tables", "processed_data", "trauma_burn_mouse_exprs.rds")) %>% 
+  as.matrix() %>%
+  { log2(. + 1) } %>% 
+  as.data.frame()
+mouse_metadata = read_csv(file = here("tables", "processed_data", "trauma_burn_mouse_metadata.csv")) %>% 
+  mutate(status = if_else(str_detect(treatment, "_Control"), "Control", "Treated"),
+         treatment = str_remove(treatment, "_Control"))
+
+#Inputs
+filename = "trauma_burn_mouse"
+
+#Annotate genes ------
+mouse_exprs_metadata  = mouse_exprs %>% 
+  rownames_to_column("probe_id") %>% 
+  pivot_longer(cols = 2:145,
+               names_to = "geo_sample",
+               values_to = "value_raw") %>% 
+# Attach sample metadata 
+  inner_join(mouse_metadata, 
+             by = "geo_sample") 
+
+#Get value from day 0 and calculate Log2FC (non-paired)
+mouse_exprs_log2fc_sample = mouse_exprs_metadata %>% 
+  filter(status == "Control") %>% 
+  select(probe_id, treatment, timepoint, subject_num = participant_id, value_raw_ref = value_raw) %>% 
+  distinct() %>% 
+  group_by(timepoint, treatment, probe_id) %>% 
+  summarise(value_raw_ref = mean(value_raw_ref)) %>% 
+  ungroup() %>% 
+  inner_join(mouse_exprs_metadata %>% 
+               filter(status != "Control"),
+             by = join_by("probe_id", "treatment", "timepoint")) %>% 
+mutate(log2fc = value_raw - value_raw_ref) %>% 
+  distinct() 
+
+#Check duplicates
+mouse_exprs_log2fc_sample %>% 
+  filter(participant_id == "rep 1",
+         treatment == "Burn",
+         probe_id == "1415670_at")
+```
+
+
+Annotate probes with gene symbols by querying the Ensembl BioMart database.
+
+```{r}
+########### Filter and annotate probes -----
+# Configure Ensembl BioMart
+ensembl_mart <- useMart("ensembl")
+ensembl_mart <- useDataset("mmusculus_gene_ensembl", mart = ensembl_mart)
+
+# Get probe IDs from expression matrix
+gene_id <- rownames(mouse_exprs) %>% unique()
+
+# listAttributes(ensembl_mart) %>% View()
+# Annotate data
+annot <- getBM(
+  attributes = c("affy_mouse430_2",
+                 "ensembl_gene_id",
+                 "entrezgene_id",
+                 "mgi_symbol",
+                 "description"),
+  filters = "affy_mouse430_2", #Probes
+  values = gene_id,
+  mart = ensembl_mart)
+
+# Load mouse-to-human orthology lookup
+library(FIT.mouse2man)
+HS_MM_Symbol_Entrez = FIT.mouse2man::HS_MM_Symbol_Entrez %>% 
+  clean_names() %>% 
+  rename(mouse_entrez = mouse_ortholog)
+
+#Get annotations for each probe 
+### Filter probes with highest median expression
+mouse_log2summary = mouse_exprs %>% #20,845 probes
+  as.data.frame() %>% 
+  rownames_to_column("probe_id") %>% 
+  rename(probe = probe_id) %>% 
+  pivot_longer(cols = -probe,
+               names_to = "sample",
+               values_to = "expression") %>% 
+  group_by(probe) %>% 
+  summarise(median = median(expression, na.rm = T)) %>%  
+  inner_join(annot %>% 
+              rename(probe = affy_mouse430_2), 
+            by = "probe") %>%  #24.009 rows
+  group_by(ensembl_gene_id) %>% 
+  # Keep probe with highest median expression per gene
+  slice_max(median, n = 1) %>%
+  ungroup() %>% 
+  select(-ensembl_gene_id) %>% 
+  distinct() %>% 
+  group_by(entrezgene_id) %>% 
+  slice_max(median, n = 1) %>%  #21.863 probes/entrez_ids
+  ungroup() %>% 
+  rename(mouse_entrez = entrezgene_id) %>% 
+
+  # Join human orthologs, collapse to one row per HGNC symbol
+  inner_join(HS_MM_Symbol_Entrez, by = c("mouse_entrez", "mgi_symbol")) %>% 
+  group_by(hgnc_symbol) %>% 
+  # Keep Entrez with highest median expression per gene
+  slice_max(median, n = 1)  %>% #14.396
+  ungroup()
+
+# Remove HGNC symbols with multiple MGI mappings
+hgnc_symbol_dupes = mouse_log2summary %>% 
+  get_dupes(hgnc_symbol)
+
+mouse_log2summary = mouse_log2summary %>% 
+  select(probe, hgnc_symbol) %>% 
+  filter(!hgnc_symbol %in% c(hgnc_symbol_dupes$hgnc_symbol %>% unique())) 
+
+# Build filtered expression matrix with human symbols
+
+# Join expression with annotation, keep only mapped probes
+mouse_log2_filtered_probes = mouse_exprs %>% 
+  rownames_to_column("probe_id") %>% 
+  as.data.frame() %>% 
+  rename(probe = probe_id) %>% 
+  inner_join(mouse_log2summary, by = "probe") %>%   #214,396
+  select(human_symbol = hgnc_symbol,
+         probe,
+         c(mouse_metadata %>% 
+             pull(geo_sample)))
+#Check
+mouse_log2_filtered_probes %>% dim()
+mouse_log2_hgnc_symbol = mouse_log2_filtered_probes 
+mouse_log2_hgnc_symbol %>% get_dupes(human_symbol)
+
+#Save
+mouse_log2_hgnc_symbol %>% saveRDS(file = here("tables", paste0(filename, "_exprs_hgnc_symbol.rds")))
+
+mouse_log2_hgnc_symbol = readRDS(file = here("tables", paste0(filename, "_exprs_hgnc_symbol.rds")))
+
+mouse_exprs_log2fc_sample = mouse_exprs_log2fc_sample %>% 
+  rename(probe = probe_id) %>% 
+  inner_join(mouse_log2_hgnc_symbol %>% 
+               select(human_symbol, probe),
+             by = join_by(probe))
+#Save
+mouse_exprs_log2fc_sample %>% 
+  saveRDS(here("tables", "Differential gene expression", "trauma_burn_mouse_log2fc_sample_clean_long.rds"))
+
+```
+
+
+
+
+#### Human
+##### Trauma
+
+Import previously saved analysis results for combined processing.
+
+```{r}
+#Import datasets
+human_exprs = readRDS(here("tables", "processed_data", "trauma_human_exprs.rds"))
+human_metadata = read_csv(file = here("tables", "processed_data", "trauma_human_metadata.csv"))
+
+#Inputs
+filename = "trauma_human"
+
+#Annotate genes ------
+#Annotate data and calculate log2fc
+human_exprs_metadata  = human_exprs %>% 
+  rownames_to_column("probe_id") %>% 
+  pivot_longer(cols = 2:681,
+               names_to = "geo_sample",
+               values_to = "value_raw") %>% 
+  inner_join(human_metadata, 
+             by = "geo_sample")
+
+#Get value from day 0 and calculate Log2FC (non-paired)
+human_exprs_log2fc_sample = human_exprs_metadata %>% 
+  filter(treatment == "Control") %>% 
+  select(probe_id, treatment, value_raw_ref = value_raw) %>% 
+  distinct() %>% 
+  group_by(probe_id) %>% 
+  summarise(value_raw_ref = mean(value_raw_ref)) %>% 
+  ungroup() %>% 
+  inner_join(human_exprs_metadata %>% 
+               filter(treatment != "Control"),
+             by = join_by("probe_id")) %>% 
+  # Compute log2 fold-change relative to baseline
+mutate(log2fc = value_raw - value_raw_ref) %>% 
+  distinct() 
+
+human_trauma_log2fc_sample = human_exprs_log2fc_sample
+
+#Check for duplicates
+human_exprs_log2fc_sample %>% 
+  filter(description == "Blood, subject 15429976, hours since injury 5.8",
+         probe_id == "1007_s_at")
+```
+
+
+Annotate probes with gene symbols by querying the Ensembl BioMart database.
+
+```{r}
+########### Filter and annotate probes -----
+# Configure Ensembl BioMart
+ensembl_mart <- useMart("ensembl")
+ensembl_mart <- useDataset("hsapiens_gene_ensembl", mart = ensembl_mart)
+
+# Get probe IDs from expression matrix
+gene_id <- rownames(human_exprs) %>% unique()
+
+# listAttributes(ensembl_mart) %>% View()
+# Annotate data
+annot <- getBM(
+  attributes = c("affy_hg_u133_plus_2",
+                 "ensembl_gene_id",
+                 "entrezgene_id",
+                 "hgnc_symbol",
+                 "description"),
+  filters = "affy_hg_u133_plus_2", #Probes
+  values = gene_id,
+  mart = ensembl_mart) %>% #Standardize
+  rename(probe = affy_hg_u133_plus_2,
+                     entrezgene_id = entrezgene_id,
+                     human_symbol = hgnc_symbol,
+                     ensembl_id = ensembl_gene_id)
+
+#Filter genes with highest median expression
+human_log2summary = human_exprs %>% 
+  rownames_to_column("probe") %>% 
+  pivot_longer(cols = -probe,
+               names_to = "sample",
+               values_to = "expression") %>% 
+  group_by(probe) %>% 
+  summarise(median = median(expression, na.rm = T)) %>%  
+  inner_join(annot, 
+            by = "probe") %>% 
+  
+  group_by(ensembl_id) %>% 
+  # Keep probe with highest median expression per gene
+  slice_max(median, n = 1) %>%
+  ungroup() %>% 
+  select(-ensembl_id) %>% 
+  distinct() %>% 
+  # Collapse to one row per Entrez ID
+  group_by(entrezgene_id) %>% 
+  # Keep probe with highest median expression per gene
+  slice_max(median, n = 1) %>%  #21.863 probes/entrez_ids
+  ungroup()  
+
+
+#Filter out genes with multiple hgnc_symbols
+hgnc_symbol_dupes = human_log2summary %>% 
+  get_dupes(human_symbol)
+
+human_log2summary = human_log2summary %>% 
+  filter(!human_symbol %in% c(hgnc_symbol_dupes$human_symbol %>% unique())) 
+
+# Join expression with annotation, keep only mapped probes
+human_log2_filtered_probes = human_exprs %>% 
+  as.data.frame() %>% 
+  rownames_to_column("probe") %>% 
+  inner_join(human_log2summary, by = "probe") %>%   #214,396
+  select(human_symbol, probe,
+         c(human_metadata$geo_sample)) %>% 
+  drop_na()
+#18124
+human_log2_filtered_probes %>% dim()
+
+human_log2_filtered_probes = human_log2_filtered_probes 
+
+human_log2_filtered_probes %>% 
+  get_dupes(human_symbol)
+
+#Save 
+human_log2_filtered_probes %>% 
+# Save
+  saveRDS(here("tables", "processed_data", "trauma_human_exprs_hgnc_symbol.rds"))
+
+#Annotate probes from log2fc table
+human_exprs_log2fc_sample = human_trauma_log2fc_sample %>% 
+  rename(probe = probe_id) %>% 
+  inner_join(human_log2_filtered_probes %>% 
+               select(probe,
+                      human_symbol),
+             by = "probe")
+
+human_exprs_log2fc_sample %>% head()
+
+human_exprs_log2fc_sample %>% 
+# Save R object to disk in native RDS format: preserves data types and structure for fast loading
+  saveRDS(here("tables", "Differential gene expression", "trauma_human_log2fc_sample_clean_long.rds"))
+
+
+```
+
+
+
+##### Burn
+
+Import previously saved analysis results for combined processing.
+
+```{r}
+#Import datasets
+human_exprs = readRDS(here("tables", "processed_data", "burn_human_exprs.rds")) #Log2 values
+human_metadata = read_csv(file = here("tables", "processed_data", "burn_human_metadata.csv"))
+
+#Inputs
+filename = "burn_human"
+
+#Annotate genes ------
+#Mouse -----
+#Annotate data and calculate log2fc
+human_exprs_metadata  = human_exprs %>% 
+  rownames_to_column("probe_id") %>% 
+  pivot_longer(cols = 2:329,
+               names_to = "geo_sample",
+               values_to = "value_raw") %>% 
+  inner_join(human_metadata, 
+             by = "geo_sample")
+
+#Get value from day 0 and calculate Log2FC (non-paired)
+human_exprs_log2fc_sample = human_exprs_metadata %>% 
+  filter(treatment == "Control") %>% 
+  select(probe_id, treatment, value_raw_ref = value_raw) %>% 
+  distinct() %>% 
+  group_by(probe_id) %>% 
+  summarise(value_raw_ref = mean(value_raw_ref)) %>% 
+  ungroup() %>% 
+  inner_join(human_exprs_metadata %>% 
+               filter(treatment != "Control"),
+             by = join_by("probe_id")) %>% 
+  # Compute log2 fold-change relative to baseline
+mutate(log2fc = value_raw - value_raw_ref) %>% 
+  distinct() 
+
+#Save
+human_burn_log2fc_sample = human_exprs_log2fc_sample
+
+#Check for duplicates
+human_exprs_log2fc_sample %>% 
+  filter(subject_id == "11710452",
+         probe_id == "1007_s_at")
+
+########### Filter and annotate probes -----
+# Configure Ensembl BioMart
+ensembl_mart <- useMart("ensembl")
+ensembl_mart <- useDataset("hsapiens_gene_ensembl", mart = ensembl_mart)
+
+# Get probe IDs from expression matrix
+gene_id <- rownames(human_exprs) %>% unique()
+
+# listAttributes(ensembl_mart) %>% View()
+# Annotate data
+annot <- getBM(
+  attributes = c("affy_hg_u133_plus_2",
+                 "ensembl_gene_id",
+                 "entrezgene_id",
+                 "hgnc_symbol",
+                 "description"),
+  filters = "affy_hg_u133_plus_2", #Probes
+  values = gene_id,
+  mart = ensembl_mart) %>% #Standardize
+  rename(probe = affy_hg_u133_plus_2,
+                     entrezgene_id = entrezgene_id,
+                     human_symbol = hgnc_symbol,
+                     ensembl_id = ensembl_gene_id)
+
+#Filter genes with highest median expression
+human_log2summary = human_exprs %>% 
+  rownames_to_column("probe") %>% 
+  pivot_longer(cols = -probe,
+               names_to = "sample",
+               values_to = "expression") %>% 
+  group_by(probe) %>% 
+  summarise(median = median(expression, na.rm = T)) %>%  
+  inner_join(annot, 
+            by = "probe") %>% 
+  group_by(ensembl_id) %>% 
+  # Keep probe with highest median expression per gene
+  slice_max(median, n = 1) %>%
+  ungroup() %>% 
+  select(-ensembl_id) %>% 
+  distinct() %>% 
+  # Collapse to one row per Entrez ID
+  group_by(entrezgene_id) %>% 
+  # Keep probe with highest median expression per gene
+  slice_max(median, n = 1) %>%  #21.863 probes/entrez_ids
+  ungroup()  
+
+
+#Filter out genes with multiple hgnc_symbols
+hgnc_symbol_dupes = human_log2summary %>% 
+  get_dupes(human_symbol)
+
+human_log2summary = human_log2summary %>% 
+  filter(!human_symbol %in% c(hgnc_symbol_dupes$human_symbol %>% unique())) 
+
+# Join expression with annotation, keep only mapped probes
+human_log2_filtered_probes = human_exprs %>% 
+  as.data.frame() %>% 
+  rownames_to_column("probe") %>% 
+  inner_join(human_log2summary, by = "probe") %>%   #214,396
+  select(human_symbol, probe,
+         c(human_metadata$geo_sample))
+#18196
+human_log2_filtered_probes %>% dim()
+
+human_log2_filtered_probes = human_log2_filtered_probes 
+
+human_log2_filtered_probes %>% 
+  get_dupes(human_symbol)
+
+#Save 
+human_log2_filtered_probes %>% 
+  saveRDS(here("tables", "processed_data", "burn_human_exprs_hgnc_symbol.rds"))
+
+
+#Annotate probes with log2fc
+human_exprs_log2fc_sample = human_exprs_log2fc_sample %>% 
+  rename(probe = probe_id) %>% 
+  inner_join(human_log2_filtered_probes %>% 
+               select(probe,
+                      human_symbol),
+             by = "probe")
+
+human_exprs_log2fc_sample %>% 
+saveRDS(here("tables", "Differential gene expression", "burn_human_log2fc_sample_clean_long.rds"))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ===================
+# 6. Duchenne
+## Mouse
+
+Download dataset
+
+Download the Duchenne mouse dataset (GSE1025) from GEO. Extract metadata from the ExpressionSet, save it as a CSV, then extract and save the raw expression matrix.
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, echo=TRUE, cache = TRUE}
+# Download the GEO ExpressionSet
+filename = "GSE1025"
+GSE1025 <- getGEO("GSE1025", GSEMatrix = TRUE) 
+eset <- GSE1025[[1]]
+
+# Clean and save metadata
+duchenne_metadata = eset %>% 
+  pData() %>% 
+  dplyr::select( 
+    geo_sample = "geo_accession", 
+    subject_id = "title",
+    tissue = "source_name_ch1",
+    platform_id,
+    participant_id = subject_id
+    ) %>% 
+        mutate(
+          tissue = "Muscle",
+          temp_col = str_to_lower(subject_id),
+          treatment = case_when(
+            str_detect(subject_id, "control|Control") ~ "Control",
+            str_detect(subject_id, "mdx") ~ "DMD",
+            T ~ NA
+          )
+        ) %>%
+          extract(
+            col = temp_col,
+            into = c("timepoint", "group", "replicate"),
+            regex = "leg (\\d+) day ([a-z]+) rep (\\d+)",
+            convert = TRUE
+          ) %>%
+          mutate(
+            treatment = fct_relevel(treatment, "Control"),
+            condition = paste(treatment, timepoint, sep = "_")
+          ) %>% 
+  select(!(group))
+
+#Save
+saveRDS(duchenne_metadata, file = here("tables", "processed_data", "duchenne_mouse_metadata.rds"))
+
+# Extract and save expression matrix
+eset <- exprs(eset)
+
+#Save
+eset %>% 
+  as.data.frame() %>% 
+  saveRDS(here("tables", "processed_data", "duchenne_mouse_exprs.rds"))
+
+```
+
+
+Inspect the distribution of expression values for one representative sample (GSM3407136) to confirm the data are on the log2 scale.
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, echo=TRUE, cache = TRUE}
+# Load the expression matrix
+duchenne_exprs = readRDS(here("tables", "processed_data", "duchenne_mouse_exprs.rds"))
+duchenne_counts_not_normalized_log2 = readRDS(here("tables", "processed_data", "duchenne_mouse_exprs.rds"))
+
+# Pivot to long format
+duchenne_exprs_distribution = duchenne_exprs %>% 
+  rownames_to_column("probes") %>% 
+  pivot_longer(cols = -probes,
+               names_to = "sample_id",
+               values_to = "value") 
+
+# Plot expression histogram for the first sample
+duchenne_exprs_distribution %>% 
+  mutate(value_log = log2(value)) %>% 
+  filter(sample_id == "GSM15862") %>% 
+  ggplot() +
+  aes(x = value_log) +
+  geom_histogram()
+
+```
+
+
+Import
+Load the required data objects from disk.
+```{r}
+# Load metadata and expression
+duchenne_metadata = readRDS(here("tables", "processed_data", "duchenne_mouse_metadata.rds"))
+duchenne_exprs = readRDS(here("tables", "processed_data", "duchenne_mouse_exprs.rds")) %>% 
+  as.matrix() %>%
+  { log2(. + 1) } %>% 
+  as.data.frame()
+
+# Check probe count
+duchenne_exprs %>% rownames() %>% length()
+duchenne_exprs %>% dim()
+
+# Subset expression matrix to selected samples
+duchenne_exprs = duchenne_exprs %>% 
+  as.data.frame() %>% 
+  select(c(duchenne_metadata$geo_sample)) %>% 
+  as.matrix()
+
+#Inputs
+filename = "duchenne_mouse"
+
+#Annotate genes ------
+mouse_exprs_metadata  = duchenne_exprs %>% 
+  as.data.frame() %>% 
+  rownames_to_column("probe_id") %>% 
+  pivot_longer(cols = 2:37,
+               names_to = "geo_sample",
+               values_to = "value_raw") %>% 
+  inner_join(duchenne_metadata, 
+             by = "geo_sample") 
+
+#Get value from day 0 and calculate Log2FC (non-paired)
+mouse_exprs_log2fc_sample = mouse_exprs_metadata %>% 
+  filter(treatment == "Control") %>% 
+  select(probe_id, treatment, timepoint, subject_num = participant_id, value_raw_ref = value_raw) %>% 
+  distinct() %>% 
+  group_by(timepoint, treatment, probe_id) %>% 
+  summarise(value_raw_ref = mean(value_raw_ref)) %>% 
+  ungroup() %>% 
+  inner_join(mouse_exprs_metadata %>% 
+               filter(treatment != "Control") %>% 
+               select(-treatment),
+             by = join_by("probe_id", "timepoint")) %>% 
+  # Compute log2 fold-change relative to baseline
+ mutate(log2fc = value_raw - value_raw_ref) %>% 
+  distinct() 
+
+#Check duplicates
+mouse_exprs_log2fc_sample %>% 
+  filter(participant_id == "Leg 7 Day mdx rep 1",
+         probe_id == "100001_at")
+
+
+mouse_exprs_log2fc_sample
+
+#Save
+duchenne_exprs %>% 
+  as.data.frame() %>% 
+# Save R object to disk in native RDS format: preserves data types and structure for fast loading
+  saveRDS(file = here("tables", "processed_data", "duchenne_mouse_exprs.rds"))
+```
+
+Annotate genes
+
+Map Agilent probe IDs to human gene symbols using Ensembl BioMart and the FIT.mouse2man orthology lookup table.
+
+```{r}
+# Set up Ensembl BioMart for mouse
+ensembl_mart <- useMart("ensembl")
+ensembl_mart <- useDataset("mmusculus_gene_ensembl", mart = ensembl_mart)
+
+# Get probe IDs from the expression matrix
+gene_id <- duchenne_exprs %>% rownames()
+
+# List available attributes
+listAttributes(ensembl_mart)
+
+# Affymetrix Murine Genome U74A Version 2 Array
+
+# Retrieve annotations for all probes
+annot <- getBM(
+  attributes = c("affy_mg_u74av2", #Agilent microarray data (design ID 028005, retrieved from GEO)
+                 "ensembl_gene_id",
+                 "entrezgene_id",
+                 "mgi_symbol",
+                 "description"),
+  filters = "affy_mg_u74av2",
+  values = gene_id,
+  mart = ensembl_mart)
+
+# Load mouse-to-human orthology lookup table
+library(FIT.mouse2man)
+
+HS_MM_Symbol_Entrez = FIT.mouse2man::HS_MM_Symbol_Entrez %>% 
+  clean_names() %>% 
+  rename(mouse_entrez = mouse_ortholog)
+
+# Summarise expression per probe, collapse to one row per gene
+mouse_log2summary = duchenne_exprs %>% #20,845 probes
+  as.data.frame() %>% 
+  rownames_to_column("probe") %>% 
+  pivot_longer(cols = -probe,
+               names_to = "sample",
+               values_to = "expression") %>% 
+  group_by(probe) %>% 
+# Compute per-probe summary statistics
+  summarise(mean = mean(expression,na.rm = TRUE),
+            median = median(expression, na.rm = T)) %>%  
+  inner_join(annot %>% 
+              rename(probe = affy_mg_u74av2), 
+            by = "probe") %>%  #24.009 rows
+  group_by(ensembl_gene_id) %>% 
+  slice_max(median, n = 1) %>%
+  ungroup() %>% 
+  select(-ensembl_gene_id) %>% 
+# Remove duplicate rows
+  distinct() %>% 
+  
+  # Collapse multiple Ensembl IDs per Entrez ID
+  group_by(entrezgene_id) %>% 
+  # Keep probe with highest median expression per gene
+  slice_max(median, n = 1) %>%  #21.863 probes/entrez_ids
+  ungroup() %>% 
+  rename(mouse_entrez = entrezgene_id) %>% 
+  
+  # Join human orthologs, collapse to one row per HGNC symbol
+  inner_join(HS_MM_Symbol_Entrez, by = c("mouse_entrez", "mgi_symbol")) %>% 
+  group_by(hgnc_symbol) %>% 
+  # Keep probe with highest median expression per gene
+  slice_max(median, n = 1)  %>% #14.396
+  ungroup()
+
+# Remove HGNC symbols that map to multiple MGI symbols
+hgnc_symbol_dupes = mouse_log2summary %>% 
+  get_dupes(hgnc_symbol)
+
+mouse_log2summary = mouse_log2summary %>% 
+  filter(!hgnc_symbol %in% c(hgnc_symbol_dupes$hgnc_symbol %>% unique())) 
+
+# Build filtered expression matrix with human gene symbols
+mouse_log2_filtered_probes = duchenne_exprs %>% 
+  as.data.frame() %>% 
+  rownames_to_column("probe") %>% 
+# Join expression data with annotation by probe ID
+  inner_join(mouse_log2summary, by = "probe") %>%   #214,396
+  select(human_symbol = hgnc_symbol,
+         probe_id = probe,
+         human_entrez,
+         mouse_entrez,
+         c(duchenne_metadata$geo_sample))
+
+#14395mouse_log2_filtered_probes
+mouse_log2_filtered_probes %>% dim()
+
+mouse_log2_hgnc_symbol = mouse_log2_filtered_probes 
+
+# Identify duplicated gene symbols
+mouse_log2_hgnc_symbol %>% get_dupes(human_symbol)
+
+mouse_exprs_log2fc_sample = mouse_exprs_log2fc_sample %>% 
+  inner_join(mouse_log2_hgnc_symbol %>% 
+               select(human_symbol, probe_id),
+             by = join_by(probe_id))
+
+mouse_exprs_log2fc_sample %>% 
+  saveRDS(here("tables", "Differential gene expression", "duchenne_mouse_log2fc_sample_clean_long.rds"))
+
+#Save 
+mouse_log2_hgnc_symbol %>% 
+  saveRDS(here("tables", "processed_data", "duchenne_mouse_exprs_hgnc_symbol.rds"))
+```
+
+
+
+
+
+
+
